@@ -1,0 +1,930 @@
+<!--
+Copyright (c) 2020 Oliver Droop
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+-->
+<html>
+<head>
+</head>
+<body>
+<div id="firstdiv">Hello</div>
+<canvas id="myCanvas" style="position:absolute; left:0px; top:0px"></canvas>
+<input type="button" id="buttonScramble" value="Scramble" style="position:absolute">
+<input type="button" id="buttonZoomIn" value="+" style="position:absolute">
+<input type="button" id="buttonZoomOut" value="-" style="position:absolute">
+<script>
+//
+var vfoc = {x:0, y:0, z:-1000};
+var vcam = {x:0, y:0, z:-2000};
+var fov = Math.PI * (1/4);
+var camAngleX = 0;
+var camAngleY = Math.PI / 4;
+var sunVector = {x:-10, y:0, z:20};
+initiateCamera();
+var img = new Image();
+img.src = "http://178.62.85.228/SpannerNut1.jpg";
+function initiateCamera(){
+	var vx0 = {x:0, y:0, z:0};
+	var dsv = findDistance(vx0, sunVector);
+	var fac = 1 / dsv;
+	sunVector.x = sunVector.x * fac;
+	sunVector.y = sunVector.y * fac;
+	sunVector.z = sunVector.z * fac;
+}
+//
+var vertexArray = [];
+var polygonArray = [];
+var cubeArray = [];
+var ghostGrid = null;
+var vtop = {x:0, y:400, z:0, screenX:0, screenY:0};
+var vbot = {x:0, y:-400, z:0, screenX:0, screenY:0};
+setup();
+var Rvect = {x:1, y:0, z:0};
+for(var indx = 0; indx < vertexArray.length; indx++) {
+	var vertexArray = vertexArray;
+	var v = vertexArray[indx];
+	rotateVertex(v, camAngleY, Rvect);
+	calculateScreenpoint(v);
+}
+calculateScreenpoint(vtop);
+calculateScreenpoint(vbot);
+calculateScreenpoint(vfoc);
+rotateVertex(vtop, camAngleY, Rvect);
+rotateVertex(vbot, camAngleY, Rvect);
+//
+
+//
+var c = document.getElementById("myCanvas");
+c.width = window.innerWidth;
+c.height = window.innerHeight;
+var ctx = c.getContext("2d");
+var buttonScramble = document.getElementById("buttonScramble");
+buttonScramble.style.left = window.innerWidth - 105;
+buttonScramble.style.top = 5;
+buttonScramble.style.width = "100px";
+buttonScramble.style.height = "100px";
+buttonScramble.onclick = scramble;
+var buttonZoomIn = document.getElementById("buttonZoomIn");
+buttonZoomIn.style.left = window.innerWidth - 210;
+buttonZoomIn.style.top = 5;
+buttonZoomIn.style.width = "100px";
+buttonZoomIn.style.height = "100px";
+buttonZoomIn.onclick = zoomIn;
+var buttonZoomOut = document.getElementById("buttonZoomOut");
+buttonZoomOut.style.left = window.innerWidth - 315;
+buttonZoomOut.style.top = 5;
+buttonZoomOut.style.width = "100px";
+buttonZoomOut.style.height = "100px";
+buttonZoomOut.onclick = zoomOut;
+var mouseDownPos = {x:0, y:0};
+var mousePos = {x:0, y:0};
+var faceClicked = null;
+var faceDraggedTo = null;
+var snapTolerance = 40;
+var blackLineWidth = 5;
+var camAngleRef = {x:camAngleX, y:camAngleY};
+c.onmousedown = logMouseDown;
+c.onmouseup = mouseUp;
+c.onmousemove = mouseMove;
+c.ontouchstart = logTouchStart;
+c.ontouchend = touchEnd;
+c.ontouchmove = touchMove;
+c.style.touchAction = "none";
+window.setInterval(myFunc, 20);
+function setup(){
+	var size = 100;
+	//Set up ghost grid
+	var ary0 = new Array();
+	for (var ix = 0; ix < 4; ix++){
+		var ary1 = new Array();
+		ary0[ix] = ary1;
+		for (var iy = 0; iy < 4; iy++){
+			var ary2 = new Array();
+			ary1[iy] = ary2;
+			for (var iz = 0; iz < 4; iz++){
+				var vx = {x:(ix * size), y:(iy * size), z:(iz * size), screenX:0, screenY:0};
+				vertexArray.push(vx);
+				ary2[iz] = vx;
+			}
+		}
+	}
+	ghostGrid = ary0;
+	//Set up coloured cubes
+	for (var ix = 0; ix < 3; ix++){
+		for (var iy = 0; iy < 3; iy++){
+			for (var iz = 0; iz < 3; iz++){
+				var vx0 = {x:(ix * size), y:(iy * size), z:(iz * size), screenX:0, screenY:0};
+				var vx1 = {x:(ix * size), y:(iy * size) + size, z:(iz * size), screenX:0, screenY:0};
+				var vx2 = {x:(ix * size) + size, y:(iy * size) + size, z:(iz * size), screenX:0, screenY:0};
+				var vx3 = {x:(ix * size) + size, y:(iy * size), z:(iz * size), screenX:0, screenY:0};
+				var vx4 = {x:(ix * size), y:(iy * size), z:(iz * size) + size, screenX:0, screenY:0};
+				var vx5 = {x:(ix * size), y:(iy * size) + size, z:(iz * size) + size, screenX:0, screenY:0};
+				var vx6 = {x:(ix * size) + size, y:(iy * size) + size, z:(iz * size) + size, screenX:0, screenY:0};
+				var vx7 = {x:(ix * size) + size, y:(iy * size), z:(iz * size) + size, screenX:0, screenY:0};
+				vertexArray.push(vx0);
+				vertexArray.push(vx1);
+				vertexArray.push(vx2);
+				vertexArray.push(vx3);
+				vertexArray.push(vx4);
+				vertexArray.push(vx5);
+				vertexArray.push(vx6);
+				vertexArray.push(vx7);
+				
+				var py00 = {v0:vx0, v1:vx1, v2:vx2};
+				var py01 = {v0:vx2, v1:vx3, v2:vx0};
+				var fac0 = {ply0:py00, ply1:py01, colour:"#ff0000", isOutside:false};
+				var py02 = {v0:vx7, v1:vx6, v2:vx5};
+				var py03 = {v0:vx5, v1:vx4, v2:vx7};
+				var fac1 = {ply0:py02, ply1:py03, colour:"#ff5000", isOutside:false};
+				var py04 = {v0:vx5, v1:vx1, v2:vx0};
+				var py05 = {v0:vx0, v1:vx4, v2:vx5};
+				var fac2 = {ply0:py04, ply1:py05, colour:"#004000", isOutside:false};
+				var py06 = {v0:vx2, v1:vx6, v2:vx7};
+				var py07 = {v0:vx7, v1:vx3, v2:vx2};
+				var fac3 = {ply0:py06, ply1:py07, colour:"#0000ff", isOutside:false};
+				var py08 = {v0:vx7, v1:vx4, v2:vx0};
+				var py09 = {v0:vx0, v1:vx3, v2:vx7};
+				var fac4 = {ply0:py08, ply1:py09, colour:"#ffffff", isOutside:false};
+				var py10 = {v0:vx2, v1:vx1, v2:vx5};
+				var py11 = {v0:vx5, v1:vx6, v2:vx2};
+				var fac5 = {ply0:py10, ply1:py11, colour:"#ffff00", isOutside:false};
+				var facs = [];
+				facs.push(fac0);
+				facs.push(fac1);
+				facs.push(fac2);
+				facs.push(fac3);
+				facs.push(fac4);
+				facs.push(fac5);
+				for(var i2 = 0; i2 < facs.length; i2++){
+					var face = facs[i2];
+					polygonArray.push(face.ply0);
+					polygonArray.push(face.ply1);
+					if (ix == 0 && i2 == 2){
+						face.isOutside = true;
+					}
+					if (ix == 2 && i2 == 3){
+						face.isOutside = true;
+					}
+					if (iy == 0 && i2 == 4){
+						face.isOutside = true;
+					}
+					if (iy == 2 && i2 == 5){
+						face.isOutside = true;
+					}
+					if (iz == 0 && i2 == 0){
+						face.isOutside = true;
+					}
+					if (iz == 2 && i2 == 1){
+						face.isOutside = true;
+					}
+				}
+				var cube = {
+					faces:facs
+				}
+				cubeArray.push(cube);
+			}
+		}
+	}
+	var d1 = findDistance(vtop, vbot);
+	var Rvect = {x:(vtop.x - vbot.x) * (1 / d1), y:(vtop.y - vbot.y) * (1 / d1), z:(vtop.z - vbot.z) * (1 / d1)};
+	for(var i = 0; i < vertexArray.length; i++){
+		var v = vertexArray[i];
+		transformVertex(v, -(size * 1.5), -(size * 1.5), -(size * 1.5));
+		rotateVertex(v, Math.PI / 4, Rvect);
+	}
+}
+//
+
+function calculateScreenpoint(v){
+	var orgx = window.innerWidth / 2;
+	var orgy = window.innerHeight / 2;
+	var dcam = findDistance(v, vcam);
+	var focl = findDistance(vcam, vfoc);
+	var fovf = (focl / (dcam * fov));
+	//
+	var x = v.x * fovf;
+	var y = v.y * fovf;
+	v.screenX = Math.round(x + orgx);
+	v.screenY = Math.round(y + orgy);
+}
+//
+function myFunc(){
+	//Perform automatic rotation of vertices
+	if (mouseDownPos.x == 0 && mouseDownPos.y == 0){
+		var d1 = findDistance(vtop, vbot);
+		var Rvect = {x:(vtop.x - vbot.x) * (1 / d1), y:(vtop.y - vbot.y) * (1 / d1), z:(vtop.z - vbot.z) * (1 / d1)};
+		for(var indx = 0; indx < vertexArray.length; indx++){
+			var v = vertexArray[indx];
+			//rotateVertex(v, Math.PI / 240, Rvect);
+		}
+	}
+	ctx.fillStyle = "rgb(127,127,127)";
+	ctx.fillRect(0,0,c.width, c.height);
+	for(var indx = 0; indx < vertexArray.length; indx++) {
+		var v = vertexArray[indx];
+		calculateScreenpoint(v);
+	}
+	calculateScreenpoint(vtop);
+	calculateScreenpoint(vbot);
+	//
+	polygonArray = sortPolygonsByDistance(polygonArray);
+	for(var indx = 0; indx < polygonArray.length; indx++){
+		var poly = polygonArray[indx];
+		drawPolygon(poly);
+	}
+	
+	ctx.strokeStyle = "rgb(255,255,0)";
+	var v1 = {x:0, y:0, z:0, screenX:0, screenY:0};
+	var v2 = {x:-400, y:-100, z:-1200, screenX:0, screenY:0};
+	for(var indx = 0; indx < polygonArray.length; indx++){
+		var poly = polygonArray[indx];
+		//draw intersection of camera-focus line
+		var intersection = findIntersection(poly.v0, poly.v1, poly.v2, v1, v2);
+	}
+	ctx.strokeStyle = "rgb(0,0,0)";
+}
+function repositionCamera(rotx, roty){
+	var Rvcx = {x:0, y:1, z:0};
+	var Rvcy = {x:1, y:0, z:0};
+	for(var indx = 0; indx < vertexArray.length; indx++){
+		var v = vertexArray[indx];
+		rotateVertex(v, rotx, Rvcx);
+		rotateVertex(v, roty, Rvcy);
+	}
+}
+function zoomIn(){
+	fov = fov * 0.8;
+	blackLineWidth = blackLineWidth * 1.25;
+}
+function zoomOut(){
+	fov = fov * 1.25;
+	blackLineWidth = blackLineWidth * 0.8;
+}
+function drawLine(v1, v2){
+	ctx.lineWidth = "0.25";
+	ctx.beginPath();
+	ctx.moveTo(v1.screenX, v1.screenY);
+	ctx.lineTo(v2.screenX, v2.screenY);
+	ctx.stroke();
+}
+function drawPolygon(poly){
+	//Get vertices
+	var v0 = poly.v0;
+	var v1 = poly.v1;
+	var v2 = poly.v2;
+	var vecn = findNormal(v0,v1,v2);
+	//Shade polygon
+	//Find which face polygon is a member of and get colour
+	var fac0 = null;
+	var colr = "#797979";
+	for(var i = 0; i < cubeArray.length; i++){
+		var cube = cubeArray[i];
+		var facs = cube.faces;
+		for(var i2 = 0; i2 < facs.length; i2++){
+			var fac1 = facs[i2];
+			if (fac1.ply0 == poly || fac1.ply1 == poly){
+				fac0 = fac1;
+			}
+		}
+	}
+	colr = fac0.colour;
+	var vecs = sunVector;
+	var vcmp = compareVectors(vecn, vecs);
+	var vx0 = {x:0, y:0, z:0};
+	var vx1 = {x:vx0.x + vecn.x + vecs.x, y:vx0.y + vecn.y + vecs.y, z:vx0.z + vecn.z + vecs.z};
+	var sim = findDistance(vx0, vx1);
+	var byt = 255 - Math.round(sim * 255 * 0.5);
+	//document.getElementById("firstdiv").innerHTML = "(" + byt + ")";
+	if (byt > 255){
+		byt = 255;
+	}
+	if (byt < 0){
+		byt = 0;
+	}
+	var r = Math.round(parseInt("0x" + colr.substring(1, 3), 16) * (byt / 128) + 0);
+	var g = Math.round(parseInt("0x" + colr.substring(3, 5), 16) * (byt / 128) + 0);
+	var b = Math.round(parseInt("0x" + colr.substring(5, 7), 16) * (byt / 128) + 0);
+	//Remove polygons with a vertex behind the focus
+	if (v0.z > vfoc.z && v1.z > vfoc.z && v2.z > vfoc.z && fac0.isOutside == true){
+		//Draw polygon
+		ctx.lineWidth = "1";
+		ctx.fillStyle = "rgb(" + r + "," + g + "," + b + ")";
+		ctx.strokeStyle = "rgb(" + r + "," + g + "," + b + ")";
+		ctx.beginPath();
+		ctx.moveTo(v0.screenX, v0.screenY);
+		ctx.lineTo(v1.screenX, v1.screenY);
+		ctx.lineTo(v2.screenX, v2.screenY);
+		ctx.lineTo(v0.screenX, v0.screenY);
+		ctx.closePath();
+		ctx.stroke();
+		ctx.fill();
+		//Draw black lines
+		ctx.lineWidth = blackLineWidth;
+		ctx.strokeStyle = "rgb(0,0,0)";
+		ctx.beginPath();
+		ctx.moveTo(v0.screenX, v0.screenY);
+		ctx.lineTo(v1.screenX, v1.screenY);
+		ctx.stroke();
+		ctx.beginPath();
+		ctx.moveTo(v1.screenX, v1.screenY);
+		ctx.lineTo(v2.screenX, v2.screenY);
+		ctx.stroke();
+	}
+}
+function logMouseDown(event){
+	posx = event.clientX;
+	posy = event.clientY;
+	mouseDownPos.x = posx;
+	mouseDownPos.y = posy;
+	faceClicked = getOutsideFaceAt(mouseDownPos);
+	if (faceClicked == null){
+		//click was outside cube
+		camAngleRef.x = camAngleX;
+		camAngleRef.y = camAngleY;
+	}
+	else{
+		//click was on a cube face
+		var nbrs = getNeighbouringFaces(faceClicked);
+	}
+}
+function logTouchStart(event){
+	var evt2 = {
+		clientX:event.touches[0].clientX,
+		clientY:event.touches[0].clientY
+	}
+	logMouseDown(evt2);
+}
+function mouseUp(event){
+	posx = event.clientX;
+	posy = event.clientY;
+	
+	var p1 = {x:posx, y:posy};
+	
+	snapToGrid();
+	cubeRotationAngle = 0;
+	mouseDownPos = {x:0, y:0};
+	faceClicked = null;
+	faceDraggedTo = null;
+}
+function touchEnd(event){
+	var evt2 = {
+		clientX:event.touches[0].clientX,
+		clientY:event.touches[0].clientY
+	}
+	mouseUp(evt2);
+}
+function mouseMove(event){
+	posx = event.clientX;
+	posy = event.clientY;
+	mousePos.x = posx;
+	mousePos.y = posy;
+	if (mouseDownPos.x != 0 && mouseDownPos.y != 0){
+		var difx = mousePos.x - mouseDownPos.x;
+		var dify = mousePos.y - mouseDownPos.y;
+		var ratx = 0;
+		var raty = 0;
+		ratx = -difx / window.innerWidth;
+		raty = dify / window.innerHeight;
+		if (faceClicked == null){
+			var sens = 20;
+			repositionCamera((fov * ratx) * sens, (fov * raty) * sens);
+			mouseDownPos.x = posx;
+			mouseDownPos.y = posy;
+		}
+		else{
+			var p1 = {x:posx, y:posy};
+			var faceHoveredOn = getOutsideFaceAt(p1);
+			if (faceHoveredOn != faceClicked){
+				if (faceDraggedTo == null){
+					faceDraggedTo = faceHoveredOn;
+				}
+				var angl = -Math.PI / 200;
+				rotateCubes(faceClicked, faceDraggedTo, angl);
+			}
+		}
+	}
+}
+function touchMove(event){
+	var evt2 = {
+		clientX:event.touches[0].clientX,
+		clientY:event.touches[0].clientY
+	}
+	mouseMove(evt2);
+}
+function rotateCubes(fac0, fac1, angl){
+	var cubs = getPlanarCubes(fac0, fac1);
+	var vrts = [];
+	if (cubs.length > 0){
+		for(var ic = 0; ic < cubs.length; ic++){
+			var cube = cubs[ic];
+			for(var ifac = 0; ifac < cube.faces.length; ifac++){
+				var vts2 = getVertices(cube.faces[ifac]);
+				for(var iv = 0; iv < vts2.length; iv++){
+					vrts.push(vts2[iv]);
+				}
+			}
+		}
+		var cens = [];
+		for(var ic = 0; ic < cubs.length; ic++){
+			var cube = cubs[ic];
+			var cen0 = getCentre(cube);
+			cens.push(cen0);
+		}
+		if (cens.length > 4){
+			var nrml = findNormal(cens[0], cens[2], cens[4]);
+			for(var iv = 0; iv < vrts.length; iv++){
+				var v = vrts[iv];
+				rotateVertex(v, angl, nrml);
+			}
+		}
+	}
+}
+function scramble(){
+	cnt = 100;
+	while(cnt > 0){
+		var i0 = Math.floor(Math.random() * cubeArray.length);
+		var cube = cubeArray[i0];
+		var i1 = Math.floor(Math.random() * 6);
+		var fac0 = cube.faces[i1];
+		if (fac0.isOutside == true){
+			var nbfs = getNeighbouringFaces(fac0);
+			var i2 = Math.floor(Math.random() * nbfs.length);
+			var fac1 = nbfs[i2];
+			var rota = (Math.PI / 2) * (Math.floor(Math.random() * 3) + 1);
+			rotateCubes(fac0, fac1, rota);
+			snapToGrid();
+			cnt -= 1;
+		}
+	}
+}
+function getOutsideFaceAt(p1){
+	var poly = getClosestPolygonAt(p1);
+	for(var i = 0; i < cubeArray.length; i++){
+		var cube = cubeArray[i];
+		for(var i2 = 0; i2 < cube.faces.length; i2++){
+			var face = cube.faces[i2];
+			if (face.isOutside){
+				if (poly == face.ply0 || poly == face.ply1){
+					return face;
+				}
+			}
+		}
+	}
+	return null;
+}
+function getCube(face){
+	for(var i = 0; i < cubeArray.length; i++){
+		var cube = cubeArray[i];
+		if (cube.faces.includes(face)){
+			return cube;
+		}
+	}
+	return null;
+}
+function getClosestPolygonAt(p1){
+	var pary = [];
+	for(var i = 0; i < polygonArray.length; i++){
+		var poly = polygonArray[i];
+		if (isWithin2D(p1, poly)){
+			pary.push(poly);
+		}
+	}
+	var clos = null;
+	var dist = 1999999999;
+	for(var i = 0; i < pary.length; i++){
+		var d2 = findDistance(pary[i].v0, vcam);
+		if (d2 < dist){
+			dist = d2;
+			clos = pary[i];
+		}
+	}
+	return clos;
+}
+function getPlanarCubes(fac0, fac1){
+	var cubs = [];
+	if (fac0 != null && fac1 != null){
+		var facs = [];
+		var fac3 = fac0;
+		var fac4 = fac1;
+		var count = 0;
+		while(facs.includes(fac0) == false && count < 13){
+			var fac2 = getOpposingNeighbourFace(fac3, fac4);
+			facs.push(fac2);
+			fac4 = fac3;
+			fac3 = fac2;
+			count += 1;
+		}
+		for(var i = 0; i < facs.length; i++){
+			var cube = getCube(facs[i]);
+			if (cubs.includes(cube) == false){
+				cubs.push(cube);
+			}
+		}
+	}
+	return cubs;
+}
+function getPlanarCubes2(fac0, fac1){
+	var cubs = [];
+	var cub0 = getCube(fac0);
+	var cub1 = getCube(fac1);
+}
+function getNeighbouringFaces(face){
+	var neighbours = [];
+	if (face != null){
+		var vtxa = [];
+		vtxa.push(face.ply0.v0);
+		vtxa.push(face.ply0.v1);
+		vtxa.push(face.ply1.v0);
+		vtxa.push(face.ply1.v1);
+		var facs = [];
+		for(var ic = 0; ic < cubeArray.length; ic++){
+			var cube = cubeArray[ic];
+			for(ifac = 0; ifac < cube.faces.length; ifac++){
+				var fac2 = cube.faces[ifac];
+				if (fac2.isOutside == true){
+					facs.push(fac2);
+				}
+			}
+		}
+		for(var ifac = 0; ifac < facs.length; ifac++){
+			var fac2 = facs[ifac];
+			if (face != fac2){
+				var vertexMatches = 0;
+				for(var iv = 0; iv < vtxa.length; iv++){
+					var v = vtxa[iv];
+					if (isSimilarVertex(v, fac2.ply0.v0)){
+						vertexMatches += 1;
+					}
+					if (isSimilarVertex(v, fac2.ply0.v1)){
+						vertexMatches += 1;
+					}
+					if (isSimilarVertex(v, fac2.ply1.v0)){
+						vertexMatches += 1;
+					}
+					if (isSimilarVertex(v, fac2.ply1.v1)){
+						vertexMatches += 1;
+					}
+				}
+				
+				if (vertexMatches >= 2){
+					neighbours.push(fac2);
+				}
+			}
+		}
+	}
+	return neighbours;
+}
+function getOpposingNeighbourFace(fmid, fnbr){
+	var nbrs = getNeighbouringFaces(fmid);
+	var van0 = getVertices(fnbr);
+	for(var inbr = 0; inbr < nbrs.length; inbr++){
+		var fac0 = nbrs[inbr];
+		var van1 = getVertices(fac0);
+		var fnbrContains = false;
+		for(var i = 0; i < van1.length; i++){
+			var v0 = van1[i];
+			for(var i2 = 0; i2 < van0.length; i2++){
+				var v1 = van0[i2];
+				if (isSimilarVertex(v0, v1)){
+					fnbrContains = true;
+				}
+			}
+		}
+		if (fnbrContains == false){
+			return fac0;
+		}
+	}
+	return null;
+}
+function getVertices(face){
+	var out = [];
+	if (face != null){
+		out.push(face.ply0.v0);
+		out.push(face.ply0.v1);
+		out.push(face.ply1.v0);
+		out.push(face.ply1.v1);
+	}
+	return out;
+}
+function getCentre(cube){
+	var vts0 = [];
+	for(var ifac = 0; ifac < cube.faces.length; ifac++){
+		var fac0 = cube.faces[ifac];
+		var vts1 = getVertices(fac0);
+		for(var iv = 0; iv < vts1.length; iv++){
+			var v0 = vts1[iv];
+			vts0.push(v0);
+		}
+	}
+	var xt = 0;
+	var yt = 0;
+	var zt = 0;
+	for(var iv = 0; iv < vts0.length; iv++){
+		var v0 = vts0[iv];
+		xt += v0.x;
+		yt += v0.y;
+		zt += v0.z;
+	}
+	xt = xt / vts0.length;
+	yt = yt / vts0.length;
+	zt = zt / vts0.length;
+	return{x:xt, y:yt, z:zt, screenX:0, screenY:0};
+}
+function isSimilarVertex(v0, v1){
+	if (v0.x == v1.x && v0.y == v1.y && v0.z == v1.z){
+		return true;
+	}
+	return false;
+}
+function snapToGrid(){
+	var tlnc = snapTolerance;
+	var snap = true;
+	for (var i = 0; i < vertexArray.length; i++){
+		var v0 = vertexArray[i];
+		if (ghostGrid.includes(v0) == false){
+			var clos = getClosestGridVertex(v0);
+			var dist = findDistance(v0, clos);
+			if (dist > tlnc){
+				snap = false;
+			}
+		}
+	}
+	if (snap == true){
+		for (var i = 0; i < vertexArray.length; i++){
+			var v0 = vertexArray[i];
+			if (ghostGrid.includes(v0) == false){
+				var clos = getClosestGridVertex(v0);
+				v0.x = clos.x;
+				v0.y = clos.y;
+				v0.z = clos.z;
+			}
+		}
+	}
+}
+function getClosestGridVertex(v0){
+	var clos = null;
+	var dist = 1999999999;
+	for(var ix = 0; ix < ghostGrid.length; ix++){
+		for(var iy = 0; iy < ghostGrid[ix].length; iy++){
+			for(var iz = 0; iz < ghostGrid[ix][iy].length; iz++){
+				var v1 = ghostGrid[ix][iy][iz];
+				var dst2 = findDistance(v0, v1);
+				if (dst2 < dist){
+					dist = dst2;
+					clos = v1;
+				}
+			}
+		}
+	}
+	return clos;
+}
+
+function rotateVertex(vertex, angle, Rvector){
+	var theta = angle;
+	var c = Math.cos(theta);
+	var s = Math.sin(theta);
+	var t = 1 - (Math.cos(theta));
+	var Rvect = Rvector;
+	var x = Rvect.x;
+	var y = Rvect.y;
+	var z = Rvect.z;
+	var Rmatrix = [
+		[(t * Math.pow(x, 2)) + c, (t * x * y) - (s * z), (t * x * z) + (s * y), 0],
+		[(t * x * y) + (s * z), (t * Math.pow(y, 2)) + c, (t * y * z) - (s * x), 0],
+		[(t * x * z) - (s * y), (t * y * z) + (s * x), (t * Math.pow(z, 2)) + c, 0],
+		[0, 0, 0, 1]
+	];
+	var Vmatrix1 = [];
+	Vmatrix1[0] = vertex.x;
+	Vmatrix1[1] = vertex.y;
+	Vmatrix1[2] = vertex.z;
+	Vmatrix1[3] = 1;
+	//
+	var Vmatrix2 = [];
+	Vmatrix2[0] = (Rmatrix[0][0] * Vmatrix1[0]) + (Rmatrix[0][1] * Vmatrix1[1]) + (Rmatrix[0][2] * Vmatrix1[2]) + (Rmatrix[0][3] * Vmatrix1[3]);
+	Vmatrix2[1] = (Rmatrix[1][0] * Vmatrix1[0]) + (Rmatrix[1][1] * Vmatrix1[1]) + (Rmatrix[1][2] * Vmatrix1[2]) + (Rmatrix[1][3] * Vmatrix1[3]);
+	Vmatrix2[2] = (Rmatrix[2][0] * Vmatrix1[0]) + (Rmatrix[2][1] * Vmatrix1[1]) + (Rmatrix[2][2] * Vmatrix1[2]) + (Rmatrix[2][3] * Vmatrix1[3]);
+	Vmatrix2[3] = (Rmatrix[3][0] * Vmatrix1[0]) + (Rmatrix[3][1] * Vmatrix1[1]) + (Rmatrix[3][2] * Vmatrix1[2]) + (Rmatrix[3][3] * Vmatrix1[3]);
+	//
+	vertex.x = Vmatrix2[0];
+	vertex.y = Vmatrix2[1];
+	vertex.z = Vmatrix2[2];
+}
+function transformVertex(v, x, y, z){
+	v.x = v.x + x;
+	v.y = v.y + y;
+	v.z = v.z + z;
+}
+function findNormal(v0, v1, v2){
+	var vec1 = {x:v1.x - v0.x, y:v1.y - v0.y, z:v1.z - v0.z};
+	var vec2 = {x:v2.x - v0.x, y:v2.y - v0.y, z:v2.z - v0.z};
+	var crossProduct = {x:((vec1.y * vec2.z) - (vec1.z * vec2.y)), y:((vec1.z * vec2.x) - (vec1.x * vec2.z)), z:((vec1.x * vec2.y) - (vec1.y * vec2.x))};
+	var vx0 = {x:0, y:0, z:0};
+	var fac = 1 / (findDistance(vx0, crossProduct));
+	crossProduct.x = crossProduct.x * fac;
+	crossProduct.y = crossProduct.y * fac;
+	crossProduct.z = crossProduct.z * fac;
+	return crossProduct;
+}
+function findNormal2(v0, v1, v2){
+	//this is a rounded and unscaled version
+	var vec1 = {x:v1.x - v0.x, y:v1.y - v0.y, z:v1.z - v0.z};
+	var vec2 = {x:v2.x - v0.x, y:v2.y - v0.y, z:v2.z - v0.z};
+	var crossProduct = {x:(Math.round(vec1.y * vec2.z) - Math.round(vec1.z * vec2.y)), y:(Math.round(vec1.z * vec2.x) - Math.round(vec1.x * vec2.z)), z:(Math.round(vec1.x * vec2.y) - Math.round(vec1.y * vec2.x))};
+	return crossProduct;
+}
+function findIntersection(vp0, vp1, vp2, vL0, vL1){
+	var n = findNormal2(vp0, vp1, vp2);
+	var vL = {x:(vL1.x - vL0.x), y:(vL1.y - vL0.y), z:(vL1.z - vL0.z)};
+	var d = Math.round(n.x * vL.x) + Math.round(n.y * vL.y) + Math.round(n.z * vL.z);
+	if (d != 0){
+		var t = (n.x * (vp0.x - vL0.x) + n.y * (vp0.y - vL0.y) + n.z * (vp0.z - vL0.z)) / d;
+		var out = {x:vL0.x + vL.x * t, y:vL0.y + vL.y * t, z:vL0.z + vL.z * t, screenX:0, screenY:0};
+		//
+		calculateScreenpoint(out);
+		//find out if point is within triangle (ignoring z dimension)
+		var maxx = Math.max(vp0.x, vp1.x, vp2.x);
+		var maxy = Math.max(vp0.y, vp1.y, vp2.y);
+		var maxz = Math.max(vp0.z, vp1.z, vp2.z);
+		var minx = Math.min(vp0.x, vp1.x, vp2.x);
+		var miny = Math.min(vp0.y, vp1.y, vp2.y);
+		var minz = Math.min(vp0.z, vp1.z, vp2.z);
+		var insd = false;
+		var poly = {v0:vp0, v1:vp1, v2:vp2};
+		var p1 = {x:out.screenX, y:out.screenY};
+		if (isWithin2D(p1, poly)){
+			//find out if point is on line
+			if (findDistance(vL0, out) < findDistance(vL0, vL1)){
+				if (findDistance(vL1, out) < findDistance(vL0, vL1)){
+					insd = true;
+				}
+			}
+		}
+		if (insd == true){
+			return out;
+		}
+		else{
+			return null;
+		}
+	}
+	else{
+		return null;
+	}
+}
+function compareVectors(vec1, vec2){
+	var x = vec2.x - vec1.x;
+	var y = vec2.y - vec1.y;
+	var z = vec2.z - vec1.z;
+	var out = {x:x, y:y, z:z};
+	return out;
+}
+function sortPolygonsByDistance(pAry){
+	var pAr2 = [];
+	var dAr = [];
+	for(var idx1 = 0; idx1 < pAry.length; idx1++){
+		var p1 = pAry[idx1];
+		var clos = 1999999999;
+		var d0 = findDistance(p1.v0, vcam);
+		var d1 = findDistance(p1.v1, vcam);
+		var d2 = findDistance(p1.v2, vcam);
+		//Obtain an average distance value for each polygon
+		clos = (d0 + d1 + d2) / 3;
+		//Add minimum distance value to array of distance values
+		dAr[idx1] = clos;
+	}
+	var cnt = 0;
+	//Start to grow output array of polygons
+	while (cnt < pAry.length){
+		//Find the largest value in the array of distances
+		var bgst = 0;
+		for(var idx3 = 0; idx3 < dAr.length; idx3++){
+			if (dAr[idx3] > bgst){
+				bgst = dAr[idx3];
+			}
+		}
+		//Find the index of the largest value
+		var idx2 = 0;
+		for(var idx4 = 0; idx4 < dAr.length; idx4++){
+			var d = dAr[idx4];
+			if (d == bgst){
+				idx2 = idx4;
+			}
+		}
+		//Wipe the largest value
+		dAr[idx2] = 0;
+		//Add the instance to the output array
+		pAr2.push(pAry[idx2]);
+		cnt += 1;
+	}
+	return pAr2;
+}
+function findAngle2D(p1, p2) {
+	var a = 0;
+	if (p1.y - p2.y != 0){
+		a = Math.atan((p2.x - p1.x) / (p1.y - p2.y));
+	}else{
+		a = Math.PI / (2 * Math.sign(p2.x - p1.x));
+	}
+	if (p2.x - p1.x >= 0 && p2.y - p1.y > 0) {
+		a += Math.PI;
+	}
+	if (p2.x - p1.x < 0 && p2.y - p1.y > 0) {
+        a += Math.PI;
+    }
+	if (p2.x - p1.x < 0 && p2.y - p1.y <= 0) {
+        a += Math.PI * 2;
+    }
+	return a;
+}
+function isBetween2D(ptst, p0, p1, p2){
+	var out = false;
+	var a1 = findAngle2D(p0, p1);
+	var a2 = findAngle2D(p0, p2);
+	if (a2 - a1 > Math.PI || (a1 - a2 < Math.PI) && (a1 - a2) > 0){
+		return isBetween2D(ptst, p0, p2, p1);
+	}
+	var atst = findAngle2D(p0, ptst);
+	if (a1 > a2){
+		a1 -= (Math.PI * 2);
+	}
+	if (atst >= a1 && atst <= a2){
+		out = true;
+	}
+	else{
+		atst -= (Math.PI * 2);
+		if (atst >= a1 && atst <= a2){
+			out = true;
+		}
+	}
+	return out;
+}
+function isWithin2D(p, poly){
+	var out = true;
+	var p0 = {x: poly.v0.screenX, y: poly.v0.screenY};
+	var p1 = {x: poly.v1.screenX, y: poly.v1.screenY};
+	var p2 = {x: poly.v2.screenX, y: poly.v2.screenY};
+	if (isBetween2D(p, p0, p2, p1) == false){
+		out = false;
+	}
+	if (isBetween2D(p, p1, p0, p2) == false){
+		out = false;
+	}
+	if (isBetween2D(p, p2, p1, p0) == false){
+		out = false;
+	}
+	return out;
+}
+function findDistance(v1, v2) {
+	var x1 = v1.x;
+	var y1 = v1.y;
+	var z1 = v1.z;
+	var x2 = v2.x;
+	var y2 = v2.y;
+	var z2 = v2.z;
+	var dsxy = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+	var dsz = z2 - z1;
+	var out = 0;
+	if (dsz != 0){
+		out = Math.sqrt(Math.pow(dsxy, 2) + Math.pow(dsz, 2));
+	}else{
+		out = dsxy;
+	}
+	return out;
+}
+function findAngle(p1, p2) {
+	var a = 0;
+	if (p1.y - p2.y != 0){
+		a = Math.atan((p2.x - p1.x) / (p1.y - p2.y));
+	}else{
+		a = Math.PI / (2 * Math.sign(p2.x - p1.x));
+	}
+	if (p2.x - p1.x >= 0 && p2.y - p1.y > 0) {
+		a += Math.PI;
+	}
+	if (p2.x - p1.x < 0 && p2.y - p1.y > 0) {
+        a += Math.PI;
+    }
+	if (p2.x - p1.x < 0 && p2.y - p1.y <= 0) {
+        a += Math.PI * 2;
+    }
+	return a;
+}
+</script>
+</body>
+</html>
