@@ -1,7 +1,9 @@
 package mainpackage;
 
+import java.util.List;
+
 public class MainClass {
     public static void main(String[] args){
-        new PrimeFinder().findPrimes(100).forEach(n -> System.out.println(n));
+        List<Integer> primes = new PrimeFinder().findPrimes(1000000);
     }
 }
