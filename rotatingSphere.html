@@ -1,0 +1,231 @@
+<html>
+<head>
+</head>
+<body>
+<div id="firstdiv">Hello</div>
+<canvas id="myCanvas" style="position:absolute; left:0px; top:0px"></canvas>
+<script>
+function findDistance(v1, v2) {
+	var x1 = v1.x;
+	var y1 = v1.y;
+	var z1 = v1.z;
+	var x2 = v2.x;
+	var y2 = v2.y;
+	var z2 = v2.z;
+	var dsxy = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+	var dsz = z2 - z1;
+	var out = 0;
+	if (dsz != 0){
+		out = Math.sqrt(Math.pow(dsxy, 2) + Math.pow(dsz, 2));
+	}else{
+		out = dsxy;
+	}
+	return out;
+}
+function findAngle(p1, p2) {
+	var a = 0;
+	if (p1.y - p2.y != 0){
+		a = Math.atan((p2.x - p1.x) / (p1.y - p2.y));
+	}else{
+		a = Math.PI / (2 * Math.sign(p2.x - p1.x));
+	}
+	if (p2.x - p1.x >= 0 && p2.y - p1.y > 0) {
+		a += Math.PI;
+	}
+	if (p2.x - p1.x < 0 && p2.y - p1.y > 0) {
+        a += Math.PI;
+    }
+	if (p2.x - p1.x < 0 && p2.y - p1.y <= 0) {
+        a += Math.PI * 2;
+    }
+	return a;
+}
+//
+var vfoc = {x:0, y:0, z:0};
+var vcam = {x:0, y:2000, z:2000};
+var fov = Math.PI / 18;
+var vp1 = {x:vcam.x, y:vcam.y, z:0};
+var vp2 = {x:vfoc.x, y:vfoc.y, z:0};
+var camAngleX = findAngle(vp1, vp2);
+var fdxy = findDistance(vp1, vp2);
+var vp3 = {x:0, y:0};
+var vp4 = {x:fdxy, y:(vfoc.z - vcam.z)};
+var camAngleY = findAngle(vp3, vp4);
+var vertexArray = [];
+for(var inx1 = 0; inx1 < 12; inx1++) {
+	for(var inx2 = 0; inx2 < 12; inx2++) {
+		var vertex = {
+			id:"v_" + inx1 + "_" + inx2, 
+			x:400 * (Math.sin((inx1 + 1) / (13 / Math.PI))) * (Math.sin(inx2 * (Math.PI / 6))), 
+			y:-400 * (Math.sin((inx1 + 1) / (13 / Math.PI))) * (Math.cos(inx2 * (Math.PI / 6))), 
+			z:400 * (Math.cos((inx1 + 1) / (13 / Math.PI))),
+			screenX:0,
+			screenY:0
+		};
+		vertexArray[(inx1 * 12) + inx2] = vertex;
+	}
+}
+//
+function calculateScreenpoint(v) {
+	var dcam = findDistance(v, vcam);
+	var focl = findDistance(vcam, vfoc);
+	var fovf = Math.tan(fov / 2) * focl * 2;
+	var rang = fovf / dcam;
+	var orgx = window.innerWidth / 2;
+	var orgy = window.innerHeight / 2;
+	var x1 = v.x;
+	var y1 = v.y;
+	var z1 = v.z;
+	var ax = camAngleX;
+	var ay = camAngleY;
+	var x2 = vfoc.x;
+	var y2 = vfoc.y;
+	var z2 = vfoc.z;
+	var x3 = vcam.x;
+	var y3 = vcam.y;
+	var p1 = {x:x1, y:y1};
+	var p2 = {x:x2, y:y2};
+	//var p3 = {x:x3, y:y3};
+	var a1 = findAngle(p1, p2);
+	var axdf = ax - a1;
+	var v1 = {x:x1, y:y1, z:0};
+	var v2 = {x:x2, y:y2, z:0};
+	var dfxy = findDistance(v1, v2);
+	var dfz = z2 - z1;
+	var offx = dfxy * Math.cos(axdf);
+	if (axdf < -Math.PI) {
+		axdf += 2 * Math.PI;
+	}
+	if (axdf > Math.PI) {
+		axdf -= 2 * Math.PI;
+	}
+	var sgxd = Math.sign(axdf);
+	var offy = (Math.sqrt(Math.pow(dfxy, 2) - Math.pow(offx, 2)) * sgxd * -Math.sin(ay) + (dfz * Math.cos(ay)));
+	var px = Math.round(offx * rang) + orgx;
+	var py = Math.round(offy * rang) + orgy;
+	v.screenX = px;
+	v.screenY = py;
+}
+//
+for(var indx = 0; indx < 144; indx++) {
+	var vertexArray = vertexArray;
+	var v = vertexArray[indx];
+	calculateScreenpoint(v);
+}
+
+var c = document.getElementById("myCanvas");
+c.width = window.innerWidth;
+c.height = window.innerHeight;
+var ctx = c.getContext("2d");
+function myFunc(){
+	if (mouseDownPos.x == 0 && mouseDownPos.y == 0){
+		camAngleX -= Math.PI / 480;
+	}
+	repositionCamera();
+	ctx.clearRect(0,0,c.width, c.height);
+	for(var indx = 0; indx < 144; indx++) {
+		var v = vertexArray[indx];
+		calculateScreenpoint(v);
+	}
+	for(var inx1 = 0; inx1 < 144; inx1++){
+		var v = vertexArray[inx1];
+		if (inx1 != 0 && inx1 != 12 && inx1 != 24 && inx1 != 36 && inx1 != 48 && inx1 != 60 && inx1 != 72 && inx1 != 84 && inx1 != 96 && inx1 != 108 && inx1 != 120 && inx1 != 132){
+			var v2 = vertexArray[inx1 - 1];
+			drawLine(v, v2);
+		}
+		else{
+			var v2 = vertexArray[inx1 + 11];
+			drawLine(v, v2);
+		}
+		if (inx1 > 11){
+			var v2 = vertexArray[inx1 - 12];
+			drawLine(v, v2);
+		}
+	}
+	//logMousePos(event);
+	//document.getElementById("firstdiv").innerHTML = "(" + window.event.pageX + "," + window.event.pageY + ")";
+}
+function repositionCamera(){
+	var a1 = camAngleX;
+	var a3 = camAngleY;
+	if (a1 >= 2 * Math.PI){
+		a1 -= 2 * Math.PI;
+	}
+	if (a1 < 0){
+		a1 += 2 * Math.PI;
+	}
+	var safa = 0.01;
+	if (a3 >= Math.PI / 2){
+		a3 = (Math.PI / 2) - safa;
+	}
+	if (a3 <= -Math.PI / 2){
+		a3 = (-Math.PI / 2) + safa;
+	}
+	camAngleX = a1;
+	camAngleY = a3;
+	//
+	var d1 = findDistance(vcam, vfoc);
+	var a2 = a1 + Math.PI;
+	if (a2 >= 2 * Math.PI){
+		a2 -= 2 * Math.PI;
+	}
+	var x = Math.round(vfoc.x + (d1 * Math.sin(a2 + (Math.PI / 2)) * Math.cos(a3)));
+	var y = Math.round(vfoc.y - (d1 * Math.cos(a2 + (Math.PI / 2)) * Math.cos(a3)));
+	var z = Math.round(vfoc.z - (d1 * Math.sin(-a3)));
+	vcam.x = x;
+	vcam.y = y;
+	vcam.z = z;
+}
+function drawLine(v1, v2){
+	ctx.lineWidth = "0.5";
+	ctx.beginPath();
+	ctx.moveTo(v1.screenX, v1.screenY);
+	ctx.lineTo(v2.screenX, v2.screenY);
+	ctx.stroke();
+}
+var mouseDownPos = {x:0, y:0};
+var mousePos = {x:0, y:0};
+var camAngleRef = {x:camAngleX, y:camAngleY};
+document.onmousedown = logMouseDown;
+document.onmouseup = mouseUp;
+document.onmousemove = mouseMove;
+function logMouseDown(event){
+	var posx = event.clientX;
+	var posy = event.clientY;
+	mouseDownPos.x = posx;
+	mouseDownPos.y = posy;
+	camAngleRef.x = camAngleX;
+	camAngleRef.y = camAngleY;
+	//document.getElementById("firstdiv").innerHTML = "(" + camAngleRef.x + "," + camAngleRef.y + ")";
+}
+function mouseUp(event){
+	var posx = event.clientX;
+	var posy = event.clientY;
+	var difx = posx - mouseDownPos.x;
+	var dify = posy - mouseDownPos.y;
+	//document.getElementById("firstdiv").innerHTML = "(" + difx + "," + dify + ")";
+	mouseDownPos = {x:0, y:0};
+}
+function mouseMove(event){
+	var posx = event.clientX;
+	var posy = event.clientY;
+	mousePos.x = posx;
+	mousePos.y = posy;
+	if (mouseDownPos.x != 0 && mouseDownPos.y != 0){
+		var difx = mousePos.x - mouseDownPos.x;
+		var dify = mousePos.y - mouseDownPos.y;
+		var ratx = 0;
+		var raty = 0;
+		ratx = difx / window.innerWidth;
+		raty = dify / window.innerHeight;
+		camAngleX = camAngleRef.x + ((fov * ratx) * 20);
+		camAngleY = camAngleRef.y + ((fov * raty) * 20);
+		//document.getElementById("firstdiv").innerHTML = ratx;
+		repositionCamera();
+	}
+}
+//
+window.setInterval(myFunc, 10);
+</script>
+</body>
+</html>

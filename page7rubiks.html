@@ -96,6 +96,7 @@ var mouseDownPos = {x:0, y:0};
 var mousePos = {x:0, y:0};
 var faceClicked = null;
 var faceDraggedTo = null;
+var rotatingCubes = null;
 var snapTolerance = 40;
 var blackLineWidth = 5;
 var camAngleRef = {x:camAngleX, y:camAngleY};
@@ -376,11 +377,14 @@ function mouseUp(event){
 	
 	var p1 = {x:posx, y:posy};
 	
+	while(snapToGrid() == false){
+		rotateCubes(rotatingCubes, Math.PI / 200);
+	}
 	snapToGrid();
-	cubeRotationAngle = 0;
 	mouseDownPos = {x:0, y:0};
 	faceClicked = null;
 	faceDraggedTo = null;
+	rotatingCubes = null;
 }
 function touchEnd(event){
 	var evt2 = {
@@ -415,7 +419,9 @@ function mouseMove(event){
 					faceDraggedTo = faceHoveredOn;
 				}
 				var angl = -Math.PI / 200;
-				rotateCubes(faceClicked, faceDraggedTo, angl);
+				var cubs = getPlanarCubes(faceClicked, faceDraggedTo);
+				rotatingCubes = cubs;
+				rotateCubes(cubs, angl);
 			}
 		}
 	}
@@ -427,8 +433,8 @@ function touchMove(event){
 	}
 	mouseMove(evt2);
 }
-function rotateCubes(fac0, fac1, angl){
-	var cubs = getPlanarCubes(fac0, fac1);
+function rotateCubes(cubs, angl){
+	//var cubs = getPlanarCubes(fac0, fac1);
 	var vrts = [];
 	if (cubs.length > 0){
 		for(var ic = 0; ic < cubs.length; ic++){
@@ -467,26 +473,44 @@ function scramble(){
 			var i2 = Math.floor(Math.random() * nbfs.length);
 			var fac1 = nbfs[i2];
 			var rota = (Math.PI / 2) * (Math.floor(Math.random() * 3) + 1);
-			rotateCubes(fac0, fac1, rota);
+			var cubs = getPlanarCubes(fac0, fac1);
+			rotateCubes(cubs, rota);
 			snapToGrid();
 			cnt -= 1;
 		}
 	}
 }
 function getOutsideFaceAt(p1){
-	var poly = getClosestPolygonAt(p1);
-	for(var i = 0; i < cubeArray.length; i++){
-		var cube = cubeArray[i];
-		for(var i2 = 0; i2 < cube.faces.length; i2++){
-			var face = cube.faces[i2];
-			if (face.isOutside){
-				if (poly == face.ply0 || poly == face.ply1){
-					return face;
+	var facs = [];
+	for(var idxc = 0; idxc < cubeArray.length; idxc++){
+		var cube = cubeArray[idxc];
+		for(var idxf = 0; idxf < cube.faces.length; idxf++){
+			var face = cube.faces[idxf];
+			if (face.isOutside == true){
+				var vx0 = face.ply0.v0;
+				var vx1 = face.ply0.v1;
+				var vx2 = face.ply1.v0;
+				var vx3 = face.ply1.v1;
+				if (isWithin4Vertices(p1, vx0, vx1, vx2, vx3)){
+					facs.push(face);
 				}
 			}
 		}
 	}
-	return null;
+	var clos = null;
+	var dist = 1999999999;
+	for(var idxf = 0; idxf < facs.length; idxf++){
+		var d0 = findDistance(facs[idxf].ply0.v0, vcam);
+		var d1 = findDistance(facs[idxf].ply0.v1, vcam);
+		var d2 = findDistance(facs[idxf].ply1.v0, vcam);
+		var d3 = findDistance(facs[idxf].ply1.v1, vcam);
+		var davg = (d0 + d1 + d2 + d3) / 4;
+		if (davg < dist){
+			dist = davg;
+			clos = facs[idxf];
+		}
+	}
+	return clos;
 }
 function getCube(face){
 	for(var i = 0; i < cubeArray.length; i++){
@@ -675,7 +699,9 @@ function snapToGrid(){
 				v0.z = clos.z;
 			}
 		}
+		return true;
 	}
+	return false;
 }
 function getClosestGridVertex(v0){
 	var clos = null;
@@ -886,6 +912,26 @@ function isWithin2D(p, poly){
 		out = false;
 	}
 	if (isBetween2D(p, p2, p1, p0) == false){
+		out = false;
+	}
+	return out;
+}
+function isWithin4Vertices(p, v0, v1, v2, v3){
+	var out = true;
+	var p0 = {x: v0.screenX, y: v0.screenY};
+	var p1 = {x: v1.screenX, y: v1.screenY};
+	var p2 = {x: v2.screenX, y: v2.screenY};
+	var p3 = {x: v3.screenX, y: v3.screenY};
+	if (isBetween2D(p, p0, p3, p1) == false){
+		out = false;
+	}
+	if (isBetween2D(p, p1, p0, p2) == false){
+		out = false;
+	}
+	if (isBetween2D(p, p2, p1, p3) == false){
+		out = false;
+	}
+	if (isBetween2D(p, p3, p2, p0) == false){
 		out = false;
 	}
 	return out;

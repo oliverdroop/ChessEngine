@@ -1,0 +1,538 @@
+<html>
+<head>
+</head>
+<body>
+<div id="firstdiv"></div>
+<canvas id="myCanvas" style="position:absolute; left:0px; top:0px"></canvas>
+<script>
+var c = document.getElementById("myCanvas");
+c.width = window.innerWidth;
+c.height = window.innerHeight;
+var ctx = c.getContext("2d");
+//var img1 = new Image();
+//img1.src = "/SpriteTest.jpg";
+//img1.onload = function(){
+//	//ctx.drawImage(img1, 400, 400);
+//}
+var spriteArray = [];
+var activeMenuOptions = [];
+var selectedSprites = [];
+var movements = [];
+var mousePos = null;
+var mouseDownPos = null;
+var currentPlaceable = null;
+document.onmousedown = mouseDown;
+document.onmouseup = mouseUp;
+document.onmousemove = mouseMove;
+//var imageSources = ["/bee1.png", "/Egg_0001.png"];
+var images = [];
+loadImage("/bee1.png");
+loadImage("/Egg_0001.png");
+loadImage("/Comb_0001.png");
+setTimeout(start, 1000);
+setInterval(drawSprites, 50);
+setInterval(updateActions, 100);
+setInterval(updateMovements, 100);
+function start(){
+	createBee();
+	//createSprite2(images[0], 800, 800, 32, true);
+}
+function loadImage(isrc){
+	var imgs = new Image();
+	imgs.onload = function(){
+		//mask image to make edges transparent
+		var cnv2 = document.createElement('canvas');
+		var ctx2 = cnv2.getContext('2d');
+		cnv2.width = imgs.width;
+		cnv2.height = imgs.height;
+		ctx2.drawImage(imgs, 0, 0);
+		var idat = ctx2.getImageData(0, 0, imgs.width, imgs.height);
+		for(var indx = 0; indx < idat.data.length; indx += 4){
+			var r = idat.data[indx];
+			var g = idat.data[indx + 1];
+			var b = idat.data[indx + 2];
+			var a = idat.data[indx + 3];
+			if (r == 255 && g == 127 && b == 255){
+				a = 0;
+			}
+			idat.data[indx + 3] = a;
+		}
+		imgs = new Image();
+		ctx2.putImageData(idat, 0, 0);
+		imgs.src = cnv2.toDataURL();
+		images.push(imgs);
+	}
+	imgs.src = isrc;
+	//return imgs;
+}
+function createBee(){
+	var sprt = createSprite2(images[0], 800, 800, 32, true);
+	var b = {ActionableType:"Bee"};
+	b["Sprite"] = sprt;
+	b["Actions"] = [];
+	b["PossibleActions"] = ["Lay Egg", "Build Hex"];
+	sprt["ActionObject"] = b;
+}
+function createSprite2(img, x, y, size, mvbl){
+	var sprt = {
+		Movable:mvbl,
+		Moving:false,
+		Angle:0,
+		Image:img,
+		Speed:10,
+		Size:size,
+		ImgIndx:0,
+		x:x,
+		y:y
+	};
+	//add sprite to array
+	spriteArray.unshift(sprt);
+	if (selectedSprites.length < 1){
+		selectedSprites.push(sprt);
+	}
+	return sprt;
+}
+function drawSprites(){
+	ctx.fillStyle = "#7F7F7F";
+	ctx.fillRect(0,0,c.width, c.height);
+	if (spriteArray.length > 0){
+		for(var indx = 0; indx < spriteArray.length; indx++){
+			var sprt = spriteArray[indx];
+			var size = sprt.Size;
+			var sy = 0;
+			if (sprt.Movable == true){
+				//sprite is movable
+				//find which portion of sprite image to display
+				if (sprt.Moving == true){
+					var sa = Math.round(sprt.Angle / (Math.PI / 4));
+					if (sa > 7){
+						sa -= 8;
+					}
+					sy = size * (1 + sa);
+				}
+				var sx = size * sprt.ImgIndx;
+				//draw relevant portion of sprite iamge
+				ctx.drawImage(sprt.Image, sx, sy, size, size, sprt.x - (size / 2), sprt.y - (size / 2), size, size);
+				//cycle image index
+				sprt.ImgIndx += 1;
+				if (sprt.ImgIndx > 3){
+					sprt.ImgIndx = 0;
+				}
+			}
+			else{
+				//sprite is static
+				var sx = 0;
+				ctx.drawImage(sprt.Image, sx, sy, size, size, sprt.x - (size / 2), sprt.y - (size / 2), size, size);
+			}
+		}
+	}
+	drawPlaceables();
+	drawMenus();
+}
+function drawPlaceables(){
+	if (currentPlaceable != null){
+		currentPlaceable.x = mousePos.x;
+		currentPlaceable.y = mousePos.y;
+	}
+}
+function drawMenus(){
+	if (activeMenuOptions.length > 0){
+		for(var indx = 0; indx < activeMenuOptions.length; indx++){
+			var mnuo = activeMenuOptions[indx];
+			var x1 = mnuo.p1.x;
+			var y1 = mnuo.p1.y;
+			var x2 = mnuo.p2.x;
+			var y2 = mnuo.p2.y;
+			ctx.fillStyle = "#FFFFFF";
+			ctx.fillRect(x1, y1, x2 - x1, y2 - y1);
+			ctx.strokeStyle = "#000000";
+			ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+			ctx.fillStyle = "#000000";
+			ctx.fillText(mnuo.Text, x1 + 2, y1 + 10);
+		}
+	}
+}
+function mouseDown(event){
+	var xn = event.clientX;
+	var yn = event.clientY;
+	var p1 = {x:xn, y:yn};
+	var p2 = getClosestHexagonCentre(p1);
+	mouseDownPos = p1;
+	var spriteClicked = getSpriteClicked(p1);
+	if (spriteClicked != null){
+		//var p2 = {x:spriteClicked.x, y:spriteClicked.y};
+		//p2 = getClosestHexagonCentre(p1);
+		if (spriteClicked.ActionObject != null){
+			createMenuOptions(spriteClicked);
+		}
+	}
+}
+function mouseUp(event){
+	var x = event.clientX;
+	var y = event.clientY;
+	var p1 = {x:x, y:y};
+	//var p2 = getClosestHexagonCentre(p1);
+	var p2 = (p1);
+	x = p1.x;
+	y = p1.y;
+	if (p1.x == mouseDownPos.x && p1.y == mouseDownPos.y){
+		//simple click
+		if (currentPlaceable == null){
+			var spriteClicked = getSpriteClicked(p1);
+			if (spriteClicked == null){
+				//no sprite has been clicked on
+				if (selectedSprites.length > 0){
+					for(var indx = 0; indx < selectedSprites.length; indx++){
+						var sprt = selectedSprites[indx];
+						if (sprt.Movable == true){
+							if (sprt.ActionObject != null){
+								var aobj = sprt.ActionObject;
+								if (aobj.ActionableType == "Bee"){
+									var a = newAction(aobj, "Move");
+									x = (p2).x;
+									y = (p2).y;
+									a["x"] = x;
+									a["y"] = y;
+									aobj.Actions.push(a);
+									//sprt.ActionObject.Actions.push(newMovement(sprt, x, y));
+								}
+							}
+						}
+					}
+				}
+			}
+			else{
+				//sprite has been clicked on
+				selectedSprites = [];
+				selectedSprites.push(spriteClicked);
+			}
+		}
+		else{
+			if (selectedSprites.length == 1){
+				placePlaceable((p2));
+			}
+		}
+	}
+	else{
+		//mouseDown and mouseUp are in different locations
+		if (currentPlaceable == null){
+			if (activeMenuOptions.length > 0){
+			var p3 = {x:(p1.x), y:(p1.y)};
+				for(var indx = 0; indx < activeMenuOptions.length; indx++){
+					var amo = activeMenuOptions[indx];
+					if (p3.x >= amo.p1.x && p3.x <= amo.p2.x){
+						if (p3.y >= amo.p1.y && p3.y <= amo.p2.y){
+							//active menu option has been clicked on
+							var sprt = spriteArray[amo.SpriteIndex];
+							var x = sprt.x;
+							var y = sprt.y;
+							//p1 = (p1);
+							x = p2.x;
+							y = p2.y;
+							if (amo.Text == "Lay Egg"){
+								//createSprite("/Egg_0001.png", x, y, 20, false);
+								createSprite2(images[1], x, y, 20, false);
+								var spt2 = spriteArray[0];
+								currentPlaceable = spt2;
+							}
+							if (amo.Text == "Build Hex"){
+								createSprite2(images[2], x, y, 36, false);
+								var spt2 = spriteArray[0];
+								currentPlaceable = spt2;
+							}
+						}
+					}
+				}
+			}
+		}
+		else{
+			if (selectedSprites.length == 1){
+				placePlaceable((p2));
+			}
+		}
+	}
+	mouseDownPos = null;
+	activeMenuOptions = [];
+}
+function mouseMove(event){
+	var p1 = {x:event.clientX, y:event.clientY};
+	p1 = getClosestHexagonCentre(p1);
+	mousePos = p1;
+}
+function placePlaceable(p1){
+	//place currentPlaceable
+	var x = p1.x;
+	var y = p1.y;
+	var p2 = getClosestHexagonCentre(p1);
+	//var p2 = (p1);
+				var aobj = selectedSprites[0].ActionObject;
+				if (aobj.ActionableType == "Bee"){
+					var a = newAction(aobj, "Move");
+					//a["x"] = x;
+					//a["y"] = y;
+					//p1 = getClosestHexagonCentre(p1);
+					a["x"] = p2.x;
+					a["y"] = p2.y;
+					aobj.Actions.push(a);
+					if (currentPlaceable.Image == images[1]){
+						var a = newAction(aobj, "Lay Egg");
+						aobj.Actions.push(a);
+					}
+					if (currentPlaceable.Image == images[2]){
+						var a = newAction(aobj, "Build Hex");
+						aobj.Actions.push(a);
+					}
+				}
+				var indx = spriteArray.indexOf(currentPlaceable);
+				spriteArray.splice(indx, 1);
+				//currentPlaceable.x = x;
+				//currentPlaceable.y = y;
+				currentPlaceable = null;
+}
+function newAction(aobj, atyp){
+	var a = {
+		ActionObject:aobj,
+		ActionType:atyp,
+		Started:false,
+		Finished:false
+	};
+	return a;
+}
+function newMovement(sprt, x, y){
+	var xo = sprt.x;
+	var yo = sprt.y;
+	//if (xo != x && yo != y){
+		sprt.Moving = true;
+		var mvmt = {
+			Sprite:sprt,
+			DestX:x,
+			DestY:y
+		};
+		var p1 = {x:xo, y:yo};
+		var p2 = {x:x, y:y};
+		sprt.Angle = findAngle(p1, p2);
+		//only allow 1 movement per sprite
+		if (movements.length > 0){
+			var mvng = false;
+			var midx = null;
+			for(var idx2 = 0; idx2 < movements.length; idx2++){
+				var mvt2 = movements[idx2];
+				if (mvt2.Sprite == sprt){
+					mvng = true;
+					midx = idx2;
+				}
+			}
+			if (mvng == false){
+				movements.push(mvmt);
+			}
+			else{
+				movements[midx] = mvmt;
+			}
+		}
+		else{
+			movements.push(mvmt);
+		}
+		return mvmt;
+	//}
+	//else{
+	//	return null;
+	//}
+}
+function updateMovements(){
+	if (movements.length > 0){
+		var rmvs = [];
+		for (var indx = 0; indx < movements.length; indx++){
+			var mvmt = movements[indx];
+			//check movement is not about to finish
+			var p1 = {x:mvmt.Sprite.x, y:mvmt.Sprite.y};
+			var p2 = {x:mvmt.DestX, y:mvmt.DestY};
+			var dist = findDistance(p1, p2);
+			var speed = mvmt.Sprite.Speed;
+			if (dist > speed){
+				//movement is not about to finish
+				mvmt.Sprite.Angle = findAngle(p1, p2);
+				mvmt.Sprite.x += Math.round(Math.sin(mvmt.Sprite.Angle) * speed);
+				mvmt.Sprite.y -= Math.round(Math.cos(mvmt.Sprite.Angle) * speed);
+			}
+			else{
+				//movement is about to finish
+				mvmt.Sprite.x = mvmt.DestX;
+				mvmt.Sprite.y = mvmt.DestY;
+				mvmt.Sprite.Moving = false;
+				mvmt.Finished = true;
+				mvmt.Sprite.ActionObject.Actions[0].Finished = true;
+				rmvs.push(mvmt);
+			}
+		}
+		if (rmvs.length > 0){
+			//remove movements that have finished from the global movement array
+			for(var indx = 0; indx < rmvs.length; indx++){
+				var remv = rmvs[indx];
+				//movements = movements.splice(movements.indexOf(remv), 1);
+				movements.splice(movements.indexOf(remv), 1);
+			}
+		}
+	}
+}
+function updateActions(){
+	if (spriteArray.length > 0){
+		for(var idx1 = 0; idx1 < spriteArray.length; idx1++){
+		var sprt = spriteArray[idx1];
+			if (sprt.ActionObject != null){
+				var aobj = sprt.ActionObject;
+				if (aobj.Actions != null){
+					if (aobj.Actions.length > 0){
+						if (aobj.Actions[0].Finished == true){
+							//remove finished action
+							aobj.Actions.splice(0, 1);
+						}
+					}
+					if (aobj.Actions.length > 0){
+						var a = aobj.Actions[0];
+						if (a.Started == false){
+							a.Started = true;
+							if (a.Finished == false){
+								//do next action
+								if (a.ActionType == "Move"){
+									var mvmt = newMovement(aobj.Sprite, a.x, a.y);
+									//aobj.Sprite.Moving = true;
+								}
+								if (a.ActionType == "Lay Egg"){
+									createSprite2(images[1], aobj.Sprite.x, aobj.Sprite.y, 20, false);
+									a.Finished = true;
+								}
+								if (a.ActionType == "Build Hex"){
+									createSprite2(images[2], aobj.Sprite.x, aobj.Sprite.y, 36, false);
+									a.Finished = true;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+function createMenuOptions(sprt){
+	var p1 = (mouseDownPos);
+	if (sprt.ActionObject != null){
+		if (sprt.ActionObject.PossibleActions != null){
+			var acts = sprt.ActionObject.PossibleActions;
+			if (acts.length > 0){
+				var ainc = (2 * Math.PI) / acts.length;
+				for(var indx = 0; indx < acts.length; indx++){
+					var ang = indx * ainc;
+					var p0 = {x:p1.x + Math.round(Math.sin(ang) * 50), y:p1.y - Math.round(Math.cos(ang) * 50)};
+					var p2 = {x:p0.x - 25, y:p0.y - 10};
+					var p3 = {x:p0.x + 25, y:p0.y + 10};
+					var text = acts[indx];
+					var sidx = spriteArray.indexOf(sprt);
+					var mnuo = {p1:p2, p2:p3, Text:text, SpriteIndex:sidx};
+					activeMenuOptions.push(mnuo);
+				}
+			}
+		}
+	}
+}
+function getSpriteClicked(p1){
+	var out = null;
+	if (spriteArray.length > 0){
+		for(var indx = 0; indx < spriteArray.length; indx++){
+			var sprt = spriteArray[indx];
+			if (sprt.ActionObject != null){
+				var p2 = {x:sprt.x, y:sprt.y};
+				var d = findDistance(p1, p2);
+				if (d < 10){
+					out = sprt;
+				}
+			}
+		}
+	}
+	return out;
+}
+function getClosestHexagonCentre(p1){
+	//var hh = c.height / 36;
+	//var hw = c.width / 30;
+	var ax = Math.round(p1.x / 36) * 36;
+	var ay = Math.round(p1.y / 30) * 30;
+	if (Math.round(Math.round(p1.y / 30) / 2) == (Math.round(p1.y / 30) / 2)){
+		ax = Math.floor((p1.x) / 36) * 36;
+		ax += 18;
+	}
+	var p2 = {x:ax, y:ay};
+	//p1 = {x:500, y:500};
+	return p2;
+}
+function findDistance(p1, p2) {
+	var x1 = p1.x;
+	var y1 = p1.y;
+	var x2 = p2.x;
+	var y2 = p2.y;
+	var dsxy = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+	return dsxy;
+}
+function findAngle(p1, p2) {
+	var a = 0;
+	if (p1.y - p2.y != 0){
+		a = Math.atan((p2.x - p1.x) / (p1.y - p2.y));
+	}else{
+		a = Math.PI / (2 * Math.sign(p2.x - p1.x));
+	}
+	if (p2.x - p1.x >= 0 && p2.y - p1.y > 0) {
+		a += Math.PI;
+	}
+	if (p2.x - p1.x < 0 && p2.y - p1.y > 0) {
+        a += Math.PI;
+    }
+	if (p2.x - p1.x < 0 && p2.y - p1.y <= 0) {
+        a += Math.PI * 2;
+    }
+	return a;
+}
+/*
+function createSprite(isrc, x, y, size, mvbl){
+	var imgs = new Image();
+	imgs.onload = function(){
+		//mask image to make edges transparent
+		var cnv2 = document.createElement('canvas');
+		var ctx2 = cnv2.getContext('2d');
+		cnv2.width = imgs.width;
+		cnv2.height = imgs.height;
+		ctx2.drawImage(imgs, 0, 0);
+		var idat = ctx2.getImageData(0, 0, imgs.width, imgs.height);
+		for(var indx = 0; indx < idat.data.length; indx += 4){
+			var r = idat.data[indx];
+			var g = idat.data[indx + 1];
+			var b = idat.data[indx + 2];
+			var a = idat.data[indx + 3];
+			if (r == 255 && g == 127 && b == 255){
+				a = 0;
+			}
+			idat.data[indx + 3] = a;
+		}
+		imgs = new Image();
+		ctx2.putImageData(idat, 0, 0);
+		imgs.src = cnv2.toDataURL();
+		//imgs = imagedata_to_image(idat);
+		//create sprite object
+		var sprt = {
+			Movable:mvbl,
+			Moving:false,
+			Angle:0,
+			Image:imgs,
+			Speed:10,
+			Size:size,
+			ImgIndx:0,
+			x:x,
+			y:y
+		};
+		//add sprite to array
+		spriteArray.unshift(sprt);
+		selectedSprites.push(sprt);
+	}
+	imgs.src = isrc;
+}
+*/
+</script>
+</body>
+</html>

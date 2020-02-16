@@ -1,0 +1,170 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body {
+	background-color: rgb(80,80,80);
+	color: rgb(192,192,192);
+	font-family: Arial, Helvetica, sans-serif;
+}
+input[type=submit] {
+	border: none; height: 18px;
+}
+input[type=text] {
+	border: none; height: 18px;
+}
+
+</style>
+</head>
+<body>
+<script>
+var lowestElementBottom = 5;
+//document.write("<div id=\"panel1\"></div>");
+//document.getElementById("panel1").innerHTML = "This is the bees knees.";
+//positionElementCentrally("panel1");
+var doubleTouchDistance = 0;
+createSearchBox();
+createNewOptionsPanel();
+//createNewInvoicePanel();
+function createSearchBox(){
+	document.write("<div id=\"searchBox\" style=\"\"></div>");
+	var sb = document.getElementById("searchBox");
+	sb.style.width = "300px";
+	sb.style.height = "25px";
+	sb.style.backgroundColor = "rgb(128,128,128)";
+	positionElement(sb.id);
+	var sF = "";
+	sF += "<form method=\"post\">";
+	sF += "<input type=\"text\" name=\"query\" value=\"\" style=\"position: absolute; top: 2px; left: 2px; width: 197px; height: 21px;\">";
+	sF += "<input type=\"submit\" name=\"submit\" value=\"Search\" style=\"position: absolute; top: 2px; left: 201px; width: 97px; height: 21px;\"></form>";
+	sb.innerHTML = (sF);
+}
+function createNewOptionsPanel(){
+	document.write("<div id=\"newOptionsPanel\" style=\"\"></div>");
+	var sb = document.getElementById("newOptionsPanel");
+	sb.style.width = "300px";
+	sb.style.height = "25px";
+	sb.style.backgroundColor = "rgb(128,128,128)";
+	positionElement(sb.id);
+	sb.innerHTML = ("<form method=\"post\"><input type=\"submit\" name=\"submit\" value=\"New Customer\" style=\"position: absolute; top: 2px; left: 2px; width: 147px; height: 21px;\"></form>\n");
+	sb.innerHTML += ("<form method=\"post\"><input type=\"submit\" name=\"submit\" value=\"Calendar\" style=\"position: absolute; top: 2px; left: 151px; width: 147px; height: 21px;\"></form>");
+}
+function positionElementCentrally(id){
+	var element = document.getElementById(id);
+	var r = element.getBoundingClientRect();
+	var w = r.width;
+	var h = r.height;
+	var sw = window.innerWidth;
+	var sh = window.innerHeight;
+	var x = Math.round((sw - w) / 2);
+	var y = Math.round((sh - h) / 2);
+	element.style.left = x + "px";
+	element.style.top = y + "px";
+	element.style.position = "absolute";
+	lowestElementBottom = y + h;
+}
+function positionElement(id){
+	var element = document.getElementById(id);
+	var r = element.getBoundingClientRect();
+	var w = r.width;
+	var h = r.height;
+	var sw = window.innerWidth;
+	var sh = window.innerHeight;
+	var x = Math.round((sw - w) / 2);
+	var y = lowestElementBottom + 5;
+	element.style.left = x + "px";
+	element.style.top = y + "px";
+	element.style.position = "absolute";
+	lowestElementBottom = y + h;
+}
+function enlargeCalendarDayElement(id){
+	var ccdy = calendarDayIDs.indexOf(id);
+	//set all sizes to default
+    for(var indx = 0; indx < calendarDayIDs.length; indx++){
+		var cdid = calendarDayIDs[indx];
+		var element = document.getElementById(cdid);
+		var defaultTop = ((indx * 6) + 5);
+		//clear text
+		//element.innerHTML = "";
+		//shrink child elements
+		var form = element.children[0];
+		for(idx2 = 0; idx2 < form.children.length; idx2++){
+			var child = form.children[idx2];
+			//child.style.width = "0px";
+			if (child.name.includes("booking")){
+				child.style.height = "3px";
+			}
+			else{
+				child.style.height = "0px";
+			}
+		}
+		//reposition
+		element.style.top = defaultTop + "px";
+		//shrink
+		element.style.height = "5px";
+		//shift down calendarDays later than selection
+		if(indx > ccdy){
+			element.style.top = (defaultTop + 45) + "px";
+        }
+	}
+	var selected = document.getElementById(calendarDayIDs[ccdy]);
+	selected.style.height = "50px";
+	var prts = id.split("o", -1);
+	var dom = prts[0].replace("calendarDay", "");
+	var moy = prts[1];
+	var year = prts[2];
+	//grow child elements
+	var form = selected.children[0];
+	for(idx2 = 0; idx2 < form.children.length; idx2++){
+		var child = form.children[idx2];
+		//child.style.width = "0px";
+		child.style.height = "25px";
+	}
+	//selected.innerHTML = dom + "/" + moy + "/" + year;
+}
+function createNewInvoicePanel(){
+	var bajb = document.createElement("button");
+	bajb.setAttribute("type", "button");
+    bajb.setAttribute("value", "Add Job");
+	bajb.setAttribute("id", "buttonAddJob");
+    bajb.setAttribute("name", "buttonAddJob");
+    bajb.setAttribute("onclick", "addJob()");
+	bajb.setAttribute("style", "position: absolute; left: 50px; top: 50px; width: 200px; height: 50px;");
+    document.body.appendChild(bajb);
+	positionElement(buttonAddJob);
+	//document.children.push(bajb);
+}
+function getIsMobileDevice(){
+	var out = false;
+	if( /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ) {
+		out = true;
+	return out;
+	}
+}
+function touchStart(event){
+	if (event.touches.length == 2){
+		var t1 = event.touches[0];
+		var t2 = event.touches[1];
+		doubleTouchDistance = Math.sqrt(Math.pow(t2.x - t1.x, 2) + Math.pow(t2.y - t1.y, 2));
+	}
+}
+function touchMove(event){
+	if (event.touches.length == 2){
+		var t1 = event.touches[0];
+		var t2 = event.touches[1];
+		var d2 = Math.sqrt(Math.pow(t2.x - t1.x, 2) + Math.pow(t2.y - t1.y, 2));
+		var rat = d2 / doubleTouchDistance;
+		var e2 = {scale:rat};
+		doubleTouchDistance = Math.sqrt(Math.pow(t2.x - t1.x, 2) + Math.pow(t2.y - t1.y, 2));
+	}
+	zoom(1.1);
+}
+function touchEnd(event){
+	if (event.touches.length < 2){
+		doubleTouchDistance = 0;
+	}
+}
+</script>
+</body>
+</html>

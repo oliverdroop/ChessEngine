@@ -8,10 +8,11 @@ public class MainClass {
         BaseNExpresser baseNExpresser = new BaseNExpresser();
         int start = 0;
         int finish = 1024;
+        int base = 2;
         for(int i = start; i < finish; i++){
-            String baseNInteger = baseNExpresser.express(i, 32);
-            int base10Integer = baseNExpresser.decode(baseNInteger, 32);
-            System.out.println(i + " = " + baseNInteger + " = " + String.valueOf(base10Integer));
+            String baseNInteger = baseNExpresser.express(i, base);
+            int base10Integer = baseNExpresser.decode(baseNInteger, base);
+            System.out.println(i + " >> " + baseNInteger + " >> " + String.valueOf(base10Integer));
         }
     }
     

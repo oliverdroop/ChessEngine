@@ -1,0 +1,323 @@
+<html>
+<head>
+</head>
+<body>
+<canvas id="viewfinder" style="position:absolute; top:0px; left:0px"></canvas>
+<script>
+var canv = document.getElementById("viewfinder");
+canv.width = window.innerWidth;
+canv.height = window.innerHeight;
+canv.style.backgroundColor = "rgb(0,0,0)";
+var ctx = canv.getContext('2d');
+var nodeArray = [];
+var mousePosition = {x:0, y:0};
+var sectorArray = [];
+createNodeArray();
+createSectors();
+setInterval(drawAll, 10);
+document.onmousedown = mouseDown;
+document.onmousemove = mouseDown;
+function mouseDown(event){
+	var x = event.clientX;
+	var y = event.clientY;
+	mousePosition = {x:x, y:y};
+}
+function getClosestNode(p){
+	var x = p.x;
+	var y = p.y;
+	var cdst = 1999999999;
+	var clst;
+	for(var indx = 0; indx < nodeArray.length; indx++){
+		var n = nodeArray[indx];
+		var p0 = {x:n.x, y:n.y};
+		var p1 = {x:x, y:y};
+		var dist = findDistance(p0, p1);
+		if (dist < cdst){
+			cdst = dist;
+			clst = n;
+		}
+	}
+	return clst;
+}
+function createNodeArray(){
+	var size = 30;
+	for(var x = 0; x < window.innerWidth / size - 1; x++){
+		for(var y = 0; y < window.innerHeight / (size * (5 / 6)) - 1; y++){
+			var x1 = 0;
+			var y1 = 0;
+			if (isEven(y)){
+				x1 = (x * size) + ((size / 2));
+			}
+			else{
+				x1 = (x * size);
+			}
+			x1 += (size / 2);
+			y1 = y * (size) * (5 / 6);
+			y1 += (size / 2);
+			createNode(x1, y1, size * (11 / 20));
+		}
+	}
+	for(var indx = 0; indx < nodeArray.length; indx++){
+		var n0 = nodeArray[indx];
+		var nidx = getNeighbourIndexes(n0);
+		//var nbrs = getNeighbours(n0);
+		var nn = {x:n0.x, y:n0.y, size:n0.size, neighbourIndexes:nidx};
+		nodeArray[indx] = nn;
+	}
+}
+function createSectors(){
+	var nds0 = [];
+	for(var indx = 0; indx < nodeArray.length; indx++){
+		nds0.push(nodeArray[indx]);
+	}
+	while(nds0.length > 0){
+		var rnd = Math.floor((Math.random() * nds0.length));
+		var n0 = nds0[rnd];
+		var sect = [];
+		sect.push(n0);
+		nds0.splice(nds0.indexOf(n0), 1);
+		var r = Math.floor(Math.random() * 64) + 192;
+		var g = Math.floor(Math.random() * 64) + 192;
+		var b = Math.floor(Math.random() * 64) + 192;
+		var idxL = sect.length - 1;
+		while (sect.length < 100 && idxL >= 0){
+			var n1 = sect[idxL];
+			var n1n = getNeighbours(n1);
+			var n1nn = [];
+			for(var idx0 = 0; idx0 < n1n.length; idx0++){
+				var n3 = n1n[idx0];
+				if (nds0.includes(n3)){
+					n1nn.push(n3);
+				}
+			}
+			if (n1nn.length > 0){
+				var rnd2 = Math.floor((Math.random() * n1nn.length));
+				var n2 = n1nn[rnd2];
+				sect.push(n2);
+				nds0.splice(nds0.indexOf(n2), 1);
+				idxL = sect.length - 1;
+			}
+			else{
+				idxL -= 1;
+			}
+		}
+		sectorArray.push({nodes:sect, r:r, g:g, b:b});
+	}
+	//assimilate sectors below a certain size
+	var rmvs = [];
+	for (var indx = 0; indx < sectorArray.length; indx++){
+		var sec = sectorArray[indx];
+		if (sec.nodes.length < 20){
+			var sec0 = sec;
+			var idx0 = 0;
+			var n0;
+			while(sec0 == sec && idx0 < sec.nodes.length){
+				n0 = sec.nodes[idx0];
+				var nbrs = getNeighbours(n0);
+				var idx1 = 0;
+				while(idx1 < nbrs.length){
+					n0 = nbrs[idx1];
+					if (getSector(n0) != sec){
+						sec0 = getSector(n0);
+					}
+					idx1 += 1;
+				}
+				idx0 += 1;
+			}
+			//
+			for(idx2 = 0; idx2 < sec.nodes.length; idx2++){
+				var n1 = sec.nodes[idx2];
+				sec0.nodes.push(n1);
+			}
+			rmvs.push(sec);
+			//sectorArray.splice(indx, 1);
+		}
+	}
+	for(indx = 0; indx < rmvs.length; indx++){
+		sectorArray.splice(sectorArray.indexOf(rmvs[indx]), 1);
+	}
+	//colourSectors(4);
+}
+function getSector(n){
+	var out;
+	for(var indx = 0; indx < sectorArray.length; indx++){
+		var sec = sectorArray[indx];
+		if (sec.nodes.includes(n)){
+			out = sec;
+		}
+	}
+	return out;
+}
+function getNeighbourIndexes(n){
+	var out = [];
+	var p0 = {x:n.x, y:n.y};
+	for(var indx = 0; indx < nodeArray.length; indx++){
+		var n1 = nodeArray[indx];
+		var p1 = {x:n1.x, y:n1.y};
+		var dist = findDistance(p0, p1);
+		if (dist < 2 * n.size && n1 != n){
+			out.push(indx);
+		}
+	}
+	return out;
+}
+function getNeighbours(n){
+	var out = [];
+	for(var indx = 0; indx < n.neighbourIndexes.length; indx++){
+		var nbri = n.neighbourIndexes[indx];
+		var nbr = nodeArray[nbri];
+		out.push(nbr);
+	}
+	return out;
+}
+function getNeighbouringSectors(s){
+	var secs = [];
+	for(var indx = 0; indx < s.nodes.length; indx++){
+		var n0 = s.nodes[indx];
+		var nbrs = getNeighbours(n0);
+		for(var idx2 = 0; idx2 < nbrs.length; idx2++){
+			var n1 = nbrs[idx2];
+			var s2 = getSector(n1);
+			if (s2 != s){
+				if (secs.includes(s2) == false){
+					secs.push(s2);
+				}
+			}
+		}
+	}
+	return secs;
+}
+function colourSectors(nc){
+	var cols = [];
+	for(var idx0 = 0; idx0 < nc; idx0++){
+		var rnd0 = Math.floor(Math.random() * 8) * 32;
+		var rnd1 = Math.floor(Math.random() * 8) * 32;
+		var rnd2 = Math.floor(Math.random() * 8) * 32;
+		var col = {r:rnd0, g:rnd1, b:rnd2};
+		cols.push(col);
+	}
+	var c = 0;
+	var sec0 = sectorArray[0];
+	sec0.r = cols[c].r;
+	sec0.g = cols[c].g;
+	sec0.b = cols[c].b;
+	if (sectorArray.length > 1){
+		for(var idx0 = 1; idx0 < sectorArray.length; idx0++){
+			var sec0 = sectorArray[idx0];
+			//var nbrs = getNeighbouringSectors(sec0);
+			sec0.r = cols[c].r;
+			sec0.g = cols[c].g;
+			sec0.b = cols[c].b;
+			c += 1;
+			if (c >= cols.length){
+				c = 0;
+			}
+		}
+	}
+	//
+	var cont = 0;
+	//var idx0 = 0;
+	while (colourClash() == true){
+		var cl = cols.length;
+		colourSectors(cl + 1);
+	}
+}
+function colourClash(){
+	var clsh = false;
+	var idx0 = -1;
+	while(idx0 < sectorArray.length - 1){
+		idx0 += 1;
+		var sec0 = sectorArray[idx0];
+		var nbrs = getNeighbouringSectors(sec0);
+		var idx1 = -1;
+		while(idx1 < nbrs.length - 1){
+			idx1 += 1;
+			var sec1 = nbrs[idx1];
+			var c0 = {r:sec0.r, g:sec0.g, b:sec0.b};
+			var c1 = {r:sec1.r, g:sec1.g, b:sec1.b};
+			if (isMatchingColour(c0, c1)){
+				clsh = true;
+			}
+		}
+	}
+	return clsh;
+}
+function createNode(x, y, size){
+	var node = {x:x, y:y, size:size};
+	nodeArray.push(node);
+}
+function drawNode(n, r, g, b){
+	var x = n.x;
+	var y = n.y;
+	var size = n.size;
+	ctx.lineWidth = "0.5";
+	ctx.fillStyle = "rgb(" + r + "," + g + "," + b + ")";
+	ctx.strokeStyle = "rgb(" + r + "," + g + "," + b + ")";
+	var p0 = {x:x + (size * Math.sin(Math.PI * (0 / 3))), y:y - (size * Math.cos(Math.PI * (0 / 3)))};
+	var p1 = {x:x + (size * Math.sin(Math.PI * (1 / 3))), y:y - (size * Math.cos(Math.PI * (1 / 3)))};
+	var p2 = {x:x + (size * Math.sin(Math.PI * (2 / 3))), y:y - (size * Math.cos(Math.PI * (2 / 3)))};
+	var p3 = {x:x + (size * Math.sin(Math.PI * (3 / 3))), y:y - (size * Math.cos(Math.PI * (3 / 3)))};
+	var p4 = {x:x + (size * Math.sin(Math.PI * (4 / 3))), y:y - (size * Math.cos(Math.PI * (4 / 3)))};
+	var p5 = {x:x + (size * Math.sin(Math.PI * (5 / 3))), y:y - (size * Math.cos(Math.PI * (5 / 3)))};
+	ctx.beginPath();
+	ctx.moveTo(p0.x, p0.y);
+	ctx.lineTo(p1.x, p1.y);
+	ctx.lineTo(p2.x, p2.y);
+	ctx.lineTo(p3.x, p3.y);
+	ctx.lineTo(p4.x, p4.y);
+	ctx.lineTo(p5.x, p5.y);
+	ctx.closePath();
+	//ctx.stroke();
+	ctx.fill();
+}
+function drawAll(){
+	drawNodes();
+}
+function drawNodes(){
+	ctx.clearRect(0,0,canv.width, canv.height);
+	for(var indx = 0; indx < nodeArray.length; indx++){
+		var node = nodeArray[indx];
+		drawNode(node, 192, 192, 192);
+	}
+	var nmp = getClosestNode(mousePosition);
+	//var nds = getNeighbours(nmp);
+	//for(var indx = 0; indx < nds.length; indx++){
+	//	var nmb = nds[indx];
+	//	drawNode(nmb, 224);
+	//}
+	if (sectorArray.length > 0){
+		for(var indx = 0; indx < sectorArray.length; indx++){
+			var sec = sectorArray[indx];
+			for(var idx2 = 0; idx2 < sec.nodes.length; idx2++){
+				var ns = sec.nodes[idx2];
+				drawNode(ns, sec.r, sec.g, sec.b);
+			}
+		}
+	}
+	var sec = getSector(nmp);
+	for(var idx2 = 0; idx2 < sec.nodes.length; idx2++){
+		var nsc = sec.nodes[idx2];
+		drawNode(nsc, 255, 255, 255);
+	}
+	drawNode(nmp, 0, 0, 0);
+}
+function isMatchingColour(c1, c2){
+	var out = false;
+	if (c1.r == c2.r){
+		if (c1.g == c2.g){
+			if (c1.b == c2.b){
+				out = true;
+			}
+		}
+	}
+	return out;
+}
+function findDistance(p0, p1){
+	return Math.sqrt(Math.pow(p1.x - p0.x, 2) + Math.pow(p1.y - p0.y, 2));
+}
+function isEven(n){
+	return n % 2 == 0;
+}
+</script>
+</body>
+</html>

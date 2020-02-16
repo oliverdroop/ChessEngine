@@ -1,0 +1,1265 @@
+<!--
+Copyright (c) 2020 Oliver Droop
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+-->
+<html>
+<head>
+</head>
+<body>
+<div id="firstdiv">Hello</div>
+<canvas id="myCanvas" style="position:absolute; left:0px; top:0px"></canvas>
+<script>
+//
+var vfoc = {x:0, y:0, z:-1000};
+var vcam = {x:0, y:0, z:-2000};
+var fov = Math.PI * (1/4);
+var camAngleX = 0;
+var camAngleY = 0;
+var sunVector = {x:-10, y:0, z:20};
+var autoRotate = false;
+var imagePaths = ["Oil1.jpg", "Coffee1.jpg", "Grain1.jpg", "Cotton1.jpg", "Gold1.jpg"];
+var images = [];
+loadImages();
+var tradeHistory = [];
+var animations = [];
+var victoryPercentage = 0;
+initiateCamera();
+var vertexArray = [];
+var polygonArray = [];
+var numV = 0;
+var vtop = {x:0, y:400, z:0, screenX:0, screenY:0};
+var vbot = {x:0, y:-400, z:0, screenX:0, screenY:0};
+initiateVertices();
+generateCities();
+generateResources();
+//
+var Rvect = {x:1, y:0, z:0};
+for(var indx = 0; indx < numV; indx++) {
+	var vertexArray = vertexArray;
+	var v = vertexArray[indx];
+	rotateVertex(v, camAngleY, Rvect);
+	calculateScreenpoint(v);
+}
+rotateVertex(vtop, camAngleY, Rvect);
+rotateVertex(vbot, camAngleY, Rvect);
+//
+var c = document.getElementById("myCanvas");
+c.width = window.innerWidth;
+c.height = window.innerHeight;
+var ctx = c.getContext("2d");
+//
+
+//
+var mouseDownPos = {x:0, y:0};
+var mousePos = {x:0, y:0};
+var camAngleRef = {x:camAngleX, y:camAngleY};
+var selectedPolygon = null;
+//var selectedResource = null;
+var currentTrade = null;
+document.onmousedown = logMouseDown;
+document.onmouseup = mouseUp;
+document.onmousemove = mouseMove;
+window.setInterval(myFunc, 20);
+function loadImages(){
+	loadImage(0);
+}
+function loadImage(indx){
+	var img = new Image();
+	img.width = 40;
+	img.height = 40;
+	img.onload = function() {
+		//images[indx] = img;
+		images.push(img);
+		if (indx < 4){
+			loadImage(indx + 1);
+		}
+	}
+	img.src = imagePaths[indx];
+}
+function initiateCamera(){
+	var vx0 = {x:0, y:0, z:0};
+	var dsv = findDistance(vx0, sunVector);
+	var fac = 1 / dsv;
+	sunVector.x = sunVector.x * fac;
+	sunVector.y = sunVector.y * fac;
+	sunVector.z = sunVector.z * fac;
+}
+function initiateVertices(){
+	//create icosahedron
+	numV += 12;
+	var verts = [];
+	//create central vertex
+	verts[0] = {x:0, y:400, z:0, screenX:0, screenY:0};
+	//create 5 vertices around centre
+	for(var inx1 = 0; inx1 < 5; inx1++){
+		var vertex = {
+			x:200 * (Math.sin((inx1) * ((2 * Math.PI) / 5))),
+			y:400,
+			z:200 * (Math.cos((inx1) * ((2 * Math.PI) / 5))),
+			screenX:0,
+			screenY:0
+		};
+		verts[inx1 + 1] = vertex;
+	}
+	//add all 6 vertices to total list of vertices
+	for(var inxv = 0; inxv < 6; inxv++){
+		vertexArray[inxv] = verts[inxv];
+	}
+	//build polygons out of vertices
+	polygonArray[0] = {v0:verts[0], v1:verts[1], v2:verts[2]};
+	polygonArray[1] = {v0:verts[0], v1:verts[2], v2:verts[3]};
+	polygonArray[2] = {v0:verts[0], v1:verts[3], v2:verts[4]};
+	polygonArray[3] = {v0:verts[0], v1:verts[4], v2:verts[5]};
+	polygonArray[4] = {v0:verts[0], v1:verts[5], v2:verts[1]};
+	//push radial vertices until triangles are roughly equilateral
+	var Tvector = {x:0, y:-0.01, z:0};
+	while(findDistance(verts[0], verts[1]) < findDistance(verts[1], verts[2])){
+		for(var idx1 = 1; idx1 < verts.length; idx1++){
+			//Tvector = {x:0, y:-0.01, z:0};
+			transformVertex(verts[idx1], Tvector);
+		}
+	}
+	for(var idx1 = 1; idx1 < 6; idx1++){
+		var v1 = vertexArray[idx1];
+		var v2 = {
+			x:v1.x,
+			y:v1.y,
+			z:v1.z,
+			screenX:0,
+			screenY:0
+		};
+		Rvector = {x:0, y:1, z:0};
+		rotateVertex(v2, (Math.PI / 5), Rvector);
+		vertexArray[idx1 + 5] = v2;
+	}
+	polygonArray[5] = {v0:vertexArray[2], v1:vertexArray[1], v2:vertexArray[6]};
+	polygonArray[6] = {v0:vertexArray[3], v1:vertexArray[2], v2:vertexArray[7]};
+	polygonArray[7] = {v0:vertexArray[4], v1:vertexArray[3], v2:vertexArray[8]};
+	polygonArray[8] = {v0:vertexArray[5], v1:vertexArray[4], v2:vertexArray[9]};
+	polygonArray[9] = {v0:vertexArray[1], v1:vertexArray[5], v2:vertexArray[10]};
+	while(findDistance(vertexArray[1], vertexArray[6]) < findDistance(vertexArray[6], vertexArray[7])){
+		for(var idx1 = 6; idx1 < 11; idx1++){
+			//Tvector = {x:0, y:-0.01, z:0};
+			transformVertex(vertexArray[idx1], Tvector);
+		}
+	}
+	polygonArray[10] = {v0:vertexArray[10], v1:vertexArray[6], v2:vertexArray[1]};
+	polygonArray[11] = {v0:vertexArray[6], v1:vertexArray[7], v2:vertexArray[2]};
+	polygonArray[12] = {v0:vertexArray[7], v1:vertexArray[8], v2:vertexArray[3]};
+	polygonArray[13] = {v0:vertexArray[8], v1:vertexArray[9], v2:vertexArray[4]};
+	polygonArray[14] = {v0:vertexArray[9], v1:vertexArray[10], v2:vertexArray[5]};
+	var v1 = {
+		x:0,
+		y:vertexArray[10].y,
+		z:0,
+		screenX:0,
+		screenY:0
+	};
+	vertexArray[11] = v1;
+	polygonArray[15] = {v0:vertexArray[6], v1:vertexArray[10], v2:vertexArray[11]};
+	polygonArray[16] = {v0:vertexArray[7], v1:vertexArray[6], v2:vertexArray[11]};
+	polygonArray[17] = {v0:vertexArray[8], v1:vertexArray[7], v2:vertexArray[11]};
+	polygonArray[18] = {v0:vertexArray[9], v1:vertexArray[8], v2:vertexArray[11]};
+	polygonArray[19] = {v0:vertexArray[10], v1:vertexArray[9], v2:vertexArray[11]};
+	while(findDistance(vertexArray[10], vertexArray[11]) < findDistance(vertexArray[6], vertexArray[7])){
+		//Tvector = {x:0, y:-0.01, z:0};
+		transformVertex(vertexArray[11], Tvector);
+	}
+	var v1 = {x:0, y:0, z:0, screenX:0, screenY:0};
+	while(findDistance(v1, vertexArray[0]) > findDistance(v1, vertexArray[11])){
+		for(var indx = 0; indx < 12; indx++){
+			transformVertex(vertexArray[indx], Tvector);
+		}
+	}
+	//Split polygons into smaller polygons
+	var splits = 4;
+	var limit = 20 * (Math.pow(4, splits));
+	for(var idx0 = 0; idx0 < splits; idx0++){
+	//while(polygonArray.length < limit){
+		var pAr = [];
+		for(var indx = 0; indx < polygonArray.length; indx++){
+			var polys = getSplitPolygon(polygonArray[indx]);
+			for(var idx2 = 0; idx2 < 4; idx2++){
+				var p = polys[idx2];
+				pAr.push(p);
+			}
+		}
+		polygonArray = pAr;
+	}
+	//assign unique id to each polygon
+	for(var idx1 = 0; idx1 < polygonArray.length; idx1++){
+		var poly = polygonArray[idx1];
+		poly["uid"] = String(idx1);
+	}
+	//project vertices to sphere
+	var radius = 400;
+	for(var idx1 = 0; idx1 < vertexArray.length; idx1++){
+		projectVertexToSphere(vertexArray[idx1], radius);
+	}
+	colourPolygons();
+	calculateWater();
+}
+function generateCities(){
+	getPolygon(4708)["name"] = "London";
+	getPolygon(4397)["name"] = "Rotterdam";
+	getPolygon(1978)["name"] = "Lagos";
+	getPolygon(608)["name"] = "Cape Town";
+	getPolygon(3132)["name"] = "Jebel Ali";
+	getPolygon(4164)["name"] = "Shanghai";
+	getPolygon(3035)["name"] = "Singapore";
+	getPolygon(2840)["name"] = "Hong Kong";
+	getPolygon(4186)["name"] = "Tokyo";
+	getPolygon(4895)["name"] = "Los Angeles";
+	getPolygon(4981)["name"] = "New York";
+	getPolygon(1714)["name"] = "Colombo";
+	getPolygon(3256)["name"] = "Dar es Salaam";
+	getPolygon(2141)["name"] = "Rio de Janeiro";
+	getPolygon(4376)["name"] = "Istanbul";
+	getPolygon(3136)["name"] = "Port Said";
+	getPolygon(878)["name"] = "Buenos Aires";
+	getPolygon(2210)["name"] = "Panama City";
+	getPolygon(100)["name"] = "Sydney";
+	getPolygon(2622)["name"] = "Honolulu";
+}
+function generateResources(){
+	var cits = getCities();
+	for(var indx = 0; indx < cits.length; indx++){
+		var city = cits[indx];
+		city["oil"] = 0;
+		city["coffee"] = 0;
+		city["grain"] = 0;
+		city["gold"] = 0;
+		city["cotton"] = 0;
+	}
+	getPolygon("Jebel Ali")["oil"] = 4000;
+	getPolygon("Los Angeles")["oil"] = 3000;
+	getPolygon("London")["oil"] = 2000;
+	getPolygon("Lagos")["oil"] = 1000;
+	
+	getPolygon("Rio de Janeiro")["coffee"] = 4000;
+	getPolygon("Singapore")["coffee"] = 3000;
+	getPolygon("Panama City")["coffee"] = 2000;
+	getPolygon("Honolulu")["coffee"] = 1000;
+	
+	getPolygon("Shanghai")["grain"] = 4000;
+	getPolygon("Port Said")["grain"] = 3000;
+	getPolygon("Buenos Aires")["grain"] = 2000;
+	getPolygon("Dar es Salaam")["grain"] = 1000;
+	
+	getPolygon("New York")["gold"] = 4000;
+	getPolygon("Rotterdam")["gold"] = 3000;
+	getPolygon("Tokyo")["gold"] = 2000;
+	getPolygon("Cape Town")["gold"] = 1000;
+	
+	getPolygon("Colombo")["cotton"] = 4000;
+	getPolygon("Hong Kong")["cotton"] = 3000;
+	getPolygon("Istanbul")["cotton"] = 2000;
+	getPolygon("Sydney")["cotton"] = 1000;
+}
+function calculateScreenpoint(v){
+	var orgx = window.innerWidth / 2;
+	var orgy = window.innerHeight / 2;
+	var dcam = findDistance(v, vcam);
+	var focl = findDistance(vcam, vfoc);
+	var fovf = (focl / (dcam * fov));
+	//
+	var x = v.x * fovf;
+	var y = v.y * fovf;
+	v.screenX = Math.round(x + orgx);
+	v.screenY = Math.round(y + orgy);
+}
+function myFunc(){
+	//Perform automatic rotation of vertices
+	if (autoRotate == true){
+		if (mouseDownPos.x == 0 && mouseDownPos.y == 0){
+			var d1 = findDistance(vtop, vbot);
+			var Rvect = {x:(vtop.x - vbot.x) * (1 / d1), y:(vtop.y - vbot.y) * (1 / d1), z:(vtop.z - vbot.z) * (1 / d1)};
+			for(var indx = 0; indx < vertexArray.length; indx++){
+				var v = vertexArray[indx];
+				rotateVertex(v, -Math.PI / 960, Rvect);
+			}
+		}
+	}
+	
+	//repositionCamera();
+	ctx.fillStyle = "rgb(0,0,0)";
+	ctx.fillRect(0,0,c.width, c.height);
+	for(var indx = 0; indx < numV; indx++) {
+		var v = vertexArray[indx];
+		calculateScreenpoint(v);
+	}
+	calculateScreenpoint(vtop);
+	calculateScreenpoint(vbot);
+	//
+	setPolygonDistances();
+	polygonArray = sortPolygonsByDistance(polygonArray);
+	var far = 0;
+	for(var indx = 0; indx < polygonArray.length; indx++){
+		var poly = polygonArray[indx];
+		drawPolygon(poly);
+	}
+	highlightPolygons();
+}
+function repositionCamera(rotx, roty){
+	var Rvcy = {x:1, y:0, z:0};
+	var d1 = findDistance(vtop, vbot);
+	var Rvect = {x:(vtop.x - vbot.x) * (1 / d1), y:(vtop.y - vbot.y) * (1 / d1), z:(vtop.z - vbot.z) * (1 / d1)};
+	for(var indx = 0; indx < vertexArray.length; indx++){
+		var v = vertexArray[indx];
+		rotateVertex(v, rotx, Rvect);
+		rotateVertex(v, roty, Rvcy);
+	}
+	rotateVertex(vtop, roty, Rvcy);
+	rotateVertex(vbot, roty, Rvcy);
+}
+function drawLine(v1, v2){
+	ctx.lineWidth = "0.25";
+	ctx.beginPath();
+	ctx.moveTo(v1.screenX, v1.screenY);
+	ctx.lineTo(v2.screenX, v2.screenY);
+	ctx.stroke();
+}
+function drawPolygon(poly){
+	//Get vertices
+	var v0 = poly.v0;
+	var v1 = poly.v1;
+	var v2 = poly.v2;
+	var vecn = findNormal(v0,v1,v2);
+	//Shade polygon
+	var vecs = sunVector;
+	var vx0 = {x:0, y:0, z:0};
+	var vx1 = {x:vx0.x + vecn.x + vecs.x, y:vx0.y + vecn.y + vecs.y, z:vx0.z + vecn.z + vecs.z};
+	var sim = findDistance(vx0, vx1);
+	var shadowDarkness = 0.75;
+	var byt = 255 - Math.round(sim * 255 * shadowDarkness);
+	if (byt > 255){
+		byt = 255;
+	}
+	if (byt < 0){
+		byt = 0;
+	}
+	var r = Math.floor(poly.r * (byt / 255));
+	var g = Math.floor(poly.g * (byt / 255));
+	var b = Math.floor(poly.b * (byt / 255));
+	//Remove polygons with a vertex behind the focus
+	if (v0.z > vfoc.z && v1.z > vfoc.z && v2.z > vfoc.z){
+		//Draw polygon
+		ctx.lineWidth = "0.5";
+		ctx.fillStyle = "rgb(" + r + "," + g + "," + b + ")";
+		
+		ctx.strokeStyle = "rgb(" + byt + "," + byt + "," + byt + ")";
+		ctx.beginPath();
+		ctx.moveTo(v0.screenX, v0.screenY);
+		ctx.lineTo(v1.screenX, v1.screenY);
+		ctx.lineTo(v2.screenX, v2.screenY);
+		ctx.lineTo(v0.screenX, v0.screenY);
+		ctx.closePath();
+		
+		ctx.fill();
+	}
+}
+function highlightPolygons(){
+	var p = {x: mousePos.x, y: mousePos.y};
+	var poly = getNearestPolygon(p);
+	if (poly != null){
+		//Draw polygon
+		ctx.lineWidth = "0.5";
+		ctx.strokeStyle = "rgb(255,255,0)";
+		ctx.beginPath();
+		ctx.moveTo(poly.v0.screenX, poly.v0.screenY);
+		ctx.lineTo(poly.v1.screenX, poly.v1.screenY);
+		ctx.lineTo(poly.v2.screenX, poly.v2.screenY);
+		ctx.lineTo(poly.v0.screenX, poly.v0.screenY);
+		ctx.closePath();
+		ctx.stroke();
+		ctx.fillStyle = "rgb(255,255,0)";
+	}
+	//draw cities
+	for(var idx1 = 0; idx1 < polygonArray.length; idx1++){
+		var poly = polygonArray[idx1];
+		if (poly.name != null){
+			if (idx1 > (5120 / 2)){
+				//Draw polygon
+				ctx.lineWidth = "2";
+				ctx.strokeStyle = "rgb(255,0,255)";
+				ctx.beginPath();
+				ctx.moveTo(poly.v0.screenX, poly.v0.screenY);
+				ctx.lineTo(poly.v1.screenX, poly.v1.screenY);
+				ctx.lineTo(poly.v2.screenX, poly.v2.screenY);
+				ctx.lineTo(poly.v0.screenX, poly.v0.screenY);
+				ctx.closePath();
+				ctx.stroke();
+			}
+		}
+	}
+	//draw selected polygon
+	var poly = selectedPolygon;
+	if (poly != null){
+		ctx.lineWidth = "4";
+		ctx.strokeStyle = "rgb(255,255,255)";
+		ctx.beginPath();
+		ctx.moveTo(poly.v0.screenX, poly.v0.screenY);
+		ctx.lineTo(poly.v1.screenX, poly.v1.screenY);
+		ctx.lineTo(poly.v2.screenX, poly.v2.screenY);
+		ctx.lineTo(poly.v0.screenX, poly.v0.screenY);
+		ctx.closePath();
+		ctx.stroke();
+		if (poly.name != null){
+			drawResourceBox(poly);
+		}
+	}
+	//draw current trade
+	var x01 = (window.innerWidth / 2) - 300;
+	var y01 = 50;
+	var x02 = (window.innerWidth / 2) + 300;
+	var y02 = 100;
+	ctx.lineWidth = "1";
+	ctx.strokeStyle = "rgb(255,255,255)";
+	ctx.beginPath();
+	ctx.moveTo(x01, y01);
+	ctx.lineTo(x02, y01);
+	ctx.lineTo(x02, y02);
+	ctx.lineTo(x01, y02);
+	ctx.lineTo(x01, y01);
+	ctx.closePath();
+	ctx.stroke();
+	if (currentTrade != null){
+		ctx.fillStyle = "rgb(255,255,255)";
+		var x03 = x01 + 10;
+		var x04 = (window.innerWidth / 2) + 40;
+		var y03 = y01 + 5;
+		var x05 = (window.innerWidth / 2) - 30;
+		var x06 = (window.innerWidth / 2) + 10;
+		if (currentTrade["cityA"] != null){
+			ctx.fillText(currentTrade["cityA"].name, x01 + 5, y01 - 10);
+		}
+		if (currentTrade["cityB"] != null){
+			var twid = ctx.measureText(currentTrade["cityB"].name).width;
+			ctx.fillText(currentTrade["cityB"].name, x02 - (twid + 5), y01 - 10);
+		}
+		if (currentTrade["resourceA"] != null){
+			drawResourceTile(currentTrade["resourceA"], x01 + 5, y03, 40, 40);
+			drawResourceQuantity(currentTrade["cityA"][currentTrade["resourceA"]], x01 + 50, y03);
+		}
+		if (currentTrade["resourceB"] != null){
+			drawResourceTile(currentTrade["resourceB"], x02 - 45, y03, 40, 40);
+		}
+	}
+	//draw resource values
+	var x01 = window.innerWidth - 225;
+	var x02 = window.innerWidth - 180;
+	var x03 = window.innerWidth - 135;
+	var x04 = window.innerWidth - 90;
+	var x05 = window.innerWidth - 45;
+	var xs = [x01, x02, x03, x04, x05];
+	var y01 = window.innerHeight - 45;
+	var y02 = window.innerHeight - 90;
+	var vs = [getWorth("oil"), getWorth("coffee"), getWorth("grain"), getWorth("cotton"), getWorth("gold")];
+	drawResourceTile("oil", x01, y01, 40, 40);
+	drawResourceTile("coffee", x02, y01, 40, 40);
+	drawResourceTile("grain", x03, y01, 40, 40);
+	drawResourceTile("cotton", x04, y01, 40, 40);
+	drawResourceTile("gold", x05, y01, 40, 40);
+	for(var indx = 0; indx < 5; indx++){
+		ctx.moveTo(xs[indx], y02);
+		ctx.beginPath();
+		var wrty = Math.round(vs[indx] * 100);
+		ctx.lineTo(xs[indx], y02 - wrty);
+		ctx.lineTo(xs[indx] + 40, y02 - wrty);
+		ctx.lineTo(xs[indx] + 40, y02);
+		ctx.lineTo(xs[indx], y02);
+		ctx.closePath();
+		ctx.stroke();
+	}
+	//draw animations
+	if (animations.length > 0){
+		for(var indx = 0; indx < animations.length; indx++){
+			var anim = animations[indx];
+			var ply1 = anim.route[anim.count];
+			var v1 = getCentre(ply1);
+			calculateScreenpoint(v1);
+			var ply2 = anim.route[anim.route.length - anim.count - 1];
+			var v2 = getCentre(ply2);
+			calculateScreenpoint(v2);
+			for(var idx2 = 0; idx2 < anim.route.length; idx2++){
+				var ply3 = anim.route[idx2];
+				var v3 = getCentre(ply3);
+				calculateScreenpoint(v3);
+				ctx.strokeStyle = "rgb(255,255,255)";
+				ctx.fillStyle = "rgb(255,255,255)";
+				ctx.beginPath();
+				ctx.arc(v3.screenX, v3.screenY, 2, 0, 2 * Math.PI);
+				ctx.closePath();
+				ctx.stroke();
+				ctx.fill();
+			}
+			drawResourceTile(anim.resourceA, v1.screenX - 10, v1.screenY - 10, 20, 20);
+			drawResourceTile(anim.resourceB, v2.screenX - 10, v2.screenY - 10, 20, 20);
+			//
+			var x01 = (window.innerWidth / 2) - 300;
+			var x02 = (window.innerWidth / 2) + 300;
+			var y01 = 50;
+			var y03 = 55;
+			var tpos = Math.round(((x02 - 45 - x01 + 5) / anim.route.length) * anim.count);
+			var tps1 = x01 + 5 + tpos;
+			var tps2 = x02 - 45 - tpos;
+			drawResourceTile(anim.resourceA, tps1, y03, 40, 40);
+			drawResourceTile(anim.resourceB, tps2, y03, 40, 40);
+			ctx.fillStyle = "rgb(255,255,255)";
+			ctx.fillText(anim.route[0].name, x01 + 5, y01 - 10);
+			var twid = ctx.measureText(anim.route[anim.route.length - 1].name).width;
+			ctx.fillText(anim.route[anim.route.length - 1].name, x02 - (twid + 5), y01 - 10);
+			//
+			anim.count += 1;
+			if (anim.count >= anim.route.length){
+				animations.splice(indx, 1);
+			}
+		}
+	}
+	//draw Trade History
+	for(var idxt = 0; idxt < tradeHistory.length; idxt++){
+		ctx.fillText(tradeHistory[idxt], window.innerWidth - 340, 20 + (idxt * 20));
+	}
+	//draw victory percentage
+	ctx.fillText("Victory: " + victoryPercentage + "%", 5, window.innerHeight - 25);
+	//draw score
+	ctx.fillText("Score: " + getScore(), 5, window.innerHeight - 15);
+}
+function drawResourceTile(name, x, y, w, h){
+	var img;
+	if (name == "oil"){
+		ctx.fillStyle = "rgb(63,63,63)";
+		img = images[0];
+	}
+	if (name == "coffee"){
+		ctx.fillStyle = "rgb(127,63,0)";
+		img = images[1];
+	}
+	if (name == "grain"){
+		ctx.fillStyle = "rgb(191,191,0)";
+		img = images[2];
+	}
+	if (name == "cotton"){
+		ctx.fillStyle = "rgb(191,191,191)";
+		img = images[3];
+	}
+	if (name == "gold"){
+		ctx.fillStyle = "rgb(255,255,0)";
+		img = images[4];
+	}
+	if (images.length == 5){
+		ctx.drawImage(img, x, y, w, h);
+	}
+	else{
+		ctx.fillRect(x,y,w,h);
+	}
+}
+function drawResourceBox(poly){
+	ctx.fillStyle = "rgb(127,127,127)";
+	ctx.fillRect(20,80,75,250);
+	//
+	drawResourceTile("oil", 25,105,40,40);
+	drawResourceTile("coffee", 25,150,40,40);
+	drawResourceTile("grain", 25,195,40,40);
+	drawResourceTile("cotton", 25,240,40,40);
+	drawResourceTile("gold", 25,285,40,40);
+	//
+	ctx.fillStyle = "rgb(255,255,255)";
+	ctx.fillText(poly.name, 22, 92);
+	//
+	var oil = Math.round(poly.oil);
+	var coffee = Math.round(poly.coffee);
+	var grain = Math.round(poly.grain);
+	var cotton = Math.round(poly.cotton);
+	var gold = Math.round(poly.gold);
+	var rscs = [oil, coffee, grain, cotton, gold];
+	ctx.fillText(oil,67,112);
+	ctx.fillText(coffee,67,157);
+	ctx.fillText(grain,67,202);
+	ctx.fillText(cotton,67,247);
+	ctx.fillText(gold,67,292);
+	//
+	for(var indx = 0; indx < rscs.length; indx++){
+		if (rscs[indx] > 0){
+			drawResourceQuantity(rscs[indx], 100, 105 + (indx * 45));
+		}
+	}
+}
+function drawResourceQuantity(q, x, y){
+	ctx.lineWidth = "1";
+	ctx.beginPath();
+	ctx.moveTo(x, y);
+	ctx.lineTo(x + (q * 0.1), y);
+	ctx.lineTo(x + (q * 0.1), y + 40);
+	ctx.lineTo(x, y + 40);
+	ctx.closePath();
+	ctx.stroke();
+}
+function getNearestPolygon(p){
+	var hlts = [];
+	for(var indx = 0; indx < polygonArray.length; indx++){
+		var poly = polygonArray[indx];
+		if (isWithin(p, poly)){
+			hlts.push(poly);
+		}
+	}
+	var poly = null;
+	if (hlts.length > 1){
+		hlts = hlts.sort(compareDistances);
+		poly = hlts[hlts.length - 1];
+	}
+	return poly;
+}
+function getResourceClicked(p){
+	var out = null;
+	if (selectedPolygon != null){
+		if (selectedPolygon.name != null){
+			if (p.x > 24 && p.x < 66){
+				if (p.y > 104 && p.y < 146){
+					out = "oil";
+				}
+				if (p.y > 149 && p.y < 191){
+					out = "coffee";
+				}
+				if (p.y > 194 && p.y < 236){
+					out = "grain";
+				}
+				if (p.y > 239 && p.y < 281){
+					out = "cotton";
+				}
+				if (p.y > 284 && p.y < 326){
+					out = "gold";
+				}
+			}
+		}
+	}
+	return out;
+}
+function executeTrade(trad){
+	var citA = trad["cityA"];
+	var citB = trad["cityB"];
+	var resA = trad["resourceA"];
+	var resB = trad["resourceB"];
+	var q1 = citA[resA];
+	var q2 = citB[resB];
+	var q3 = q1 * getWorth(resA);
+	var q4 = q2 * getWorth(resB);
+	var q5 = Math.min(q3, q4);
+	var q7 = Math.round((q5 / getWorth(resA)));
+	var q8 = Math.round((q5 / getWorth(resB)));
+	citA[resA] -= q7;
+	citB[resA] += q7;
+	citA[resB] += q8;
+	victoryTest();
+	citB[resB] -= q8;
+	var q9 = Math.round(q7);
+	var q10 = Math.round(q8);
+	var st = "Traded " + q9 + " " + resA + " from " + citA.name + " for " + q10 + " " + resB + " from " + citB.name;
+	tradeHistory.unshift(st);
+	if (tradeHistory.length > 20){
+		tradeHistory = tradeHistory.slice(0, 20);
+	}
+	var rout = getRoute(citA, citB);
+	var anim = {};
+	anim["resourceA"] = trad.resourceA;
+	anim["resourceB"] = trad.resourceB;
+	anim["route"] = rout;
+	anim["count"] = 0;
+	animations.push(anim);
+	victoryTest();
+}
+function getWorth(res){
+	var out = 1;
+	var t = new Date().getTime();
+	var c01 = Math.cos(((t % 30000) / 30000) * 2 * Math.PI) * 0.5;
+	var c02 = Math.cos(((t % 50000) / 50000) * 2 * Math.PI) * 0.3;
+	var c03 = Math.cos(((t % 60000) / 60000) * 2 * Math.PI) * 0.3;
+	var c04 = Math.cos(((t % 70000) / 70000) * 2 * Math.PI) * 0.2;
+	var c05 = Math.cos(((t % 90000) / 90000) * 2 * Math.PI) * 0.1;
+	if (res == "oil"){
+		out = 1.1 + c01;
+	}
+	if (res == "coffee"){
+		out = 1.0 + c02;
+	}
+	if (res == "grain"){
+		out = 0.9 + c03;
+	}
+	if (res == "cotton"){
+		out = 0.8 + c04;
+	}
+	if (res == "gold"){
+		out = 1.2 + c05;
+	}
+	return out;
+}
+function victoryTest(){
+	var cits = getCities();
+	var victory = 100;
+	for(var idx1 = 0; idx1 < cits.length; idx1++){
+		var city = cits[idx1];
+		if (city["oil"] <= 0){
+			victory -= 1;
+		}
+		if (city["coffee"] <= 0){
+			victory -= 1;
+		}
+		if (city["grain"] <= 0){
+			victory -= 1;
+		}
+		if (city["cotton"] <= 0){
+			victory -= 1;
+		}
+		if (city["gold"] <= 0){
+			victory -= 1;
+		}
+	}
+	if (victory == 100){
+		alert("Congratulations! You finished the game with a score of " + getScore() + ".");
+	}
+	victoryPercentage = victory;
+}
+function getScore(){
+	var score = 50000;
+	var cits = getCities();
+	for(var idx1 = 0; idx1 < cits.length; idx1++){
+		var city = cits[idx1];
+		if (city["oil"] <= 500){
+			score -= (500 - city["oil"]);
+		}
+		if (city["coffee"] <= 500){
+			score -= (500 - city["coffee"]);
+		}
+		if (city["grain"] <= 500){
+			score -= (500 - city["grain"]);
+		}
+		if (city["cotton"] <= 500){
+			score -= (500 - city["cotton"]);
+		}
+		if (city["gold"] <= 500){
+			score -= (500 - city["gold"]);
+		}
+	}
+	return score;
+}
+function logMouseDown(event){
+	var posx = event.clientX;
+	var posy = event.clientY;
+	var p = {x:posx, y:posy};
+	var res = getResourceClicked(p);
+	if (res == null){
+		mouseDownPos.x = posx;
+		mouseDownPos.y = posy;
+		camAngleRef.x = camAngleX;
+		camAngleRef.y = camAngleY;
+	}
+	else{
+		if (currentTrade == null){
+			currentTrade = {};
+			currentTrade["resourceA"] = res;
+			currentTrade["cityA"] = selectedPolygon;
+		}
+		else{
+			currentTrade["resourceB"] = res;
+			currentTrade["cityB"] = selectedPolygon;
+			executeTrade(currentTrade);
+			currentTrade = null;
+		}
+	}
+}
+function mouseUp(event){
+	var posx = event.clientX;
+	var posy = event.clientY;
+	var difx = posx - mouseDownPos.x;
+	var dify = posy - mouseDownPos.y;
+	var p = {x:posx, y:posy};
+	var poly = getNearestPolygon(p);
+	if (poly != null){
+		if (currentTrade != null){
+			if (poly.name != null){
+				currentTrade["cityB"] = poly;
+			}
+		}
+		selectedPolygon = poly;
+	}
+	mouseDownPos = {x:0, y:0};
+}
+function mouseMove(event){
+	var posx = event.clientX;
+	var posy = event.clientY;
+	mousePos.x = posx;
+	mousePos.y = posy;
+	if (mouseDownPos.x != 0 && mouseDownPos.y != 0){
+		var difx = mousePos.x - mouseDownPos.x;
+		var dify = mousePos.y - mouseDownPos.y;
+		var ratx = 0;
+		var raty = 0;
+		ratx = -difx / window.innerWidth;
+		raty = dify / window.innerHeight;
+		var sens = 20;
+		repositionCamera((fov * ratx) * sens, (fov * raty) * sens);
+		mouseDownPos.x = posx;
+		mouseDownPos.y = posy;
+	}
+}
+function rotateVertex(vertex, angle, Rvector){
+	var theta = angle;
+	var c = Math.cos(theta);
+	var s = Math.sin(theta);
+	var t = 1 - (Math.cos(theta));
+	var Rvect = Rvector;
+	var x = Rvect.x;
+	var y = Rvect.y;
+	var z = Rvect.z;
+	var Rmatrix = [
+		[(t * Math.pow(x, 2)) + c, (t * x * y) - (s * z), (t * x * z) + (s * y), 0],
+		[(t * x * y) + (s * z), (t * Math.pow(y, 2)) + c, (t * y * z) - (s * x), 0],
+		[(t * x * z) - (s * y), (t * y * z) + (s * x), (t * Math.pow(z, 2)) + c, 0],
+		[0, 0, 0, 1]
+	];
+	var Vmatrix1 = [];
+	Vmatrix1[0] = vertex.x;
+	Vmatrix1[1] = vertex.y;
+	Vmatrix1[2] = vertex.z;
+	Vmatrix1[3] = 1;
+	//
+	var Vmatrix2 = [];
+	Vmatrix2[0] = (Rmatrix[0][0] * Vmatrix1[0]) + (Rmatrix[0][1] * Vmatrix1[1]) + (Rmatrix[0][2] * Vmatrix1[2]) + (Rmatrix[0][3] * Vmatrix1[3]);
+	Vmatrix2[1] = (Rmatrix[1][0] * Vmatrix1[0]) + (Rmatrix[1][1] * Vmatrix1[1]) + (Rmatrix[1][2] * Vmatrix1[2]) + (Rmatrix[1][3] * Vmatrix1[3]);
+	Vmatrix2[2] = (Rmatrix[2][0] * Vmatrix1[0]) + (Rmatrix[2][1] * Vmatrix1[1]) + (Rmatrix[2][2] * Vmatrix1[2]) + (Rmatrix[2][3] * Vmatrix1[3]);
+	Vmatrix2[3] = (Rmatrix[3][0] * Vmatrix1[0]) + (Rmatrix[3][1] * Vmatrix1[1]) + (Rmatrix[3][2] * Vmatrix1[2]) + (Rmatrix[3][3] * Vmatrix1[3]);
+	//
+	vertex.x = Vmatrix2[0];
+	vertex.y = Vmatrix2[1];
+	vertex.z = Vmatrix2[2];
+}
+function rotateVerticesAboutEdge(vertices, angle, v1, v2){
+	var dfac = 1 / findDistance(v1, v2);
+	var Rvector = {x:(v2.x - v1.x) * dfac, y:(v2.y - v1.y) * dfac, z:(v2.z - v1.z) * dfac};
+	
+	var Tvector = {x:-v1.x, y:-v1.y, z:-v1.z};
+	//transform vertices
+	for(var idx1 = 0; idx1 < vertices.length; idx1++){
+		var vertex = vertices[idx1];
+		transformVertex(vertex, Tvector);
+		rotateVertex(vertex, angle, Rvector);
+	}
+	
+	//reverse transform vertices
+	Tvector = {x:-Tvector.x, y:-Tvector.y, z:-Tvector.z};
+	for(var idx1 = 0; idx1 < vertices.length; idx1++){
+		var vertex = vertices[idx1];
+		transformVertex(vertex, Tvector);
+	}
+}
+function getSplitPolygon(poly){
+	var vx0 = poly.v0;
+	var vx1 = poly.v1;
+	var vx2 = poly.v2;
+	var vx3 = {x:vx0.x, y:vx0.y, z:vx0.z, screenX:0, screenY:0};
+	transformVertex(vx3, scaleVector(getVector(vx0, vx1), 0.5));
+	var vx4 = {x:vx1.x, y:vx1.y, z:vx1.z, screenX:0, screenY:0};
+	transformVertex(vx4, scaleVector(getVector(vx1, vx2), 0.5));
+	var vx5 = {x:vx2.x, y:vx2.y, z:vx2.z, screenX:0, screenY:0};
+	transformVertex(vx5, scaleVector(getVector(vx2, vx0), 0.5));
+	if (vx3 == getMatchingVertex(vx3)){
+		vertexArray.push(vx3);
+		numV += 1;
+	}
+	else{
+		vx3 = getMatchingVertex(vx3);
+	}
+	if (vx4 == getMatchingVertex(vx4)){
+		vertexArray.push(vx4);
+		numV += 1;
+	}
+	else{
+		vx4 = getMatchingVertex(vx4);
+	}
+	if (vx5 == getMatchingVertex(vx5)){
+		vertexArray.push(vx5);
+		numV += 1;
+	}
+	else{
+		vx5 = getMatchingVertex(vx5);
+	}
+	var ply1 = {v0:vx0, v1:vx3, v2:vx5};
+	var ply2 = {v0:vx3, v1:vx1, v2:vx4};
+	var ply3 = {v0:vx4, v1:vx2, v2:vx5};
+	var ply4 = {v0:vx3, v1:vx4, v2:vx5};
+	var out = [];
+	out.push(ply1);
+	out.push(ply2);
+	out.push(ply3);
+	out.push(ply4);
+	return out;
+}
+function projectVertexToSphere(v1, rad){
+	var v0 = {x:0, y:0, z:0, screenX:0, screenY:0};
+	var vec1 = getVector(v0, v1);
+	var d1 = findDistance(v0, v1);
+	var scal = 0.01;
+	while(findDistance(v0, v1) < rad){
+		var vec2 = scaleVector(vec1, scal);
+		transformVertex(v1, vec2);
+	}
+}
+function findNormal(v0, v1, v2){
+	var vec1 = {x:v1.x - v0.x, y:v1.y - v0.y, z:v1.z - v0.z};
+	var vec2 = {x:v2.x - v0.x, y:v2.y - v0.y, z:v2.z - v0.z};
+	var crossProduct = {x:((vec1.y * vec2.z) - (vec1.z * vec2.y)), y:((vec1.z * vec2.x) - (vec1.x * vec2.z)), z:((vec1.x * vec2.y) - (vec1.y * vec2.x))};
+	var vx0 = {x:0, y:0, z:0};
+	var fac = 1 / (findDistance(vx0, crossProduct));
+	crossProduct.x = crossProduct.x * fac;
+	crossProduct.y = crossProduct.y * fac;
+	crossProduct.z = crossProduct.z * fac;
+	return crossProduct;
+}
+function compareVectors(vec1, vec2){
+	var x = vec2.x - vec1.x;
+	var y = vec2.y - vec1.y;
+	var z = vec2.z - vec1.z;
+	var out = {x:x, y:y, z:z};
+	return out;
+}
+function sortPolygonsByDistance(pAry){
+	return pAry.sort(compareDistances);
+}
+function getPixelAtCoordinates(img, lat, lng){
+	var iw = img.width;
+	var ih = img.height;
+	var ph = Math.round(((ih / 2) * (lat / (Math.PI / 2))) + (ih / 2));
+	var pw = Math.round((iw) * (lng / (2 * Math.PI)) + (iw / 2));
+	if (pw >= iw){
+		pw -= iw;
+	}
+	var pixelData = mapcanvas.getContext("2d").getImageData(pw, ph, 1, 1);
+	var out = pixelData.data;
+	return out;
+}
+function getRoute(ply1, ply2){
+	//A* search algorithm
+	var route = [];
+	if (ply1 != ply2){
+		var open = [];
+		var clos = [];
+		var gScore = [];
+		var fScore = [];
+		var cameFrom = [];
+		open.push(ply1);
+		for(var idx1 = 0; idx1 < polygonArray.length; idx1++){
+			gScore[idx1] = 1999999999;
+			fScore[idx1] = 1999999999;
+		}
+		var ixp1 = polygonArray.indexOf(ply1);
+		gScore[ixp1] = 0;
+		fScore[ixp1] = findDistance(getCentre(ply1), getCentre(ply2));
+		while(open.length > 0 && clos.includes(ply2) == false){
+			//find polygon in open list with best fScore
+			var bstF = 1999999999;
+			var bstL = open[0];
+			for(var idxF = 0; idxF < polygonArray.length; idxF++){
+				var poly = polygonArray[idxF];
+				if (open.includes(poly)){
+					if (fScore[idxF] < bstF){
+						bstF = fScore[idxF];
+						bstL = poly;
+					}
+				}
+			}
+			//set best poly as current poly
+			var curr = bstL;
+			var idxC = polygonArray.indexOf(curr);
+			//remove current poly from open list and add it to closed list
+			var idOC = open.indexOf(curr);
+			open.splice(idOC, 1);
+			if (clos.includes(curr) == false){
+				clos.push(curr);
+			}
+			
+			//consider all neighbours of current poly
+			var cnbs = getTraversableNeighbours(curr);
+			for(var idxN = 0; idxN < cnbs.length; idxN++){
+				var plyN = cnbs[idxN];
+				var ipaN = polygonArray.indexOf(plyN);
+				//check neighbouring poly is in neither list
+				if (clos.includes(plyN) == false){
+					//calculate tentative gScore for neighbouring poly
+					var tgs = gScore[idxC] + findDistance(getCentre(curr), getCentre(plyN));
+					//compare tentative gScore to any existing values for that poly
+					if (tgs < gScore[ipaN]){
+						//lay trail from previous poly
+						cameFrom[ipaN] = curr;
+						//update gScore and fScore
+						gScore[ipaN] = tgs;
+						fScore[ipaN] = tgs + findDistance(getCentre(plyN), getCentre(ply2));
+						if (open.includes(plyN) == false){
+							//add neighbouring poly to open list
+							open.push(plyN);
+						}
+					}
+				}
+			}
+		}
+		//reconstruct route
+		route.push(ply2);
+		var Pprv = cameFrom[polygonArray.indexOf(ply2)];
+		route.push(Pprv);		
+		while(Pprv != ply1){
+			var idxP = polygonArray.indexOf(Pprv);
+			Pprv = cameFrom[idxP];
+			route.push(Pprv);
+		}
+		//reverse reconstructed route
+		route.reverse();
+	}
+	return route;
+}
+function getNeighbours(ply1){
+	var out = [];
+	for(var idx0 = 0; idx0 < 3; idx0++){
+		var s1 = "v" + idx0;
+		var vtx1 = ply1[s1];
+		for(var indx = 0; indx < polygonArray.length; indx++){
+			var ply2 = polygonArray[indx];
+			if (ply2.v0 == vtx1 || ply2.v1 == vtx1 || ply2.v2 == vtx1){
+				if (ply2 != ply1){
+					if (out.includes(ply2) == false){
+						out.push(ply2);
+					}
+				}
+			}
+		}
+	}
+	return out;
+}
+function getTraversableNeighbours(ply1){
+	var out = [];
+	var anbs = getNeighbours(ply1);
+	if (anbs.length > 0){
+		for(var indx = 0; indx < anbs.length; indx++){
+			var nbr1 = anbs[indx];
+			if (nbr1.water == true || nbr1["name"] != null){
+				out.push(nbr1);
+			}
+		}
+	}
+	return out;
+}
+function colourPolygons(){
+	var sclr = "";
+	var cdat = getColourData();
+	for(var idx1 = 0; idx1 < polygonArray.length; idx1++){
+		var poly = polygonArray[idx1];
+		var rchx = "0x" + cdat[idx1].slice(0, 2);
+		var gchx = "0x" + cdat[idx1].slice(2, 4);
+		var bchx = "0x" + cdat[idx1].slice(4, 6);
+		poly["r"] = Number(rchx);
+		poly["g"] = Number(gchx);
+		poly["b"] = Number(bchx);
+	}
+}
+function calculateWater(){
+	for(var idx1 = 0; idx1 < polygonArray.length; idx1++){
+		var poly = polygonArray[idx1];
+		var water = true;
+		if (getLandData().includes(Number(poly.uid))){
+			water = false;
+		}
+		else{
+			poly["r"] = Number("0x" + "01");
+			poly["g"] = Number("0x" + "60");
+			poly["b"] = Number("0x" + "a4");
+		}
+		poly["water"] = water;
+	}
+}
+function setPolygonDistances(){
+	for(var idx1 = 0; idx1 < polygonArray.length; idx1++){
+		var poly = polygonArray[idx1];
+		var d0 = findDistance(poly.v0, vcam);
+		var d1 = findDistance(poly.v1, vcam);
+		var d2 = findDistance(poly.v2, vcam);
+		//Obtain a mean distance value for the polygon
+		var dist = (d0 + d1 + d2) / 3;
+		poly["dist"] = dist;
+	}
+}
+function compareDistances(ply1, ply2){
+	return ply2.dist - ply1.dist;
+}
+function getMatchingVertex(v1){
+	var out = v1;
+	var proximityThreshold = 1;
+	for(var idx1 = 0; idx1 < vertexArray.length; idx1++){
+		var v2 = vertexArray[idx1];
+		if (findDistance(v1, v2) < proximityThreshold){
+			out = v2;
+		}
+	}
+	return out;
+}
+function transformVertex(v1, Tvector){
+	v1.x += Tvector.x;
+	v1.y += Tvector.y;
+	v1.z += Tvector.z;
+}
+function getVector(v1, v2){
+	var out = {x:v2.x - v1.x, y:v2.y - v1.y, z:v2.z - v1.z};
+	return out;
+}
+function scaleVector(vec1, scal){
+	var out = {x:vec1.x * scal, y:vec1.y * scal, z:vec1.z * scal};
+	return out;
+}
+function getCentre(poly){
+	var out = null;
+	if (poly != null){
+		var vx0 = poly.v0;
+		var vx1 = poly.v1;
+		var vx2 = poly.v2;
+		var x1 = (vx0.x + vx1.x + vx2.x) / 3;
+		var y1 = (vx0.y + vx1.y + vx2.y) / 3;
+		var z1 = (vx0.z + vx1.z + vx2.z) / 3;
+		out = {x:x1, y:y1, z:z1, screenX:0, screenY:0};
+	}
+	return out;
+}
+function getCoordinates(v1){
+	var v0 = {x:0, y:0, z:0, screenX:0, screenY:0};
+	var p0 = {x:v0.x, y:v0.z};
+	var p1 = {x:v1.x, y:v1.z};
+	var longitude = findAngle(p0, p1);
+	var v2 = {x:v1.x, y:0, z:v1.z, screenX:0, screenY:0};
+	var d1 = findDistance(v0, v2);
+	var d2 = v1.y;
+	var p2 = {x:d1, y:d2};
+	var latitude = findAngle(p0, p2) - (Math.PI / 2);
+	var out = {latitude:latitude, longitude:longitude};
+	return out;
+}
+function getPolygon(uid){
+	var out = null;
+	for(var indx = 0; indx < polygonArray.length; indx++){
+		var poly = polygonArray[indx];
+		if (poly.uid == uid){
+			out = poly;
+		}
+		if (poly.name == uid){
+			out = poly;
+		}
+	}
+	return out;
+}
+function getCities(){
+	var out = [];
+	for(var indx = 0; indx < polygonArray.length; indx++){
+		var poly = polygonArray[indx];
+		if (poly.name != null){
+			out.push(poly);
+		}
+	}
+	return out;
+}
+function findDistance(v1, v2) {
+	var x1 = v1.x;
+	var y1 = v1.y;
+	var z1 = v1.z;
+	var x2 = v2.x;
+	var y2 = v2.y;
+	var z2 = v2.z;
+	var dsxy = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+	var dsz = z2 - z1;
+	var out = 0;
+	if (dsz != 0){
+		out = Math.sqrt(Math.pow(dsxy, 2) + Math.pow(dsz, 2));
+	}else{
+		out = dsxy;
+	}
+	return out;
+}
+function findAngle(p1, p2) {
+	var a = 0;
+	if (p1.y - p2.y != 0){
+		a = Math.atan((p2.x - p1.x) / (p1.y - p2.y));
+	}else{
+		a = Math.PI / (2 * Math.sign(p2.x - p1.x));
+	}
+	if (p2.x - p1.x >= 0 && p2.y - p1.y > 0) {
+		a += Math.PI;
+	}
+	if (p2.x - p1.x < 0 && p2.y - p1.y > 0) {
+        a += Math.PI;
+    }
+	if (p2.x - p1.x < 0 && p2.y - p1.y <= 0) {
+        a += Math.PI * 2;
+    }
+	return a;
+}
+function isBetween(ptst, p0, p1, p2){
+	var out = false;
+	var a1 = findAngle(p0, p1);
+	var a2 = findAngle(p0, p2);
+	if (a2 - a1 > Math.PI || (a1 - a2 < Math.PI) && (a1 - a2) > 0){
+		return isBetween(ptst, p0, p2, p1);
+	}
+	var atst = findAngle(p0, ptst);
+	if (a1 > a2){
+		a1 -= (Math.PI * 2);
+	}
+	if (atst >= a1 && atst <= a2){
+		out = true;
+	}
+	else{
+		atst -= (Math.PI * 2);
+		if (atst >= a1 && atst <= a2){
+			out = true;
+		}
+	}
+	return out;
+}
+function isWithin(p, poly){
+	var out = true;
+	var p0 = {x: poly.v0.screenX, y: poly.v0.screenY};
+	var p1 = {x: poly.v1.screenX, y: poly.v1.screenY};
+	var p2 = {x: poly.v2.screenX, y: poly.v2.screenY};
+	if (isBetween(p, p0, p2, p1) == false){
+		out = false;
+	}
+	if (isBetween(p, p1, p0, p2) == false){
+		out = false;
+	}
+	if (isBetween(p, p2, p1, p0) == false){
+		out = false;
+	}
+	return out;
+}
+function getLandData(){
+	var landData = [];
+	landData = [3308,3297,3311,3309,3243,3299,3310,3298,3296,3241,3304,3306,3105,3307,3318,3256,3317,3257,3254,3320,3259,1579,3319,3261,3325,3289,3209,3255,3104,3323,3263,3258,3316,1593,3327,3252,3211,3262,3291,3260,3208,3324,3290,3125,1545,1595,3322,3126,3273,3326,3226,3210,3127,3288,3097,3250,3249,1547,3133,3313,3213,3272,1594,3294,3230,3251,3314,3206,3218,1544,3214,3282,3315,3293,3124,3099,3215,3135,3231,3295,3277,3270,3098,3274,3248,3132,3207,3219,3096,1549,3202,3286,3134,3283,3312,3205,3212,3216,3228,1551,3292,3217,3204,3279,3280,3271,3102,3281,3203,3269,3101,3201,3220,3287,1881,3284,1888,3090,3103,3123,1880,3276,1889,3268,3266,1909,1883,3094,3200,3177,1891,3176,3285,1878,1892,3145,1885,1900,3174,3091,3179,3120,3193,3265,3100,3181,3146,3079,1911,1879,1893,1882,1895,3147,3173,1890,3095,3088,3089,3077,1887,3175,1714,1682,3092,1903,3084,1908,1910,1686,1715,3076,1886,3138,3150,3264,3178,1902,3195,1876,3093,3183,2005,1920,1894,1884,4421,3075,1901,3144,4420,3073,4432,1692,3172,3192,1683,3182,4417,1687,598,1916,3194,4433,3139,3136,1917,4423,3180,4464,1712,1874,3151,4428,1681,1898,4435,1684,4416,3072,2007,2004,1923,3149,1680,1873,1685,1919,4436,1921,1905,4419,1896,1912,4444,605,1875,3197,3170,3137,1899,3198,3148,600,3169,4467,4422,4544,4437,2904,2902,4431,4439,2006,1922,3190,4434,2901,3199,3142,2905,3171,4418,1932,4466,4447,1918,1907,2909,3186,4429,4465,2903,2907,1915,4096,1924,1872,4430,4446,603,3140,1897,3143,1906,4438,4547,1914,1934,1904,3191,3196,4445,4545,1935,3168,601,1913,4099,2911,3187,2900,4478,2906,4476,3188,4098,3189,1927,4374,4369,4426,3185,4442,4546,4097,1925,2908,3141,2910,4479,4474,1862,3184,4440,1861,2932,4427,629,4468,4556,1933,4110,1926,4443,4381,4548,3162,3161,4108,3154,608,4106,4558,2897,1968,4111,2898,3163,3152,3166,4559,4475,4477,1936,2940,4100,4471,3155,2899,1970,4382,4441,4376,2929,4400,4107,1971,4551,4554,4472,4470,4473,4357,4109,3160,4469,3167,4549,4105,4103,1939,1978,3153,4104,1982,3165,4102,4550,4378,1937,2896,4379,3164,2931,1969,4359,4458,4101,4450,4356,1938,4457,2942,4552,4448,4153,2928,4592,4154,3158,2930,1983,3156,4146,4462,4412,4459,4404,1948,4451,1980,4377,4358,4594,4137,4560,4155,4553,2938,3159,4158,4144,1940,4364,1950,4595,4353,4147,4602,1976,1951,2885,2937,1981,4606,2886,4405,4112,4365,4463,1972,3037,4456,3157,4139,4449,4152,4367,1946,3027,1943,4601,4563,4159,2888,2887,3024,4355,4603,1941,1962,4461,4145,4593,4460,4138,4136,1949,2893,4352,4157,1974,4561,2889,1975,4406,4360,1942,4156,4115,4562,2954,3032,4384,4366,3038,2891,4607,4585,1947,4354,4114,1944,4604,2884,3328,3056,4693,1966,4600,1954,3013,4141,4142,4452,4454,2895,4113,4150,3330,4363,1973,4386,4605,4572,4362,4387,1945,4148,3035,3331,2955,3034,4694,2892,4695,4574,4143,2890,4134,3057,4130,4455,4587,3338,4126,4564,3059,4151,3342,2894,1967,4586,4596,1955,4575,4122,1952,4124,4394,4696,3015,4701,4398,3329,4570,3337,4692,4385,4598,3339,3012,4127,3002,2881,4584,3068,4140,4135,3343,4131,4599,4453,3058,4116,4149,1953,4567,3340,4703,4697,2882,4590,3369,4393,4700,3014,4395,3385,4573,4123,4132,4399,4129,4578,4133,4396,3336,2883,4128,4565,3001,4571,3341,4125,3020,4121,4566,3071,4698,3070,3009,3332,4568,4725,3368,4597,3371,4120,4689,4704,4119,3387,4392,3386,4397,4569,4118,4326,4388,4325,4328,4579,3334,2880,2985,3040,3023,4480,4329,3000,4582,3335,4724,4576,4727,4482,4297,4117,3370,3384,4705,4333,4327,3011,4490,4261,4588,4331,4298,3390,4483,4345,3378,3008,4577,4489,4494,4290,2987,4299,3043,3022,3333,4726,4491,3010,4302,4521,4288,4580,3391,4708,4324,4263,4335,4291,4330,4481,303,2837,4520,4347,2984,3041,4495,4523,4160,4296,4262,4332,4260,4334,2838,4344,4518,1294,4492,4303,4711,290,4346,1281,2839,4525,4709,302,4493,4539,4289,4301,296,2840,3052,3055,529,4522,2845,4300,4163,1295,4269,1292,4321,4268,4710,311,4322,4484,310,4536,4162,4349,298,4821,2836,158,4486,4350,299,4264,4271,2977,4257,2982,4323,4526,4161,1288,1293,4294,4342,145,1284,531,2847,4351,282,308,4292,2848,317,4338,2844,312,530,2869,146,4174,297,4295,1338,147,2980,2983,1286,2842,528,1287,4270,4259,4267,4172,4170,2846,4320,287,286,2849,4343,564,316,319,4175,4348,315,2833,313,4258,4266,561,4265,4339,1336,1342,1330,4341,4528,4164,144,1285,3045,4293,4340,560,572,2852,284,4337,2860,274,305,4171,318,314,563,4336,265,4173,176,1341,1343,4169,4278,1331,517,1328,4280,4281,4168,4313,273,275,575,307,306,4314,4279,264,4285,267,4306,4283,562,4506,4233,573,4304,1334,1314,1340,1329,133,4315,1296,519,4746,574,1445,4217,4318,272,304,40,262,45,4307,269,518,4218,4507,266,4251,4201,4276,4497,516,4210,4287,4282,4219,1335,1332,1315,568,1298,1299,4235,4511,1511,4248,4222,4250,4312,570,261,263,41,4284,271,43,4508,270,4319,4286,47,4504,525,4232,3515,3519,4305,571,4234,4509,524,4787,4203,520,4317,1306,1310,1333,1312,1297,4755,4216,260,4316,268,527,1508,9,4253,258,57,4753,4500,4254,4200,42,513,4273,46,4794,4202,4274,4209,4798,4502,3514,3518,4246,569,4237,4255,4785,4503,4242,4238,523,257,1311,1308,4754,259,1307,1305,10,1513,4275,11,4310,1519,526,1516,59,4230,4764,4178,4308,56,521,4756,515,4239,4795,34,4205,522,4226,3473,3475,3507,3506,4799,3464,4247,3467,4501,4206,514,256,4796,4311,4252,2,14,129,512,1300,4243,4198,4766,1309,1304,1481,8,4767,4245,58,4207,1505,4244,4777,4759,4231,2141,61,773,4241,4757,2136,54,4792,4236,772,3472,0,4240,3504,4797,3462,3,3469,4227,4186,769,4229,4788,131,15,4762,768,4309,13,4228,1303,775,1302,3989,4765,1482,4199,1483,780,4758,4225,4835,62,3990,5013,1506,1507,4204,1024,63,771,2139,4224,4779,3992,2137,4778,55,3461,3991,1,4213,3463,3993,4790,3471,12,214,4196,3470,4791,3997,4763,128,4193,4760,1301,6,5015,2142,5012,3995,774,4001,1474,4192,1486,50,1027,2138,1480,783,1530,4021,4004,1533,1526,770,1026,2165,4776,60,4005,2144,4003,52,818,3988,3460,781,3468,4012,1025,4,782,5014,3458,3999,4761,2130,215,5020,5009,7,213,4007,1472,3994,2164,1475,51,3996,1487,2167,1038,1485,49,4023,1527,2147,3998,1034,2128,828,2145,5021,1036,3883,5023,830,5011,3457,4020,5008,776,3459,2161,4015,778,212,4640,1039,5,795,2172,101,4022,1344,4006,820,1473,831,2166,3985,1484,1028,826,4014,2146,779,18,5016,1035,1524,2160,4013,3986,5022,2156,5010,4780,4769,5040,2163,2148,3456,4028,1037,3541,3987,102,2175,103,4643,864,2173,1347,1032,4029,1346,1031,4017,823,4838,2117,5019,1476,829,2158,4839,5018,827,4010,777,2159,4775,5041,1030,5043,4772,4031,1498,4999,4996,2162,2151,4008,2149,867,2174,4024,3429,1029,3431,4076,3984,824,100,825,1345,878,2168,4077,4652,4011,5017,4644,1358,2154,4019,5044,2119,5052,4837,4065,4773,5042,4998,2157,2118,4993,1074,2150,4079,4030,4016,2261,2176,1086,2170,865,1072,3428,4654,4027,2171,4018,4655,5045,2116,5047,1075,1022,4647,879,4645,2155,4009,5055,5054,4992,2152,4995,5005,5007,2125,4067,872,876,2260,2263,3973,4025,2120,2179,4650,2177,979,5024,877,4653,4064,2169,4646,3974,5046,1009,2124,2153,5053,4965,5077,977,5050,5000,2127,5006,1023,2257,2268,1500,978,2262,868,2178,4651,2180,2188,2123,4648,3977,3981,1020,5027,2121,2113,4964,870,4967,5048,5051,2256,5003,5002,2259,2126,871,988,3972,2271,72,2269,2122,2183,2190,2191,5025,990,4961,980,4972,3983,5038,2245,2115,1012,5034,2288,991,5049,3980,2114,5001,2258,4960,2270,869,1389,2182,4963,2264,2189,2186,5036,3982,2244,2112,5039,2247,4975,983,4973,5035,4056,5033,5084,2291,5087,4981,981,5081,5083,3969,2241,2289,114,2226,5028,2266,2252,2267,2184,4962,2187,4974,3970,5037,2246,5032,1404,4968,3971,5073,2290,5088,4061,5109,5086,4983,5082,2300,4982,2238,2292,5031,4054,2234,2265,2185,5030,4970,4954,2207,5089,4980,5091,3968,5075,2302,5074,82,5111,5108,2236,4050,2303,5029,2239,4989,2295,2235,4958,2233,2293,4055,4984,5092,5100,4988,5072,2298,5090,5110,5105,5116,4991,2237,2301,2232,2294,4946,2217,2272,5095,4987,4977,4985,3598,5103,5102,5104,5107,4947,5117,5119,4990,2296,2218,3588,4986,2274,2219,2275,5094,4979,5101,4937,5061,4978,5098,5112,4944,2210,5106,5118,3597,2286,2216,4976,2273,4936,4939,5096,5099,5063,4934,5062,5115,5114,4941,4933,4938,4935,5060,2209,5097,3600,5069,5113,5064,4943,3627,4942,3624,4932,5068,5071,3647,4940,5065,5067,3626,3645,3601,4930,5057,4917,5070,4889,5066,4929,4931,3638,3612,5059,3618,3604,5058,4891,4888,3639,3615,4928,5056,3607,4890,4886,4893,3613,3637,3605,3611,3606,4885,4887,3608,3609,4894,4895,3776,3648,3778,4884,3786,3785,3779,3790,3651,3787,3649,3650,3640,2211,2222];
+	return landData;
+}
+function getColourData(){
+	var colourData = ["d8dfe7","b3bad7","d0d5e8","e6eaf5","f1f4f9","e2fcff","ecf3ff","f3f4f9","cfd5e5","e5ecf2","cbd2e2","dfe3ee","8c8fa2","cfd5e3","d8deec","d2d8e6","025fa2","0160a4","b2becc","0060a4","0160a4","025fa2","025fa2","0160a4","015ea1","015d9e","015a9c","005b9c","0160a4","015ea1","005a9b","015ea1","025fa2","0261a5","f4f9ff","10528c","0261a5","0261a5","0362a2","0261a5","dbe1ed","f2f3f8","fafafc","eef1f8","0261a5","7989a0","f6f7fc","134a71","0461a4","eef1f6","d0d8e5","a3a9b7","fbfbfb","015d9e","ecf0f9","f6f8f7","e8eff7","f1f2f7","e5e9f5","d8dbea","dbe1ef","dbe2ec","e2e5f4","e8ecf7","015ea1","015da0","015ea1","015ea1","005c9d","025c98","025c9b","005c9d","62949f","005c9d","1169a8","005c9d","015da0","015b99","015da0","015d9e","035ca0","015a9c","508d92","005d9a","015a9c","015a9c","015a9c","015a9c","015a9c","015a9c","015b9a","015b9a","015a9c","015a9c","0d6096","055997","015b9a","015999","015999","015999","346f7d","9f9a70","436f5e","728c65","015b9a","015b9a","015a9c","015a9c","015998","015999","015999","015999","005696","015a9c","6e8266","0c629b","015a9c","015b9a","015b9a","015a9c","015a9c","015a9c","005995","015a9c","015a9c","015a9c","015a9c","015b9a","ac9472","948f69","0258a3","939977","025e9d","908e75","015a9c","00599b","005c9d","015da0","005c9d","005c9d","015294","015a9c","015a9c","015a9c","918965","a6986b","a8a67f","aea177","005ea5","015ea1","015ea1","005da0","015ea1","015ea1","015ea1","015ea1","005ea0","015ea1","206b8b","005da2","025fa2","025fa2","015ea1","025fa2","0160a4","0160a4","0160a4","0160a4","025fa2","015ea1","015ea1","015ea1","025fa2","025fa2","015ea1","025fa2","8d9564","005a9b","005c9d","005da0","015ea1","015ea1","015ea1","015ea1","015ea1","015ea1","015d9e","015ea1","015da0","015ea1","015d9e","015da0","025fa2","015ea1","025fa2","025fa2","015da0","005c9d","015ea1","015da0","015ea1","015ea1","015ea1","015ea1","015ea1","015ea1","015ea1","015ea1","015a9c","005b9c","055a9a","015a9c","638562","a59770","699280","8da16c","025b9d","015da0","015d9e","005c9d","03558f","015b9a","015ca2","0363a0","015ea1","025fa2","025fa2","025fa2","0160a4","0160a4","0160a4","0160a4","0160a4","025fa2","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","005c9d","005c9d","015da0","005c9d","015da0","015ea1","015ea1","015ea1","025fa2","015ea1","015ea1","025fa2","015da0","015ea1","015ea1","015ea1","e8ecf7","ced1e2","c8cede","d6dcea","d7dee8","d8dbea","d5dcee","d9dceb","d9dbea","dbe1ef","ccd3e5","d1d8ea","d3d6e5","d6dbee","cbd2e2","cbd2e4","d4dce7","eceff6","dde3ef","e8ecf7","0062a3","0261a5","0261a5","0261a5","0160a4","0061a6","eceff6","085fa2","e1e8f0","0160a4","ecf0fb","fdf8fe","0261a5","0261a5","ecf5fe","0360a6","0261a5","0261a5","0261a5","0261a5","003c6f","eff2fb","f4f5fa","f2f2fa","0261a5","0261a5","eeeff4","80b3e0","ced4e4","ebf0f6","dae0ee","dfe5f1","e5ecfe","0061a5","d9dde9","ebf4fd","ced2de","e0e4ed","e8ecf7","c6cde0","f4f5fa","b9c4da","e2e8f6","dce0eb","0160a4","0160a4","0261a5","0160a4","0160a4","025fa2","0160a4","0160a4","0160a4","0261a5","0261a5","0261a5","0160a4","0160a4","0261a5","0160a4","025fa2","015ea1","025fa2","025fa2","015ea1","015ea1","025fa2","015ea1","0160a4","0160a4","0160a4","0060a5","015ea1","025fa2","025fa2","025fa2","0261a5","0261a5","0261a5","0261a5","0160a4","0160a4","005ea2","0160a4","0261a5","0261a5","0261a5","0261a5","0261a5","0261a5","0261a5","0261a5","025fa2","0160a4","0160a4","0160a4","0160a4","0160a4","0261a5","0160a4","0261a5","0261a5","0261a5","0261a5","0160a4","0261a5","0160a4","0160a4","0160a4","025fa2","0160a4","0160a4","015ea1","015ea1","015ea1","015ea1","0160a4","0160a4","0160a4","0160a4","025fa2","025fa2","0160a4","025fa2","015d9e","015a9c","015d9e","005c9d","015a9c","015999","015b9a","015999","015a9c","015d9e","015d9e","005c9d","015a9c","015a9c","005c9d","015a9c","015ea1","005598","025fa2","025fa2","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","025fa2","0160a4","0160a4","0160a4","005da0","005da0","015ea1","015ea1","015ea1","025ea1","025fa2","015ea1","0160a4","0160a4","0160a4","0060a5","015ea1","0160a4","025fa2","015ea1","0261a5","0261a5","0261a5","0261a5","0261a5","0261a5","0261a5","0360a5","0261a5","0261a5","0261a5","0261a5","0061a5","0261a5","0061a5","0061a5","0261a5","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0261a5","0261a5","0261a5","0261a5","0160a4","0261a5","0261a5","0261a5","0261a5","0261a5","0261a5","0261a5","0261a5","0261a5","0261a5","0261a5","0160a4","0261a5","0261a5","095e9e","0160a4","0160a4","0160a4","0160a4","0261a5","0261a5","0261a5","0160a4","0160a4","0261a5","015ea3","f0f1f6","cfd6e8","e3e9f7","d6dce8","c9d2e3","ebf0f6","e0e4f0","dce2ee","cdd2e6","d5daed","c6d1e5","a9b3bd","c7cfe4","cdd1dd","cdd4e6","c4cad8","eaeef9","738997","d9e0f0","dde4ee","0261a5","0160a4","0261a5","0261a5","0261a5","0261a5","0261a3","0261a5","0261a5","0261a5","005c9f","0261a5","0261a5","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","e9edf6","f4f7fe","e5e9f2","eff2fb","3c769c","0261a5","0362a4","02528f","f1f0f5","d2f5ff","e0e3f2","eff4fa","eff4fa","f0f4f7","e2e4f3","eaecf8","0160a4","025fa2","025fa2","025fa2","015ea1","025ea1","015ea1","015ea1","015ea1","015ea1","025fa2","015ea1","015ea1","015ea1","025fa2","015ea1","005c9d","015a9c","015a9c","025b9d","015999","035795","5c846c","015999","9f9d77","9f8165","0e5b87","a59d79","015a9c","7d8a5c","015b9a","005a99","0e3e54","015d9e","005e9c","005c9d","015ea1","015ea1","015ea1","015ea1","015ea1","015ea1","015da0","015ea1","015da0","015ea1","015da0","015ea1","015d9e","005c9d","015da0","015d9e","005b9e","9e8370","005b9c","045990","015da0","015ea1","015ea1","015ea1","025b9d","015d9e","015da0","005c9d","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0261a5","0261a5","0160a4","0160a4","0160a4","0160a4","0160a4","005ea2","0160a4","025fa2","0160a4","025fa2","005da0","015a9c","005c9d","005c9d","025ea1","015ea1","0160a4","015ea1","015ea1","005da0","025fa2","015ea1","025fa2","0160a4","0160a4","0060a5","0160a4","0160a4","0160a4","0160a4","0160a4","0261a5","0261a5","0261a5","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0261a5","0261a5","0261a5","0261a5","0160a4","0261a5","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","025fa2","025fa2","0160a4","025fa2","0160a4","0261a5","0261a5","0160a4","0160a4","0160a4","0160a4","0160a4","015ea1","015ea1","025fa2","025fa2","025fa2","025fa2","0160a4","025fa2","0160a4","0160a4","0160a4","0160a4","025fa2","0160a4","025fa2","025fa2","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0562a7","0160a4","0261a5","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","025fa2","025fa2","0160a4","025fa2","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","005fa3","0160a4","f2f7fd","e6eaf6","c8cfd9","c5ccde","f9fdff","8ebce0","f2f6f9","b1bede","cad0de","d1d6e9","d0d6e6","e3e6f5","c6d1e7","f5f8ff","d6dee9","cad0e6","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a2","0160a4","005b9e","015ea1","015da0","477ea5","0160a4","025fa2","0160a4","0160a4","015ea1","0160a4","0160a4","0160a4","0061a5","0061a5","0061a5","0061a5","0061a5","0162a7","0261a5","095b95","0261a5","0261a5","0460a3","0261a5","0060a5","0160a4","f1f4f9","005fa3","feffff","045da1","0160a2","054372","e7faff","dee2ee","cbd3e0","eaf1f7","edf0f7","83beea","e2e8f4","e6eaf5","0060a5","025fa4","025fa2","015ea1","025fa2","015ea1","015ea1","015ea1","015da0","005c9d","015ea1","015da0","025fa2","015ea1","015ea1","015ea1","015ea1","005c9d","025b9d","005c9f","015a9c","015b9a","005898","015a9c","015696","01559b","015999","005897","015a9c","015999","015b9a","015b9a","949d6e","9fa879","05699a","96a679","a7a574","72715f","9b966c","a8a77b","a5a474","015a9c","00589a","005995","a1a269","afab7b","aaa77a","abaa71","015ea1","025b9d","015d9e","015da0","015999","025895","005897","025797","015b9a","015a9c","005c9d","015a9c","015a9c","015999","005c9d","015b9a","045596","00599b","015b9a","015999","005da0","0160a4","025fa2","025fa2","025fa2","015ea1","005c9d","015ea1","005c9d","015ea1","025b9d","015da0","0261a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0160a4","0261a5","0261a5","0061a5","0061a5","0061a5","0061a5","0160a4","0261a5","0160a4","0261a5","0061a5","0061a5","0061a5","0061a5","0261a5","0160a4","0160a4","0160a4","0061a5","0061a5","0160a4","0261a5","025fa2","015ea1","025fa2","0160a4","015da0","005c9d","055f9d","005c9d","015d9e","015da0","005da3","015da0","015ea1","015da0","015ea1","015ea1","015b9a","ac9279","b6a092","639095","82684f","728886","005895","899476","015b9a","015da0","0a5c8c","015b9a","988162","005791","6a7e62","708775","025fa2","0261a5","025fa2","0160a4","0061a5","0061a5","0061a5","0061a5","0160a4","015ea1","015ea1","025fa2","0261a5","0261a5","025fa2","0160a4","015a9c","b09783","015a9c","015a9c","4f8b93","015ea1","005da0","025b9d","015da0","015da0","005a98","005c9d","9c9582","005c9f","6d8c7d","618b89","eef1f8","d2d9e9","ced7e6","dadee7","cdd3e1","e0e6f4","d0d6e4","dce2ee","f1f7f7","0562a7","f1f4fb","f1f4fb","cad0e0","cdd3e9","eef1f6","c1c9e0","06609f","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0162a6","0061a5","0162a6","0061a5","0061a5","0061a5","0061a5","f1f7ff","02629f","e8ebf2","f3f2f8","0061a5","0061a5","0061a5","0061a5","0061a5","0163a4","0e5f9e","0061a5","0261a3","0061a5","feffff","0260a6","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0364a8","0061a5","0061a5","0061a5","0261a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0261a5","0261a5","0061a5","0261a5","0261a5","0160a4","0261a5","0261a5","0061a5","0061a5","0061a5","0061a5","0261a5","0261a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0160a4","0160a4","0261a5","0160a4","0160a4","0160a4","0160a4","0160a4","0261a5","0061a5","0261a5","0261a5","0160a4","0160a4","0261a5","0160a4","0160a4","025fa2","0160a4","0160a4","025fa2","025fa2","025fa4","0360a5","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0261a5","0261a5","0261a5","0261a5","0061a5","0061a5","0061a5","0061a5","0061a5","0261a5","0261a5","0261a5","0261a5","0261a5","0261a5","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0261a5","0261a5","0261a5","0261a5","0160a4","0160a4","0160a4","0160a4","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0261a5","0261a5","0261a5","0261a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","0061a5","015da0","0e416c","02599e","045e9c","9c7d5e","a28563","a68166","a17e62","b9a17f","015999","015b9a","005f93","b38a6e","a48568","aa9f8d","c4987f","ab8767","a37a5e","a68c69","a17e60","b18d6d","b39072","b59b7a","b9947a","b29c75","a5986c","ac9873","ab9971","a56d52","a9765b","a8926d","a88768","9ea174","015790","76966d","0f597c","02579a","055b8e","005c9b","005993","005796","005898","025895","005695","06569f","045290","025895","075a9e","a68564","ad8a6a","b18369","a58765","b59775","a79c6f","aa9c77","a59c71","4d8ea2","015999","b1ab95","005a96","bd9176","b0a97b","ab886c","c29e7e","a09e75","537751","97956e","afad7c","015999","015999","015999","015999","015999","005898","1a6fb2","005997","005b92","005898","6b8e64","025599","015a9c","015a9c","025b97","015b9a","015a9c","025b9d","005c9d","025b9d","005c9d","005c9d","055ea0","005c9f","015a9c","025b9d","015a9c","015a9c","005c9d","025e9d","015b9a","035d9b","005c9d","005c9d","015a9c","015a9c","015794","005898","015b9a","015999","015a9c","0a5278","015a9c","065c97","015b9a","02599c","015999","015b9a","00599b","005c9d","015a9c","02599e","005a99","015999","005c9a","005a98","3d8786","156fae","015999","00589e","005c9d","005c9d","015a9c","015a9c","015d9e","015da0","005b9c","005c9d","015a9c","015999","015b9a","015b9a","005c9d","015a9c","015a9c","025b9d","025ea1","015ea1","025ea1","005da0","015da0","015da0","005c9d","015da0","005c9d","015a9c","005c9d","005c9d","005da0","005c9d","015d9e","015da0","015a9c","015999","045d9f","015b9a","005898","589598","025797","005898","015998","015999","025a9a","015999","015999","005898","015b9a","015999","015da0","005c9b","025e9f","005c9d","005c9d","015a9c","1f78ba","015a9c","015a9c","015b9a","015a9c","015a9c","025b9d","015a9c","005c9d","005b9c","a88e69","99966b","ae8f70","b09172","557d5a","005897","086c9e","00559b","939f6d","99946c","bca981","b2ab7d","a19f76","8d9667","b59677","b1a678","005898","005b94","00558a","005991","06599f","015a9c","015a9c","015a9c","035899","035797","518c9a","015999","30778d","055f9e","085c9a","095d9d","015999","004e74","688d64","5d815b","5b8958","0d6386","00579a","0b577b","005897","7e9068","005897","015794","0e5a7a","025694","0258a1","398da9","005897","025797","005897","025797","74947d","025893","54845e","819174","005894","01588e","598882","025694","075c93","3c8fb7","186a99","005995","005898","015999","005897","005898","005b9c","025b9d","005c9e","015a9c","959e71","789871","025797","41737c","055a9a","939a6e","025a99","939484","015da0","015ea1","015da0","015da0","025fa2","0160a4","025fa2","025fa2","015ea1","015da0","015da0","025ea1","015ea1","015ea1","015da0","015ea1","015f9f","005c9d","005c9d","005c9d","005a9b","025b9d","015a9c","005a9b","015999","05589c","00599b","447c63","005c9d","015a9c","015a9c","025b9d","005c9d","005c9d","005b9e","005c9d","0861a3","005e9e","005c9d","005ca2","015998","729167","2f6450","4c7952","005c9d","015a9c","015a9c","015a9c","0160a4","0160a4","0160a4","0160a4","0261a5","0261a5","0261a5","0261a5","0160a4","0160a4","0160a4","0160a4","0261a5","0160a4","0160a4","0261a5","0160a4","0160a4","0160a4","0160a4","025fa2","015ea1","015ea1","015ea1","015ea1","005da0","025fa2","015ea1","025fa2","015ea1","025fa2","025fa2","015d9e","005c9d","015ea1","015da0","015a9c","015b9a","005c9d","015a9c","015da0","015ea1","015ea1","015ea1","005c9d","015da0","025ea1","015d9e","0160a4","0160a4","0160a4","0160a4","025fa2","015da0","015ea1","015ea1","025fa2","025fa2","0160a4","025fa2","025fa2","025fa2","0160a4","0160a4","015999","005898","015b9a","015999","015696","015498","06569d","005796","015999","015b9a","015b9a","015b9a","005898","015999","015999","00599b","758e64","889464","567f55","949b71","828f64","b2aa83","ada483","999675","015696","005897","015696","015696","828b60","015697","005692","005897","015999","015b9a","025a9a","015999","015a9c","005c9d","005c9d","025b9d","005c9d","015a9c","015a9c","015a9c","015a9c","025b9d","015a9c","015a9c","819466","055384","5c876b","80926c","005898","005898","015999","005898","015b9a","005998","015999","005a99","00589f","015999","005898","015999","0160a4","0160a4","025fa2","0160a4","0160a4","025fa2","025fa2","0160a4","015ea1","025ea1","015ea1","015ea1","0160a4","025fa2","025fa2","0160a4","015ea1","015da0","015da0","015da0","005c9d","015b9a","015a9c","015a9c","015a9c","025b9d","015d9e","005c9d","005c9d","015a9c","015d9e","005c9d","005c9d","005c9d","015da0","005c9d","005c9d","005c9d","005c9d","005c9d","015d9e","005da0","015da0","00589b","005c9d","015d9e","015da0","015da0","015ea1","015ea1","015ea1","015ea1","015d9e","005c9d","015da0","005c9c","005da0","015ea1","015ea1","015ea1","005da0","005da0","015ea1","015ea1","015a9c","015da0","015a9c","005c9d","015ea1","025fa2","025fa2","025fa2","015ea1","015da0","015d9e","015da0","015ea1","015ea1","005c9d","015da0","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","025fa2","015ea1","025fa2","025fa2","0160a4","0160a4","0060a5","0160a4","015ea1","005c9d","015ea1","015da0","005c9d","015a9c","005c9d","005c9d","015da0","015da0","025ea1","015da0","005c9d","005c9d","015da0","015d9e","0160a4","0160a4","025fa2","025fa4","025fa2","015ea1","015ea1","015ea1","015ea1","015da0","015ea1","015ea1","025fa2","015ea1","015ea1","015ea1","015ea1","015ea1","015ea1","015ea1","005c9d","af9477","92a9b7","085e99","015b99","02599c","015da0","025b9d","015da0","005c9c","015da0","015da0","a79070","b0a77c","aea57a","9b9466","a3ab7c","005699","809262","77936a","8b9161","5c6f59","aea57c","8b9767","a29f74","859669","9c9569","9a9b6f","769063","7a9163","718256","7f9668","5c8052","3f714e","5a8154","517549","828e5c","0d486a","8b986a","a5a879","788e60","86996b","76875b","6d8958","ae8e75","b5a67f","a3916d","b39477","aaa474","879965","949a6a","8a9769","acaa7a","c8b79d","b89c84","b3a87b","afa477","a69f71","b8ae8a","b2a37a","44724b","547f54","50764d","4e7b52","889a6a","aea675","829568","7a8857","015498","025392","055791","01538f","5e7851","557d5a","004c80","669164","c4aa87","dbc7ac","c9a889","d2b79a","d2b89f","d7bda2","d5ba9d","d2c3a6","e2dbc1","beab83","b9a280","a5957c","c8a891","d4c8ae","d1b699","d9c1a5","778854","6a8c5a","6d8b57","7c9263","035898","015a9c","015999","005a99","025797","015794","0b5771","015696","0f5f9a","005898","4f8355","447e6f","b1a97a","a3976f","708154","a69f71","9e9668","8b8d5e","94a26f","9a9d68","4d7b4c","015593","0a5171","005490","9f9f6b","768c5d","778d5f","8a9863","025fa2","015ea1","025fa2","025fa2","015da0","025b9d","005c9d","005c9d","015da0","005da0","025fa2","015ea1","015ea1","015da0","025fa2","015ea1","005898","005795","025797","015696","73966e","4e7b50","4d734a","578255","025490","015593","025694","015593","005490","01538b","025696","005490","015696","005898","015999","025798","005a99","015a9c","015a9c","015b9a","005c9d","015da0","015b9a","025b9d","015999","015a9c","025a9a","015b9a","02599c","035899","015a9c","015b9a","015696","015794","015999","025797","015a9c","005c9d","005c9d","005c9d","005898","015b9a","015b9a","025a9a","0061a5","0061a5","0061a5","0061a5","0261a5","0261a5","0261a5","0261a5","0261a5","0160a4","0261a5","0261a5","0061a5","0261a5","0061a5","0261a5","0160a4","005da0","015ea1","015ea1","015a9c","015794","005898","015999","015999","015b9a","005c9d","015b9a","005c9d","015a9c","005c9d","015a9c","015a9c","015a9c","005da0","005c9d","015b9a","025b9d","005da0","005c9d","025fa2","0060a5","025fa2","025fa2","005c9d","015ea1","015ea1","015da0","0160a4","025fa2","0160a4","0160a4","015ea1","015a9c","015ea1","005da0","025fa2","0160a4","0160a4","0160a4","025fa2","025fa2","0160a4","025fa2","6a5b54","959869","8a8478","868567","939d6b","6e8559","768e5e","6e8a5a","798f61","68845b","57724f","718c61","909a66","788f61","75885b","859568","426449","025694","3a7676","025696","015696","015999","005a94","005897","719267","8c9d71","738c64","94a97e","015794","31767d","578264","01549a","8b9b6e","799467","648455","7a9465","5d8458","477858","4c794e","5c865e","557f51","6c895b","779164","648956","698d5f","5e8558","5b8253","537e50","627f53","5b8150","567d60","587c50","6d8458","8d9f6d","8a9867","7a9262","759262","5a8051","688356","77936a","759264","829663","7e9465","728c5d","518056","699a6d","538359","5c8960","5c8773","005393","98a26e","678a60","59835b","45754d","4a7750","43764b","618e65","6b9067","548158","60895f","015697","0a58a0","015696","035797","005898","025696","015291","005693","015697","005796","015794","015593","095394","004f8a","00538c","6c9376","015696","4d7960","2c6a69","005e95","025797","015998","015696","005897","5d8c7c","5a8655","7fa081","b4d5ba","015696","045594","01588e","015593","015696","045396","7f9b6a","025692","015496","005894","00518a","015593","72926d","517f51","8ca06f","95a276","7ca2af","67906e","8ca474","1d6269","005595","ab9892","015697","005394","bdb9ba","6e926c","aeaea6","84847c","035392","025797","025797","015794","c7a29a","045896","015696","005190","61865a","537e51","4b7a50","5a8155","48794c","366845","4f7e54","245d3d","396c41","386c46","3a6f45","316b45","407046","366a44","356942","386c48","41764c","a3b4a1","4d7b54","497c51","015794","015998","025a9a","015998","015998","005898","035e93","025692","066295","025797","9c9e86","0a5687","678a60","42754c","afb5b3","457345","3a6d44","3a6e47","4e8359","417149","b9bab4","00579a","746d5b","005a8c","427248","416e47","9aa69a","498152","025fa2","025fa2","025fa2","025fa2","025fa2","025fa2","025fa2","025fa2","025fa2","025fa2","005da0","025fa2","025fa2","025fa2","025fa2","025fa2","0160a4","0160a4","025fa2","025fa2","0160a4","0160a4","0160a4","0160a4","025fa2","025fa2","025fa2","025fa2","0160a4","025fa2","025fa2","025fa2","025fa2","025fa2","025fa2","025fa2","0160a4","0160a4","0160a4","0160a4","0160a4","015ea1","025fa2","025fa2","0160a4","0160a4","025fa2","025fa4","025fa2","025fa2","025fa2","025fa2","025fa2","025fa2","025fa2","015ea1","025fa2","025fa2","025fa2","025fa2","025fa2","025fa2","025fa2","025fa2","0160a4","0160a4","0160a4","0160a4","0261a5","0261a5","0160a4","0261a5","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0261a5","0261a5","0261a5","0261a5","0061a5","0060a4","0261a5","0061a5","0261a5","0261a5","0261a5","0261a5","0261a5","0261a5","0261a5","0261a5","0261a5","0261a5","0261a5","0261a5","0261a5","0261a5","0160a4","0261a5","0160a4","0160a4","0160a4","0160a4","0261a5","0160a4","0160a4","0261a5","0261a5","0261a5","0261a5","0261a5","0261a5","0261a5","0261a5","0261a5","0160a4","0160a4","0160a4","0160a4","0261a5","0160a4","0160a4","0261a5","0261a5","0261a5","0160a4","0261a5","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","025fa2","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","005d9d","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0665a9","0160a4","0362a2","0261a5","025fa4","005da2","025fa2","025fa2","0160a4","0463a7","025fa2","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0261a5","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","025fa2","025fa2","0160a4","025fa2","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","025fa2","025fa2","005b9e","025fa2","0160a2","0160a4","0160a4","0160a4","025fa2","0160a4","0160a4","0160a4","0160a4","0160a4","0160a2","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0261a5","005ea2","005ea2","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","015fa7","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","00548b","0160a4","0362a6","0160a4","085e91","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","025fa2","0060a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","025fa2","015ea1","025fa2","015ea1","015ea1","015da0","015ea1","015da0","015ea1","015ea1","015ea1","015ea1","015ea1","015ea1","015ea1","015ea1","015ea1","015da0","015ea1","015ea1","015d9e","005c9d","015da0","015da0","005b9e","0360a3","015ea1","015ea1","015da0","015ea1","015ea1","015ea1","025fa2","025fa2","0160a4","025fa2","025fa2","015ea1","015ea1","015ea1","025fa2","025fa2","0160a4","025fa2","025fa2","025fa2","0160a4","025fa2","005c9d","005c9d","015da0","005c9d","005c9b","005b9c","015da0","015da0","015ea1","015ea1","0360a3","005c9f","005c9d","015da0","015da0","015da0","005c9d","005c9d","005e9e","005c9d","005c9d","015ea1","025fa2","025fa2","0461a4","025fa2","015ea1","025fa2","005d9a","025fa2","005a98","0663a6","025fa4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","005c9d","015d9e","015da0","015da0","015ea1","025fa2","0160a4","025fa2","0160a4","0160a4","015ea1","0160a4","0463a7","0160a4","015da0","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","025fa2","005b9b","025fa2","0461a4","015da0","005c9d","015da0","015da0","0764a7","015ea1","015ea1","015ea1","015ea1","015ea1","005da0","005da0","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","025fa2","025fa2","025fa2","025fa2","025fa2","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","025fa2","0160a4","0160a4","0160a4","005c9d","015a9c","005c9d","015a9c","015999","025a99","015999","015999","015a9c","015a9c","005c9d","015a9c","015b9a","015a9c","025b9d","015a9c","015595","74996d","015593","005490","698e6f","668364","708c66","72906a","185b76","035493","26677d","025392","728c69","66805b","005180","5e7956","08517c","00445b","00569a","005187","39726c","04579b","005995","005995","015999","015a9c","015999","015999","0b4e6b","00579a","005898","055a9a","015792","025694","005898","085c9c","005595","094e6d","025798","005595","015999","015a9c","015b9a","015b9a","005796","005898","015999","005897","668460","bbc9bc","496346","617a65","50645b","b4bfb9","5a7e5a","738579","7a946d","668462","5f7a5b","748f6c","a1b3a7","517352","506e54","52745b","6b7a73","647e57","667d51","67835a","879468","aea67f","838c61","858a62","7c895b","6e8e5f","779162","758e64","758558","7b8c62","738a60","7a8b5f","025696","015696","015593","015696","025798","015999","015696","005898","015593","03528d","005693","015593","015696","015697","015593","015696","88988d","748b5f","578255","5f855e","5f7f58","00548f","005492","00538a","025392","557f59","537751","004988","5f8556","005492","257693","015291","015999","015a9c","015999","015999","015a9c","005c9d","015b9a","015a9c","075488","23738e","4a794f","4f8458","015a9c","045b9e","005a98","015999","005c9d","015da0","025b9d","015da0","015ea1","015da0","005c9d","015da0","015a9e","015b9a","015a9c","015b9a","015da0","005c9d","025b9d","005c9d","005898","054c78","07548a","005c94","065979","09548b","6f9886","315b43","528252","498261","035899","4b8161","035591","026398","00569b","005896","005c9d","015a9c","015a9c","015a9c","015b9a","015999","04579d","015999","025678","348a9b","3c7e74","005a93","015b9a","0159a0","005c94","005a9b","779271","57724f","6d8b67","708b68","617f5b","628259","557a51","506f4f","00528a","005492","0e5b8f","015291","6f8a67","06578f","597950","1b5c70","2d6c7e","025694","005598","4f8673","025895","015999","015696","025895","55825b","015697","0f5879","458261","035496","476e4f","54896b","005b98","427854","5a7852","01568f","497a4b","005693","16587a","005894","025696","065c99","015593","015696","025395","55815e","005296","055791","63865e","6d9068","11637b","62885f","57815d","015696","005491","015593","025694","005592","015593","04538c","005492","47826c","005492","60905e","0e587d","c0ab8c","856856","065786","9d8e79","9f897c","aa8f7a","025797","bb9f93","015696","025797","015696","015696","c1a79a","005890","035591","035793","897665","236a8a","648f96","3e6c84","d4c5ae","dabfa4","c59f8c","c5a085","d2b7a2","cbb196","ebdcc7","cdb49e","d8c3a4","d6baa4","d6c1a6","d5b398","9b856e","ccb49a","02599c","045898","015a9c","015a9c","015a9c","015a9c","015b9a","015999","015999","015999","0159a1","015a9c","004e86","015a9c","886d58","2a7491","748a97","ccc5b5","d8d2b8","d6b49b","9ba4ab","e4d3b7","00589f","005897","04568e","005898","cfab95","c9d6cf","d8c4ac","d8cdbb","c4b99d","c3ae93","e0dec9","a1a38d","ddd6c4","d4ceb8","dbd6c0","d6c4ae","cab296","c8b99c","d8d7b9","c9b497","d9d7be","c09779","c0aa92","dbd6b9","b6947b","c19477","baa383","c29578","b7947e","d3a691","d5bda3","af8877","d6b89e","d3bfa4","ccc3a6","c1a58f","af8976","c7a893","d4c6ab","ccad98","b9aa83","7f8b59","b0a47e","afa373","7d9267","406d46","718c5f","62865a","8b9765","c0a989","a6996c","aea375","8e9c6b","8a9c6c","a59d6f","909a68","dbbfa9","ccad91","dcd5b9","c6a890","c9b99f","d4c9ad","ebead8","ebe4da","d5cbb0","c0b192","ccab8c","bc9d81","cfb59a","d6cbaf","a07a67","9a7e69","416f4a","4f794b","44724b","47764a","82946a","728c5d","678770","92a87a","93a075","7c9c87","6a8165","8b9f6e","628354","588485","49764b","567c53","7b9568","898a5e","7b9160","8b8a5a","6d8958","015696","015696","025694","015696","025893","799668","025597","779164","02559b","6f8d57","1f6474","00528d","005898","005897","015696","015b9a","015a9c","005898","015b9a","055697","90956c","035591","014e78","005898","015696","005892","005796","7f9362","9ca475","858f5b","88986b","7c8c5b","005796","014c74","226379","668252","989a72","8f9b69","919f6c","78895d","7a8a5b","a6b187","7d945e","d3ba9b","b79780","9f7e6d","456783","b7a591","ccbd9e","cdab90","c5a991","bdb9ad","9a7e69","eccec3","1c5371","c2a698","a48570","125889","ab8b7e","b39c7a","909e6b","9ca06d","a59f6d","5b8158","3f6f49","3e704a","43714c","47723d","9aa77c","859767","879f6f","708c5c","3f6c41","7c8e5e","67885b","b3a67c","9d9b72","969569","aa9b72","005998","015a9c","085599","015b9a","b69e7c","1b5078","a48d6d","bbada2","99986a","c3977e","a9966e","a9916d","c9aa8e","99a06c","998f6b","b49e77","8a9462","a88d7c","96a07d","91916b","998a63","a6a98c","968766","8c6b58","859360","a0a27d","9e9e6a","8b9b74","c9bb9e","d7ad97","d9b198","bd937d","c89e88","366d94","e1ccb9","c1a494","cdc2a6","c1a688","d1ccac","cdc7a7","ded7bb","dbc6ab","c79479","eaccb4","025b9d","015da0","005c9d","005c9d","015ea1","025fa2","025fa2","025fa2","015ea1","005da0","005da0","015ea1","015ea1","015ea1","005da0","015ea1","015998","005c9d","025b9d","005c9d","015a9c","015a9c","015a9c","015a9c","58855a","808859","9ca274","889869","015a9c","005c9a","065e90","015b99","085893","025b9d","d0b69f","045690","005c9d","015ca3","025c9b","005c9d","d2b691","c0a882","c3ae93","c5a187","025b9d","005b9a","cabb9e","0f455f","025fa2","025fa2","025fa2","025fa2","015ea1","015d9e","015ea1","015ea1","015ea1","015ea1","025fa2","015ea1","025fa2","025fa2","025fa2","025fa2","015a9c","015b9a","015a9c","015a9c","015999","015696","005898","005897","005a98","005292","015a9c","055d9c","015999","015999","015a9c","015999","0f639f","005891","005898","015794","05576f","5f8d5f","005494","629163","005898","005c9d","015b9a","015b9a","015593","015794","015999","015696","005c9d","005c9d","005da0","015d9e","015a9c","176798","015b9a","02599c","005c9d","015da0","025ea1","015d9e","005c9d","005c9d","015ea1","005c9d","3f7659","4c7861","58805b","568565","7d9b69","97aa7c","809366","889b6e","a9af81","025895","005598","5b9797","678c56","769061","5b8a5c","738e61","8e9e6f","588767","065890","698a5d","005897","015999","015a9c","015999","015a9c","005c9d","005a99","015a9c","015794","015b9a","025798","015999","005c9d","015d9e","005c9d","015d9e","005c9d","015a9c","005c9d","005c9d","005c9d","015b9a","015a9c","015a9c","005c9d","005c9d","005c9d","005c9d","a2ae7e","025692","a29f76","8a976c","005a99","005c9d","015a9c","015a9c","035996","03589b","b29f81","a3aea6","025798","035996","939870","0c567d","025fa2","0160a4","025fa2","025fa2","025fa2","025ea1","015ea1","015ea1","025fa2","015ea1","025fa2","025fa2","0160a4","025fa2","025fa2","025fa2","005b9c","025798","015b9a","025a9a","015593","5b8a5c","025587","1b799f","015696","005898","005898","025797","015697","015794","005898","015696","015b9a","005c9d","005c9d","025b9d","005c9d","015a9c","005c9d","005c9d","015d9e","025ea1","015da0","015da0","005c9d","005c9d","015d9e","005c9d","015da0","005b9a","005da0","005c9d","025a9a","015b9a","025b9d","015a9c","015da0","015ea1","015ea1","015ea1","015a9c","015d9e","005da0","005c9d","015794","10618e","1771a3","015a96","53815c","01538d","045195","02548e","025790","015696","00508a","015696","00588f","508a95","236f87","065e9d","2a7185","547958","01538f","01538d","89946a","b1977c","817454","89815d","96926c","afb58f","015593","79936e","859161","60613f","025392","809876","005e94","005a99","54856f","035899","015b9a","015b9a","005898","025a9a","5c9ca5","025797","597c54","54804d","015999","005897","015794","005898","01538f","025392","04538c","025392","01568d","567855","4b7a50","5b948d","106794","005897","025694","015792","015794","4b784f","045690","71865d","7e7c53","908977","7f94a7","285d85","005898","025a9a","015a9c","015a9c","015a9c","005c9d","015998","015a9c","015697","015a9c","015696","015999","005c9f","015ea1","015ea1","025ea1","015ea1","025fa2","025fa2","025fa2","0160a4","0160a4","0160a4","0160a4","015ea1","025fa2","025fa2","025fa2","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","025fa2","025ea1","025fa2","015ea1","0160a4","0160a4","0160a4","0160a4","005c9d","015ea1","005c9d","015d9e","025fa2","0160a4","0160a4","0160a4","015ea1","015da0","035ca0","015ea1","015ea1","025fa2","015d9e","015ea1","0261a5","0261a5","0160a4","0261a5","0261a5","0261a5","0261a5","0261a5","0261a5","0160a4","0160a4","0160a4","0261a5","0261a5","0160a4","0261a5","0261a5","0261a5","0261a5","0261a5","0061a5","0061a5","0061a5","0061a5","0261a5","0160a4","0261a5","0261a5","0261a5","0061a5","0261a5","0261a5","0160a4","025fa2","0160a4","025fa2","015ea1","0559a1","015ea1","015da0","015ea1","025fa2","0160a4","025fa2","025fa2","015ea1","0160a4","025fa2","0261a5","0261a5","0261a5","0261a5","0261a5","0160a4","0160a4","0160a4","0160a4","0160a4","0261a5","0160a4","0261a5","0160a4","0261a5","0261a5","7c7c56","0b5b90","8d8966","6b785a","035899","005c9d","00599b","015b9a","015999","396448","abac8a","5f7755","065888","035898","607451","035495","025ea1","025fa2","015ea1","015ea1","0160a4","0160a4","0160a4","0160a4","0160a4","0160a4","015ea1","025fa2","0160a4","0160a4","025fa2","025fa2","015ea1","015ea1","015da0","015ea1","015d9e","015b9a","015a9c","005c9d","015b9a","015999","015a9c","015a9c","015da0","015a9c","005c9d","005c9d","005d9d","015da0","015a9c","005c9d","015ea1","015ea1","015da0","025ea1","015a9c","01589b","015b9a","015a9c","015da0","005c9d","015a9c","005c9d","005c9d","025e9f","025b9d","005c9d","015ea1","015ea1","015da0","015ea1","025b9d","015b9a","015a9c","015b9a","015da0","015d9e","025b9d","005c9d","025fa2","0160a4","025fa2","025fa2","0160a4","0261a5","0160a4","0160a4","0160a4","015ea1","025fa2","025fa2","0160a4","0160a4","025fa2","015fa5","005c9d","015b97","015a9c","015a9c","015696","005492","015595","005595","045594","085d96","005a99","3a88af","005898","015696","015b99","00579a","015ea1","015ea1","015ea1","015ea1","015ea1","015da0","005c9d","015da0","02599c","00599d","005c9d","015b9a","015ea1","005c9d","015d9e","015da0","0160a4","0160a4","0261a5","0261a5","0160a4","0160a4","0261a5","0160a4","0160a4","025fa2","0160a4","0160a4","0261a5","0261a5","0261a5","0261a5","0160a4","0160a4","0160a4","0160a4","0160a4","025fa2","025fa2","025fa2","015ea1","015ea1","025fa2","025fa2","0160a4","025fa2","0060a5","0160a4","005c9d","015b9a","015da0","025b9d","005898","015696","015999","005898","005b9c","015ea1","015da0","015da0","025a9a","015b9a","005c9d","015a9c","0160a4","0160a4","0160a4","0160a4","0160a4","025ea1","015ea1","015ea1","015ea1","015ea1","0160a4","025fa2","0160a4","025fa2","0160a4","0160a4","2e769c","516e5a","95a28e","828773","918a82","ddebf6","12537b","005091","005b9e","0d4d79","005996","005998","838c79","b0ad9c","7a907b","778473","f3f6fb","e9f0f6","eef3f7","eaf1f7","e0ebf1","edf4fa","dfe8ed","f1f8fe","dde6ed","e4edf2","dfe8ef","e4edf2","dee9ef","dce6ef","e2ebf0","eef6f9","04599a","7a867a","185981","8cb6cf","a0a39a","72846a","828675","878e7e","9d9b8f","7a8682","a0a094","838578","889685","979588","687e72","73816a","eef2f5","eff4f8","e5fbff","e9f3f5","e1eaf1","eef5fd","e5ecf2","e2ebf0","97a6a1","85a3ae","005b9e","a09e9f","e5eaf0","e0edf3","4383b3","e8f1f6","0261a5","0261a5","0261a5","0261a5","0160a4","025fa2","025fa2","025fa2","015ea1","015ea1","0160a4","025fa2","0160a4","025fa2","0160a4","0160a4","015da0","015a9c","1a5074","005c9d","015a96","055496","868f7c","52797e","779190","015b9a","015a9c","015b9a","005894","74887d","005b9c","01589d","3a708c","8b8e79","02599c","587a84","015a96","025696","06558e","07538f","025790","005c9d","015a9c","015a9c","96968c","81937d","025a99","4e737c","015ea1","0a66a5","015ea1","015ea1","005c9d","015a9c","015a9c","015a9c","045e9d","005da0","025ea1","015da0","015f9f","005898","015ea1","065b9b","bca989","8b9364","b0a97f","baab84","798d81","9aa8ab","92999f","a5aeb3","828692","92979a","93a494","a5a9ac","465e48","8e999f","647853","868f8c","afb9b8","acb2ae","aab1b9","c4caca","b8c3b5","4d674a","8b947f","b7c3af","c3a791","b09085","f2e6da","9a8073","c5cdc2","a5ada2","b0a496","bbb4ac","8d8a77","5a6d4f","896f58","9d9276","858c60","678058","958e64","969869","a2886d","93936d","8f8466","ab9971","7c845b","a1936e","868c6a","aca07a","a9aeb4","9aa1a9","adb2b8","a4a9ad","c6b19e","af937e","727469","ad907e","d0d0c8","8d8988","d8b9a4","ab9184","f6e8db","bba58e","d3b79f","d5b39a","72906e","6c8c65","687a54","6b845c","67917d","025490","00528c","01568d","054b65","94926c","6c8460","799066","718f6d","548d96","738e65","6b8663","0f6193","015999","135666","005898","005b9a","005c9d","015a9c","015a9c","005c97","005898","668565","075993","015999","015c95","00579c","00589a","6d986b","649a83","005590","00578d","2e6b6e","02528f","688b6b","608a7e","658868","809769","77936a","608363","044966","516f53","628d72","6b9275","01568f","649e90","6b8d6c","025189","00569b","527a5f","035493","005990","6c9172","969d71","5a7957","6b8f69","005497","015287","054a67","005492","797e68","91978d","618d72","6e796b","a4a293","57aadc","a5a99b","889d94","6f876f","7a8d77","5b7d65","598065","929489","8c8a7b","6e7d6a","717e6a","f3f6fb","dfeaf0","e8f0f3","ecf1f5","dce7ed","f0f7fd","dfe8ef","dee9ef","dfe9f2","005591","3a526e","f5faff","dce7ed","dee9ef","e2e9ef","dde8ee","145f96","23495c","a4a192","797873","82917a","5e896d","6c8f71","728e75","7a927a","91a38d","8d9183","8b947f","92a298","789279","8d988a","8e9d8a","00568f","ecf1f5","959fa1","054575","9db1b8","0a5c98","a0a096","aca9a2","a3a496","7d8673","7d8673","808b7a","98989a","a7a8a0","aea898","033655","768662","979f7a","a78873","a5a583","ada581","aaa57b","9a7a61","c0a789","b3957d","ae9c8e","bb9a87","c2a593","ad9f85","be9e89","d1b09d","c1ab94","5f7d5b","729575","4e6f52","658462","718063","73826f","729376","719179","63876b","648b6e","85927e","81a38a","5f8462","709279","72896d","84987d","678569","5b8265","4f7e5e","466f51","709876","597e5c","5f7d59","54805d","56745a","cfbcab","799074","909e84","527f60","6f8861","769a76","6a9776","9b9970","6e8865","82835b","94966f","62745c","5f866b","4f7c5d","4c725b","9c9c80","959980","a3a482","819071","768a6e","4b7658","5f7e5f","7c9c87","c6a089","c5a189","d7b89c","cda48e","e2cdb0","c6a88e","dfcbb2","c8ad92","817b63","014782","c0987f","4b6e74","d0bfa1","ded1be","cca38d","c6b196","00538c","d7c9c0","03518f","055594","005591","005494","306d8c","025392","687a64","748a64","576148","616a57","035294","536e65","466770","035793","7f9167","678a62","546b57","618060","648f73","015696","0a587e","00538f","708e6c","556d55","969e8f","668462","5c805c","65855c","55694e","5d7f5a","1b4c6c","00568b","045a95","005494","7299aa","70906b","437284","1c5b84","02528f","02528f","00548d","005395","0e4a6f","07578a","04558c","045896","d6b79b","c7ccb8","9d8b65","bca287","b29f7f","9a8476","6d5845","a58e7c","06538b","00508b","9a9380","7a8c62","7c7352","4f7172","82866d","a59983","b89486","d5b6a2","a78d7c","e9dccb","8d7867","c0ab8e","9f9174","b6a088","6f705e","818274","b9a987","af9f85","bfa08b","7e6e5e","b2a499","8f7f72","a69674","ac9671","d3b9a0","c1a188","999266","7b9067","86895c","a4a778","9a9367","aa9a76","506372","a4926e","a38f6a","b1a57d","b79a7c","b3a17d","caa998","b1927d","886955","d9baa8","b4967c","978d69","c6a68f","8b7455","c6b69c","e6dbbf","e4c4ab","dccdba","c1a389","c7b496","8d7f62","c9a78e","659176","778e74","649174","558367","87a5a5","025797","2c5a7e","035390","09548b","53765e","568366","8b9982","7f8676","0f5579","547f64","95a791","035996","dce4ef","015b9a","04508a","dfe8ef","eff4f8","d8dfe5","dde6eb","deecef","025b9d","2b80b6","eef6f9","dde8ee","eef6f9","156fae","e1f0f7","015b99","015b9a","025797","005a98","005898","015696","888c71","035585","3b7f88","648771","798d71","125b6e","015696","8ba285","648284","05568e","5287a9","015999","025c9a","055695","045a97","015b99","045999","005492","819c8d","06518b","025392","9b9a88","015999","015696","015794","015696","807363","98966f","a49a77","798b7d","7b8a69","a99b74","a0a56b","7d926b","5798ac","48643e","0b507a","005386","6a714f","09548b","80825d","1d577c","a79e73","8b9268","82946c","9d9c6e","62845f","5a8361","598063","5b8766","578666","558464","567e59","58896b","69855f","628e6b","537550","628565","478777","2f717f","5d8560","256571","588068","015291","346a82","004f87","60845e","5b7a5a","668a64","62875e","4e7d75","025490","62855d","07528c","9a9c74","869365","a4a271","93966b","648661","5c8773","507651","5a8059","658560","587853","8f986b","798f61","6a8359","61805e","85925d","778e60","015696","025797","015696","015696","015999","015b9a","005898","015999","015696","005492","015593","015593","005897","025797","025694","015696","005c9d","015ea1","005c9d","005c9d","015ea1","025fa2","015ea1","015ea1","015da0","005c9d","005c9d","005c9d","015ea1","015ea1","005c9d","015da0","65948c","045b91","075d8e","76a791","547d6b","869d89","659176","71927f","5e8c72","04508c","527b5d","618869","4d7a65","3f7f89","2a7393","3a7d8d","015a9c","015b9a","015999","015a9c","015a9c","005b9e","005897","015b9a","015696","055695","015696","015794","015b9a","005897","005897","005898","025fa2","015ea1","015ea1","015ea1","015d9e","015a9c","015a9c","005c9d","005c9d","005c9d","015ea1","015da0","015da0","005c9d","015ea1","00599a","00599b","877b65","005998","045799","d5ad94","e5d6b9","d2ae96","bd957c","9a927b","af8c6c","6d7a73","486d7f","a37868","ca9a86","476d80","a8947c","687e5a","598468","035996","015794","718d67","40798c","718e60","08497f","015b9a","015a9c","015999","015a9c","0c5b93","005897","035797","005797","015a9c","015999","015b9a","025a9a","90906c","908164","6b8963","7f8263","015999","015a9c","015a9c","015a9c","02598e","015999","015b9a","015999","0157a0","015999","015b9a","015a9c","015b9a","005c9b","015a9c","06609e","005a99","015a9c","96a9ad","005588","015b9a","015a9c","02538b","015b9a","005c9f","ecfafd","cedbee","054b7e","e2e9f1","eef3f9","e2ebf2","f1f6fa","e3eaf0","547588","dee4f0","d3dae4","f1f6fa","e1eaef","d8e2ee","747a86","005897","8597ab","005997","005897","ababa9","0a517d","015696","0a446a","27628a","7c94b0","e8eefa","dde6ed","b8bcbf","005897","005693","005897","005ba0","d3dff5","025a9a","aabec9","dce2ee","035898","e7edfb","dce4ef","d9e1ee","084f85","b7c6d9","a8b8cf","d3dced","d6deeb","647182","cddaed","025fa2","015ea1","015ea1","015ea1","015ea1","015da0","015ea1","015ea1","015da0","005c9d","015da0","015da0","015ea1","015ea1","015ea1","015ea1","005c9d","015a9c","005c9d","005c9d","005a99","8e9b87","015b9a","015999","005c9e","015a9c","005c9d","025b9d","015a9c","015a9c","005c9d","015a9c","05589a","055590","02599c","4c7f9e","015696","799795","6f9588","869c9a","02598f","015b9a","015a9c","015a9c","015999","025790","015a9c","015999","015da0","015da0","015ea1","015da0","015d9e","015a9c","005c9d","005c9d","005c9d","005c9d","015da0","005c9d","015da0","005c9d","015da0","015da0","025fa2","015ea1","015ea1","015ea1","015ea1","005c9d","005c9d","015da0","005c9d","015da0","015ea1","015da0","015ea1","015da0","015ea1","015ea1","025a9a","025798","025797","005898","c4b395","a69d76","908265","a89575","bbab8a","948764","6d7550","9e8e75","0e5583","b69a84","366167","afad86","00558a","005492","015696","015593","015591","015593","015696","025694","015999","015a9c","015999","015b9a","015595","025797","025798","015696","015a9c","005897","015a9c","015b9a","025891","095275","015696","015696","015999","005c9d","015a9c","015a9c","005898","005898","015a9c","015999","97896c","9b9c74","a59c73","aa9d73","5c7e59","5d7d56","587d54","5c7f57","5d7c53","8b9c6f","a49d71","859669","7c8e64","6b8a60","9e9a6d","7b8e61","5c7f5e","095586","547b5e","577d54","005492","015794","015593","015593","005492","01538f","527a55","025685","005492","025392","548266","01538f","6c8f71","567e63","5c8066","527a57","5a857b","688b85","065286","4d817f","4c7c54","064d81","3d7779","01508b","55826b","476f57","5a7c61","5a876a","537b56","577956","5e8361","587a57","5b7a58","638256","508688","587a57","5b8256","5e7d5b","6d8758","55754c","5c805a","3b6758","557a51","5d815b","768582","85969d","0c5286","245b82","98b0b4","055592","a7a9a6","848b95","2a688d","8d9387","7b867e","929a8d","00538e","abaea7","627e89","8b9ea5","f0f4f7","b1b6bc","f3f6fb","d6dde3","e0e7ef","dfe8ef","e0e7ed","e5edf0","eef3f7","f1f4f9","f2f5fa","e1e8f0","edf2f6","e5ecf2","e2ebf2","e4edf4","e0e9ee","83867f","065c8d","084071","6f826f","cad6d6","6d7b6e","889f8d","697e6b","859592","9e9d8b","6d948f","7b8e78","838379","849086","8d9e8e","effdff","acb1b5","a9c0ce","838a92","96999e","ecf1f5","a49d97","e7eaf1","9d9f9a","98948b","779cae","8aa4b1","a1a4ab","a59c9d","315467","e0e4ed","868662","686f4d","a88d78","baa884","a8a477","99a170","a89c72","9e9b70","8b8e6f","858f6a","928467","777859","b0a883","a9a98d","767556","b7a382","416f62","3e725c","538063","41755f","085283","7a938d","025490","015291","005393","818b82","608c75","89968f","6a8771","01538d","5e8b74","7a937e","205462","4f7b64","4b7760","4e7560","67776a","025394","557b6e","5b8f8d","60715e","61826d","5d6c59","71896f","7e9988","536652","618a6a","46624b","818e60","407470","999770","768657","457867","688571","477254","62856f","52745b","5e6845","a79976","516b52","597c5b","6d8257","a2966c","7b865e"];
+	return colourData;
+}
+</script>
+</body>
+</html>

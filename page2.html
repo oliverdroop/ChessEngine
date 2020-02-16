@@ -1,0 +1,499 @@
+<html>
+<head>
+</head>
+<body>
+<div id="firstdiv">Hello</div>
+<canvas id="myCanvas" style="position:absolute; left:0px; top:0px"></canvas>
+<script>
+function findDistance(v1, v2) {
+	var x1 = v1.x;
+	var y1 = v1.y;
+	var z1 = v1.z;
+	var x2 = v2.x;
+	var y2 = v2.y;
+	var z2 = v2.z;
+	var dsxy = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+	var dsz = z2 - z1;
+	var out = 0;
+	if (dsz != 0){
+		out = Math.sqrt(Math.pow(dsxy, 2) + Math.pow(dsz, 2));
+	}else{
+		out = dsxy;
+	}
+	return out;
+}
+function findAngle(p1, p2) {
+	var a = 0;
+	if (p1.y - p2.y != 0){
+		a = Math.atan((p2.x - p1.x) / (p1.y - p2.y));
+	}else{
+		a = Math.PI / (2 * Math.sign(p2.x - p1.x));
+	}
+	if (p2.x - p1.x >= 0 && p2.y - p1.y > 0) {
+		a += Math.PI;
+	}
+	if (p2.x - p1.x < 0 && p2.y - p1.y > 0) {
+        a += Math.PI;
+    }
+	if (p2.x - p1.x < 0 && p2.y - p1.y <= 0) {
+        a += Math.PI * 2;
+    }
+	return a;
+}
+//
+var vfoc = {x:0, y:0, z:-1000};
+var vcam = {x:0, y:0, z:-2000};
+var fov = Math.PI * (1/4);
+var camAngleX = 0;
+var camAngleY = Math.PI / 4;
+var sunVector = {x:-10, y:0, z:20};
+initiateCamera();
+var img = new Image();
+img.src = "http://178.62.85.228/SpannerNut1.jpg";
+function initiateCamera(){
+	var vx0 = {x:0, y:0, z:0};
+	var dsv = findDistance(vx0, sunVector);
+	var fac = 1 / dsv;
+	sunVector.x = sunVector.x * fac;
+	sunVector.y = sunVector.y * fac;
+	sunVector.z = sunVector.z * fac;
+}
+//
+var vertexArray = [];
+var vtop = {x:0, y:400, z:0, screenX:0, screenY:0};
+var vbot = {x:0, y:-400, z:0, screenX:0, screenY:0};
+for(var inx1 = 0; inx1 < 12; inx1++) {
+	for(var inx2 = 0; inx2 < 12; inx2++) {
+		var vertex = {
+			x:400 * (Math.sin((inx1 + 1) / (13 / Math.PI))) * (Math.sin(inx2 * (Math.PI / 6))), 
+			y:400 * (Math.cos((inx1 + 1) / (13 / Math.PI))), 
+			z:-400 * (Math.sin((inx1 + 1) / (13 / Math.PI))) * (Math.cos(inx2 * (Math.PI / 6))),
+			screenX:0,
+			screenY:0
+		};
+		vertexArray[(inx1 * 12) + inx2] = vertex;
+	}
+}
+var polygonArray = [];
+for(var idx1 = 0; idx1 < 132; idx1++){
+	var poly;
+	if (idx1 != 11 && idx1 != 23 && idx1 != 35 && idx1 != 47 && idx1 != 59 && idx1 != 71 && idx1 != 83 && idx1 != 95 && idx1 != 107 && idx1 != 119 && idx1 != 131){
+		var vx0 = vertexArray[idx1];
+		var vx1 = vertexArray[idx1 + 1];
+		var vx2 = vertexArray[idx1 + 13];
+		var vx3 = vertexArray[idx1 + 12];
+	}
+	else{
+		var vx0 = vertexArray[idx1];
+		var vx1 = vertexArray[idx1 - 11];
+		var vx2 = vertexArray[idx1 + 1];
+		var vx3 = vertexArray[idx1 + 12];
+	}
+	var pol1 = {v0:vx0, v1:vx1, v2:vx2};
+	var pol2 = {v0:vx0, v1:vx2, v2:vx3};
+	polygonArray[(idx1 * 2)] = pol1;
+	polygonArray[(idx1 * 2) + 1] = pol2;
+	
+}
+//
+
+function calculateScreenpoint(v){
+	var orgx = window.innerWidth / 2;
+	var orgy = window.innerHeight / 2;
+	var dcam = findDistance(v, vcam);
+	var focl = findDistance(vcam, vfoc);
+	var fovf = (focl / (dcam * fov));
+	//
+	var x = v.x * fovf;
+	var y = v.y * fovf;
+	v.screenX = Math.round(x + orgx);
+	v.screenY = Math.round(y + orgy);
+}
+//
+var Rvect = {x:1, y:0, z:0};
+for(var indx = 0; indx < 144; indx++) {
+	var vertexArray = vertexArray;
+	var v = vertexArray[indx];
+	rotateVertex(v, camAngleY, Rvect);
+	calculateScreenpoint(v);
+}
+rotateVertex(vtop, camAngleY, Rvect);
+rotateVertex(vbot, camAngleY, Rvect);
+//
+var c = document.getElementById("myCanvas");
+c.width = window.innerWidth;
+c.height = window.innerHeight;
+var ctx = c.getContext("2d");
+function myFunc(){
+	//Perform automatic rotation of vertices
+	if (mouseDownPos.x == 0 && mouseDownPos.y == 0){
+		//camAngleX -= Math.PI / 480;
+		//var Rvect = {x:0, y:1, z:0};
+		var d1 = findDistance(vtop, vbot);
+		var Rvect = {x:(vtop.x - vbot.x) * (1 / d1), y:(vtop.y - vbot.y) * (1 / d1), z:(vtop.z - vbot.z) * (1 / d1)};
+		for(var indx = 0; indx < vertexArray.length; indx++){
+			var v = vertexArray[indx];
+			rotateVertex(v, Math.PI / 240, Rvect);
+		}
+		//rotateVertex(vtop, Math.PI / 480, Rvect);
+		//rotateVertex(vbot, Math.PI / 480, Rvect);
+	}
+	//repositionCamera();
+	ctx.clearRect(0,0,c.width, c.height);
+	for(var indx = 0; indx < 144; indx++) {
+		var v = vertexArray[indx];
+		calculateScreenpoint(v);
+	}
+	calculateScreenpoint(vtop);
+	calculateScreenpoint(vbot);
+	//
+	polygonArray = sortPolygonsByDistance(polygonArray);
+	for(var indx = 0; indx < polygonArray.length; indx++){
+		var poly = polygonArray[indx];
+		//drawLine(poly.v0, poly.v1);
+		//drawLine(poly.v1, poly.v2);
+		//drawLine(poly.v2, poly.v0);
+		drawPolygon(poly);
+	}
+	
+	ctx.strokeStyle = "rgb(255,255,0)";
+	var v1 = {x:0, y:0, z:0, screenX:0, screenY:0};
+	var v2 = {x:-400, y:-100, z:-1200, screenX:0, screenY:0};
+	//v1 = vertexArray[27];
+	//v2 = vertexArray[139];
+	for(var indx = 0; indx < polygonArray.length; indx++){
+		var poly = polygonArray[indx];
+		//draw intersection of camera-focus line
+		var intersection = findIntersection(poly.v0, poly.v1, poly.v2, v1, v2);
+		if (intersection != null){
+			calculateScreenpoint(v1);
+			calculateScreenpoint(v2);
+			ctx.beginPath();
+			ctx.moveTo(v2.screenX, v2.screenY);
+			//ctx.lineTo(v1.screenX, v1.screenY);
+			ctx.lineTo(intersection.screenX, intersection.screenY);
+			ctx.stroke();
+			//highlight polygon affected
+			ctx.lineWidth = "2";
+			ctx.beginPath();
+			ctx.moveTo(poly.v0.screenX, poly.v0.screenY);
+			ctx.lineTo(poly.v1.screenX, poly.v1.screenY);
+			ctx.lineTo(poly.v2.screenX, poly.v2.screenY);
+			ctx.lineTo(poly.v0.screenX, poly.v0.screenY);
+			ctx.stroke();
+			ctx.lineWidth = "0.25";
+		}
+		
+	}
+	ctx.strokeStyle = "rgb(0,0,0)";
+}
+function repositionCamera(rotx, roty){
+	var Rvcx = {x:0, y:1, z:0};
+	var Rvcy = {x:1, y:0, z:0};
+	for(var indx = 0; indx < vertexArray.length; indx++){
+		var v = vertexArray[indx];
+		rotateVertex(v, rotx, Rvcx);
+		rotateVertex(v, roty, Rvcy);
+	}
+	rotateVertex(vtop, rotx, Rvcx);
+	rotateVertex(vtop, roty, Rvcy);
+	rotateVertex(vbot, rotx, Rvcx);
+	rotateVertex(vbot, roty, Rvcy);
+}
+function drawLine(v1, v2){
+	ctx.lineWidth = "0.25";
+	ctx.beginPath();
+	ctx.moveTo(v1.screenX, v1.screenY);
+	ctx.lineTo(v2.screenX, v2.screenY);
+	ctx.stroke();
+}
+function drawPolygon(poly){
+	//Get vertices
+	var v0 = poly.v0;
+	var v1 = poly.v1;
+	var v2 = poly.v2;
+	var vecn = findNormal(v0,v1,v2);
+	//Shade polygon
+	var vecs = sunVector;
+	var vcmp = compareVectors(vecn, vecs);
+	var vx0 = {x:0, y:0, z:0};
+	var vx1 = {x:vx0.x + vecn.x + vecs.x, y:vx0.y + vecn.y + vecs.y, z:vx0.z + vecn.z + vecs.z};
+	var sim = findDistance(vx0, vx1);
+	var byt = 255 - Math.round(sim * 255 * 0.5);
+	//document.getElementById("firstdiv").innerHTML = "(" + byt + ")";
+	if (byt > 255){
+		byt = 255;
+	}
+	if (byt < 0){
+		byt = 0;
+	}
+	//Remove polygons with a vertex behind the focus
+	if (v0.z > vfoc.z && v1.z > vfoc.z && v2.z > vfoc.z){
+		//Draw polygon
+		ctx.lineWidth = "0.5";
+		ctx.fillStyle = "rgb(" + byt + "," + byt + "," + byt + ")";
+		//
+		//var pattern = ctx.createPattern(img, "repeat");
+		//ctx.fillStyle = pattern;
+		//
+		ctx.strokeStyle = "rgb(" + byt + "," + byt + "," + byt + ")";
+		ctx.beginPath();
+		ctx.moveTo(v0.screenX, v0.screenY);
+		ctx.lineTo(v1.screenX, v1.screenY);
+		ctx.lineTo(v2.screenX, v2.screenY);
+		ctx.lineTo(v0.screenX, v0.screenY);
+		ctx.closePath();
+		//
+		//ctx.clip();
+		//ctx.drawImage(img, v0.screenX, v0.screenY, v1.screenX - v0.screenX, v1.screenY - v0.screenY);
+		//
+		ctx.stroke();
+		ctx.fill();
+	}
+}
+var mouseDownPos = {x:0, y:0};
+var mousePos = {x:0, y:0};
+var camAngleRef = {x:camAngleX, y:camAngleY};
+document.onmousedown = logMouseDown;
+document.onmouseup = mouseUp;
+document.onmousemove = mouseMove;
+function logMouseDown(event){
+	var posx = event.clientX;
+	var posy = event.clientY;
+	mouseDownPos.x = posx;
+	mouseDownPos.y = posy;
+	camAngleRef.x = camAngleX;
+	camAngleRef.y = camAngleY;
+	//document.getElementById("firstdiv").innerHTML = "(" + camAngleRef.x + "," + camAngleRef.y + ")";
+}
+function mouseUp(event){
+	var posx = event.clientX;
+	var posy = event.clientY;
+	var difx = posx - mouseDownPos.x;
+	var dify = posy - mouseDownPos.y;
+	//document.getElementById("firstdiv").innerHTML = "(" + difx + "," + dify + ")";
+	mouseDownPos = {x:0, y:0};
+}
+function mouseMove(event){
+	var posx = event.clientX;
+	var posy = event.clientY;
+	mousePos.x = posx;
+	mousePos.y = posy;
+	if (mouseDownPos.x != 0 && mouseDownPos.y != 0){
+		var difx = mousePos.x - mouseDownPos.x;
+		var dify = mousePos.y - mouseDownPos.y;
+		var ratx = 0;
+		var raty = 0;
+		ratx = -difx / window.innerWidth;
+		raty = dify / window.innerHeight;
+		var sens = 20;
+		repositionCamera((fov * ratx) * sens, (fov * raty) * sens);
+		mouseDownPos.x = posx;
+		mouseDownPos.y = posy;
+	}
+}
+function rotateVertex(vertex, angle, Rvector){
+	var theta = angle;
+	var c = Math.cos(theta);
+	var s = Math.sin(theta);
+	var t = 1 - (Math.cos(theta));
+	var Rvect = Rvector;
+	var x = Rvect.x;
+	var y = Rvect.y;
+	var z = Rvect.z;
+	var Rmatrix = [
+		[(t * Math.pow(x, 2)) + c, (t * x * y) - (s * z), (t * x * z) + (s * y), 0],
+		[(t * x * y) + (s * z), (t * Math.pow(y, 2)) + c, (t * y * z) - (s * x), 0],
+		[(t * x * z) - (s * y), (t * y * z) + (s * x), (t * Math.pow(z, 2)) + c, 0],
+		[0, 0, 0, 1]
+	];
+	var Vmatrix1 = [];
+	Vmatrix1[0] = vertex.x;
+	Vmatrix1[1] = vertex.y;
+	Vmatrix1[2] = vertex.z;
+	Vmatrix1[3] = 1;
+	//
+	var Vmatrix2 = [];
+	Vmatrix2[0] = (Rmatrix[0][0] * Vmatrix1[0]) + (Rmatrix[0][1] * Vmatrix1[1]) + (Rmatrix[0][2] * Vmatrix1[2]) + (Rmatrix[0][3] * Vmatrix1[3]);
+	Vmatrix2[1] = (Rmatrix[1][0] * Vmatrix1[0]) + (Rmatrix[1][1] * Vmatrix1[1]) + (Rmatrix[1][2] * Vmatrix1[2]) + (Rmatrix[1][3] * Vmatrix1[3]);
+	Vmatrix2[2] = (Rmatrix[2][0] * Vmatrix1[0]) + (Rmatrix[2][1] * Vmatrix1[1]) + (Rmatrix[2][2] * Vmatrix1[2]) + (Rmatrix[2][3] * Vmatrix1[3]);
+	Vmatrix2[3] = (Rmatrix[3][0] * Vmatrix1[0]) + (Rmatrix[3][1] * Vmatrix1[1]) + (Rmatrix[3][2] * Vmatrix1[2]) + (Rmatrix[3][3] * Vmatrix1[3]);
+	//
+	vertex.x = Vmatrix2[0];
+	vertex.y = Vmatrix2[1];
+	vertex.z = Vmatrix2[2];
+}
+function findNormal(v0, v1, v2){
+	var vec1 = {x:v1.x - v0.x, y:v1.y - v0.y, z:v1.z - v0.z};
+	var vec2 = {x:v2.x - v0.x, y:v2.y - v0.y, z:v2.z - v0.z};
+	var crossProduct = {x:((vec1.y * vec2.z) - (vec1.z * vec2.y)), y:((vec1.z * vec2.x) - (vec1.x * vec2.z)), z:((vec1.x * vec2.y) - (vec1.y * vec2.x))};
+	var vx0 = {x:0, y:0, z:0};
+	var fac = 1 / (findDistance(vx0, crossProduct));
+	crossProduct.x = crossProduct.x * fac;
+	crossProduct.y = crossProduct.y * fac;
+	crossProduct.z = crossProduct.z * fac;
+	return crossProduct;
+}
+function findNormal2(v0, v1, v2){
+	//this is a rounded and unscaled version
+	var vec1 = {x:v1.x - v0.x, y:v1.y - v0.y, z:v1.z - v0.z};
+	var vec2 = {x:v2.x - v0.x, y:v2.y - v0.y, z:v2.z - v0.z};
+	var crossProduct = {x:(Math.round(vec1.y * vec2.z) - Math.round(vec1.z * vec2.y)), y:(Math.round(vec1.z * vec2.x) - Math.round(vec1.x * vec2.z)), z:(Math.round(vec1.x * vec2.y) - Math.round(vec1.y * vec2.x))};
+	return crossProduct;
+}
+function findIntersection(vp0, vp1, vp2, vL0, vL1){
+	var n = findNormal2(vp0, vp1, vp2);
+	var vL = {x:(vL1.x - vL0.x), y:(vL1.y - vL0.y), z:(vL1.z - vL0.z)};
+	var d = Math.round(n.x * vL.x) + Math.round(n.y * vL.y) + Math.round(n.z * vL.z);
+	if (d != 0){
+		var t = (n.x * (vp0.x - vL0.x) + n.y * (vp0.y - vL0.y) + n.z * (vp0.z - vL0.z)) / d;
+		var out = {x:vL0.x + vL.x * t, y:vL0.y + vL.y * t, z:vL0.z + vL.z * t, screenX:0, screenY:0};
+		//
+		calculateScreenpoint(out);
+		//find out if point is within triangle (ignoring z dimension)
+		var maxx = Math.max(vp0.x, vp1.x, vp2.x);
+		var maxy = Math.max(vp0.y, vp1.y, vp2.y);
+		var maxz = Math.max(vp0.z, vp1.z, vp2.z);
+		var minx = Math.min(vp0.x, vp1.x, vp2.x);
+		var miny = Math.min(vp0.y, vp1.y, vp2.y);
+		var minz = Math.min(vp0.z, vp1.z, vp2.z);
+		var insd = false;
+		var poly = {v0:vp0, v1:vp1, v2:vp2};
+		var p1 = {x:out.screenX, y:out.screenY};
+		if (isWithin2D(p1, poly)){
+			//find out if point is on line
+			if (findDistance(vL0, out) < findDistance(vL0, vL1)){
+				if (findDistance(vL1, out) < findDistance(vL0, vL1)){
+					insd = true;
+				}
+			}
+		}
+		if (insd == true){
+			return out;
+		}
+		else{
+			return null;
+		}
+		//
+	}
+	else{
+		return null;
+	}
+}
+function compareVectors(vec1, vec2){
+	var x = vec2.x - vec1.x;
+	var y = vec2.y - vec1.y;
+	var z = vec2.z - vec1.z;
+	var out = {x:x, y:y, z:z};
+	return out;
+}
+function sortPolygonsByDistance(pAry){
+	var pAr2 = [];
+	var dAr = [];
+	for(var idx1 = 0; idx1 < pAry.length; idx1++){
+		var p1 = pAry[idx1];
+		var clos = 1999999999;
+		var d0 = findDistance(p1.v0, vcam);
+		var d1 = findDistance(p1.v1, vcam);
+		var d2 = findDistance(p1.v2, vcam);
+		//Obtain a minimum distance value for each polygon
+		clos = Math.min(d0, d1, d2);
+		//Add minimum distance value to array of distance values
+		dAr[idx1] = clos;
+	}
+	var cnt = 0;
+	//Start to grow output array of polygons
+	while (cnt < pAry.length){
+		//Find the largest value in the array of distances
+		var bgst = 0;
+		for(var idx3 = 0; idx3 < dAr.length; idx3++){
+			if (dAr[idx3] > bgst){
+				bgst = dAr[idx3];
+			}
+		}
+		//Find the index of the largest value
+		var idx2 = 0;
+		for(var idx4 = 0; idx4 < dAr.length; idx4++){
+			var d = dAr[idx4];
+			if (d == bgst){
+				idx2 = idx4;
+			}
+		}
+		//Wipe the largest value
+		dAr[idx2] = 0;
+		//Add the instance to the output array
+		pAr2.push(pAry[idx2]);
+		cnt += 1;
+	}
+	return pAr2;
+}
+function findAngle2D(p1, p2) {
+	var a = 0;
+	if (p1.y - p2.y != 0){
+		a = Math.atan((p2.x - p1.x) / (p1.y - p2.y));
+	}else{
+		a = Math.PI / (2 * Math.sign(p2.x - p1.x));
+	}
+	if (p2.x - p1.x >= 0 && p2.y - p1.y > 0) {
+		a += Math.PI;
+	}
+	if (p2.x - p1.x < 0 && p2.y - p1.y > 0) {
+        a += Math.PI;
+    }
+	if (p2.x - p1.x < 0 && p2.y - p1.y <= 0) {
+        a += Math.PI * 2;
+    }
+	return a;
+}
+function isBetween2D(ptst, p0, p1, p2){
+	var out = false;
+	var a1 = findAngle2D(p0, p1);
+	var a2 = findAngle2D(p0, p2);
+	if (a2 - a1 > Math.PI || (a1 - a2 < Math.PI) && (a1 - a2) > 0){
+		return isBetween2D(ptst, p0, p2, p1);
+	}
+	var atst = findAngle2D(p0, ptst);
+	if (a1 > a2){
+		a1 -= (Math.PI * 2);
+	}
+	if (atst >= a1 && atst <= a2){
+		out = true;
+	}
+	else{
+		atst -= (Math.PI * 2);
+		if (atst >= a1 && atst <= a2){
+			out = true;
+		}
+	}
+	return out;
+}
+function isWithin2D(p, poly){
+	var out = true;
+	var p0 = {x: poly.v0.screenX, y: poly.v0.screenY};
+	var p1 = {x: poly.v1.screenX, y: poly.v1.screenY};
+	var p2 = {x: poly.v2.screenX, y: poly.v2.screenY};
+	if (isBetween2D(p, p0, p2, p1) == false){
+		out = false;
+	}
+	if (isBetween2D(p, p1, p0, p2) == false){
+		out = false;
+	}
+	if (isBetween2D(p, p2, p1, p0) == false){
+		out = false;
+	}
+	return out;
+}
+//
+window.setInterval(myFunc, 20);
+/*
+function moveAll(){
+	for(var indx = 0; indx < vertexArray.length; indx++){
+		var v = vertexArray[indx];
+		v.z += 100;
+	}
+}
+window.setInterval(moveAll, 1000);
+*/
+</script>
+</body>
+</html>
