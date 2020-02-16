@@ -29,6 +29,14 @@
                   <string v="+**"/>
                </list>
                <list n="url-path">
+                  <url protocol="file" path="/H:/Program Files/.m2/repository/"/>
+               </list>
+            </hash>
+            <hash>
+               <list n="pattern-filters">
+                  <string v="+**"/>
+               </list>
+               <list n="url-path">
                   <url path="src/main/scripts/"/>
                </list>
             </hash>
@@ -66,11 +74,11 @@
    <hash n="oracle.jdevimpl.config.JProjectLibraries">
       <list n="exportedReferences">
          <hash>
-            <value n="id" v="org.slf4j:slf4j-api:1.7.25:jar"/>
+            <value n="id" v="Log4j-1.2.9.jar"/>
             <value n="isJDK" v="false"/>
          </hash>
          <hash>
-            <value n="id" v="org.apache.logging.log4j:log4j-core:2.12.1:jar"/>
+            <value n="id" v="org.slf4j:slf4j-api:1.7.25:jar"/>
             <value n="isJDK" v="false"/>
          </hash>
       </list>
@@ -94,15 +102,24 @@
                <value n="id" v="org.apache.logging.log4j:log4j-core:2.12.1:jar"/>
                <value n="locked" v="true"/>
             </hash>
+            <hash>
+               <list n="classPath">
+                  <url protocol="file" path="/H:/Program Files/.m2/repository/log4j-1.2.9.jar"/>
+               </list>
+               <value n="deployedByDefault" v="true"/>
+               <value n="description" v="Log4j-1.2.9.jar"/>
+               <value n="id" v="Log4j-1.2.9.jar"/>
+               <value n="locked" v="true"/>
+            </hash>
          </list>
       </hash>
       <list n="libraryReferences">
          <hash>
-            <value n="id" v="org.slf4j:slf4j-api:1.7.25:jar"/>
+            <value n="id" v="Log4j-1.2.9.jar"/>
             <value n="isJDK" v="false"/>
          </hash>
          <hash>
-            <value n="id" v="org.apache.logging.log4j:log4j-core:2.12.1:jar"/>
+            <value n="id" v="org.slf4j:slf4j-api:1.7.25:jar"/>
             <value n="isJDK" v="false"/>
          </hash>
       </list>
