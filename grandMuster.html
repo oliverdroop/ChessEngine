@@ -87,12 +87,14 @@ function mouseUp(event){
 		}
 	}
 	else{
-		//attempt move to empty square
-		if (getAvailableMoves(pieceSelected).includes(square)){
-			//move to square
-			pieceSelected.x = coordinates.x;
-			pieceSelected.y = coordinates.y;
-			pieceSelected = null;
+		if (pieceSelected != null){
+			//attempt move to empty square
+			if (getAvailableMoves(pieceSelected).includes(square)){
+				//move to square
+				pieceSelected.x = coordinates.x;
+				pieceSelected.y = coordinates.y;
+				pieceSelected = null;
+			}
 		}
 	}
 }
@@ -135,6 +137,7 @@ function drawAll(){
 	drawEmptyBoard();
 	drawPieces();
 	drawAvailableMoves();
+	drawSelectedPiece();
 }
 
 function drawPiece(piece){
@@ -146,6 +149,18 @@ function drawPieces(){
 	for(var i = 0; i < board.pieces.length; i++){
 		var piece = board.pieces[i];
 		drawPiece(piece);
+	}
+}
+
+function drawSelectedPiece(){
+	if (pieceSelected != null){
+		var x = pieceSelected.x * board.squareSize;
+		var y = pieceSelected.y * board.squareSize;
+		ctx.strokeStyle = "#005500";
+		ctx.lineWidth = 2;
+		ctx.beginPath();
+		ctx.rect(x, y, board.squareSize, board.squareSize);
+		ctx.stroke();
 	}
 }
 
