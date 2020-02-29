@@ -1,11 +1,21 @@
 package mainpackage;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.List;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.sun.net.httpserver.HttpServer;
 
 public class MainClass {
+	
+	private static final Logger LOGGER = LoggerFactory.getLogger(MainClass.class);
     public static void main(String[] args){
-        BaseNExpresser baseNExpresser = new BaseNExpresser();
+    	
+    }
+    
+    public void expressBaseNNumbers() {
+    	BaseNExpresser baseNExpresser = new BaseNExpresser();
         int start = 0;
         int finish = 1024;
         int base = 2;

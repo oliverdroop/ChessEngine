@@ -12,12 +12,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.imageio.ImageIO;
-
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Visualizer {
-    
-    private static final Logger LOGGER = Logger.getLogger(Visualizer.class);
+	
+	private static Logger LOGGER = LoggerFactory.getLogger(Visualizer.class);
     
     private String path = "D:\\Documents and Settings\\Oliver\\My Documents\\My Pictures\\Computer Art\\Number Images\\";
     
