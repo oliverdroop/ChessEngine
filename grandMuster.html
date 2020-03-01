@@ -60,7 +60,7 @@ function mouseUp(event){
 	var canvX = event.clientX - canvasDiv.offsetLeft;
 	var canvY = event.clientY - canvasDiv.offsetTop;
 	var coordinates = getCoordinates(canvX, canvY);
-	var piece = getPieceClicked(coordinates.x, coordinates.y);
+	var piece = getPiece(coordinates.x, coordinates.y);
 	var square = getSquare(coordinates.x, coordinates.y);
 	if (piece != null){
 		//piece has been clicked on
@@ -77,9 +77,7 @@ function mouseUp(event){
 				//attempt move/take
 				if (getAvailableMoves(pieceSelected).includes(square)){
 					//move to square
-					pieceSelected.x = coordinates.x;
-					pieceSelected.y = coordinates.y;
-					pieceSelected = null;
+					move(pieceSelected, square);
 					//take piece
 					board.pieces.splice(board.pieces.indexOf(piece), 1);
 				}
@@ -91,12 +89,24 @@ function mouseUp(event){
 			//attempt move to empty square
 			if (getAvailableMoves(pieceSelected).includes(square)){
 				//move to square
-				pieceSelected.x = coordinates.x;
-				pieceSelected.y = coordinates.y;
-				pieceSelected = null;
+				move(pieceSelected, square);
 			}
 		}
 	}
+}
+
+function move(piece, square){
+	var movementDistance = findDistance(piece, square);
+	piece.x = square.x;
+	piece.y = square.y;
+	piece.moveCount++;
+	if (piece.type == "king" && movementDistance > 1){
+		continueCastle(square);
+	}
+	if (piece.type == "pawn" && movementDistance == Math.sqrt(2)){
+		tryEnPasant(square);
+	}
+	pieceSelected = null;
 }
 
 function getSquare(x, y){
@@ -123,7 +133,7 @@ function getCoordinates(canvX, canvY){
 	return {x:x, y:y};
 }
 
-function getPieceClicked(x, y){
+function getPiece(x, y){
 	for(var i = 0; i < board.pieces.length; i++){
 		var piece = board.pieces[i];
 		if (piece.x == x && piece.y == y){
@@ -142,7 +152,10 @@ function drawAll(){
 
 function drawPiece(piece){
 	var size = board.squareSize;
-	ctx.drawImage(piece.image, piece.x * size, piece.y * size, size, size);
+	var img = piece.image;
+	if (img != null){
+		ctx.drawImage(piece.image, piece.x * size, piece.y * size, size, size);
+	}
 }
 
 function drawPieces(){
@@ -212,10 +225,10 @@ function createSquares(){
 function getAvailableMoves(piece){
 	var rules = [];
 	if (piece.type=="pawn"){
-		rules = ["adjacent", "orthogonal", "forward"];		
+		rules = ["pawnMove"];		
 	}
 	if (piece.type=="king"){
-		rules = ["adjacent"];
+		rules = ["kingMove"];
 	}
 	if (piece.type=="queen"){
 		rules = ["diagonal", "orthogonal"];
@@ -266,6 +279,12 @@ function filterSquares(squares, square1, rule, team){
 			squaresAllowed.push(square2);
 		}
 		if (rule == "jump" && jump(square1, square2)){
+			squaresAllowed.push(square2);
+		}
+		if (rule == "pawnMove" && pawnMove(square1, square2, team)){
+			squaresAllowed.push(square2);
+		}
+		if (rule == "kingMove" && kingMove(square1, square2, team)){
 			squaresAllowed.push(square2);
 		}
 	}
@@ -356,6 +375,139 @@ function blocked(square1, square2, team){
 	return false;
 }
 
+function pawnMove(square1, square2, team){
+	if (square1 != square2){
+		if (forward(square1, square2, team)){
+			if (orthogonal(square1, square2)){
+				if (adjacent(square1, square2)){
+					return true;
+				}
+				var yOffset = square2.y - square1.y;
+				var yOffsetSize = Math.sqrt(Math.pow(yOffset, 2));
+				if (yOffsetSize == 2 && getPiece(square1.x, square1.y).moveCount == 0){
+					return true;
+				}
+			}
+			if(adjacent(square1, square2) && diagonal(square1, square2)){
+				for(var i = 0; i < board.pieces.length; i++){
+					var piece2 = board.pieces[i];
+					if (piece2.team != team){
+						if (piece2.x == square2.x && piece2.y == square2.y){
+							return true;
+						}
+						if (piece2.y == (3 + piece2.team) && piece2.x == square2.x && adjacent(square1, piece2) && piece2.moveCount == 1){
+							return true;
+						}
+					}
+				}
+			}
+		}
+	}
+	return false;
+}
+
+function kingMove(square1, square2, team){
+	if (square1 != square2){
+		if(adjacent(square1, square2) && !threatened(square2, team)){
+			return true;
+		}
+		if(getPiece(square1.x, square1.y).moveCount == 0){
+			if (square1.y == square2.y && !threatened(square1, team) && !threatened(square2, team)){
+				var closeRook = getPiece(0, square1.y);
+				var square3 = getSquare(1, square1.y);
+				if(closeRook != null && closeRook.moveCount == 0 && square2.x == 1 && !blocked(square1, square3, team)){
+					var square5 = getSquare(2, square1.y);
+					if (!threatened(square5, team)){
+						return true;
+					}
+				}
+				var farRook = getPiece(7, square1.y);
+				var square4 = getSquare(6, square1.y);
+				if(farRook != null && farRook.moveCount == 0 && square2.x == 5 && !blocked(square1, square4, team)){
+					var square6 = getSquare(4, square1.y);
+					if (!threatened(square6, team)){
+						return true;
+					}
+				}
+			}
+		}
+	}
+	return false;
+}
+
+function threatened(square1, team){
+	for(var i = 0; i < board.pieces.length; i++){
+		var piece2 = board.pieces[i];
+		if (piece2 != getPiece(square1.x, square1.y) && piece2.team != team && threatens(piece2, square1)){
+			return true;
+		}
+	}
+	return false;
+}
+
+function threatens(piece, square){
+	if (piece.type != "pawn" && piece.type != "king"){
+		if (getAvailableMoves(piece).includes(square)){
+			return true;
+		}
+	}
+	if (piece.type == "king"){
+		if (adjacent(piece, square)){
+			return true;
+		}
+	}
+	if (piece.type == "pawn"){
+		if (adjacent(piece, square) && diagonal(piece, square) && forward(piece, square, piece.team)){
+			return true;
+		}
+	}
+	return false;
+}
+
+function check(team, allPieces){
+	var king = getKing(team, allPieces);
+	for(var i = 0; i < allPieces.length; i++){
+		var piece = allPieces[i];
+		if (piece.team != team && threatens(piece, king)){
+			return true;
+		}
+	}
+}
+
+function getKing(team, allpieces){
+	for(var i = 0; i < board.pieces.length; i++){
+		var piece = board.pieces[i];
+		if (piece.type == "king" && piece.team == team){
+			return piece;
+		}
+	}
+	return null;
+}
+
+function continueCastle(square){
+	if (square.x == 1){
+		var square2 = getSquare(2, square.y);
+		move(getPiece(0, square.y), square2);
+	}
+	if (square.x == 5){
+		var square2 = getSquare(4, square.y);
+		move(getPiece(7, square.y), square2);
+	}
+}
+
+function tryEnPasant(square){
+	if (getPiece(square) == null){
+		var piece;
+		if (square.y == 2){
+			piece = getPiece(square.x, 3);
+		}
+		if (square.y == 5){
+			piece = getPiece(square.x, 4);
+		}
+		board.pieces.splice(board.pieces.indexOf(piece), 1);
+	}
+}
+
 function createPieces(){
 	for(var c = 0; c < 2; c++){
 		//pawns
@@ -364,48 +516,41 @@ function createPieces(){
 			if (c == 1){
 				img = imgBlackPawn;
 			}
-			var piece = {
-				team:c,
-				type:"pawn",
-				image:img,
-				x:i,
-				y:1 + (c * 5)
-			}
-			board.pieces.push(piece);
+			board.pieces.push({team:c, type:"pawn", image:img, x:i, y:1 + (c * 5), moveCount:0});
 		}
 		//kings
 		var img = imgWhiteKing;
 		if (c == 1){
 			img = imgBlackKing;
 		}
-		board.pieces.push({team:c, type:"king", image:img, x:3, y:(c * 7)});
+		board.pieces.push({team:c, type:"king", image:img, x:3, y:(c * 7), moveCount:0});
 		//queens
 		var img = imgWhiteQueen;
 		if (c == 1){
 			img = imgBlackQueen;
 		}
-		board.pieces.push({team:c, type:"queen", image:img, x:4, y:(c * 7)});
+		board.pieces.push({team:c, type:"queen", image:img, x:4, y:(c * 7), moveCount:0});
 		//rooks
 		var img = imgWhiteRook;
 		if (c == 1){
 			img = imgBlackRook;
 		}
-		board.pieces.push({team:c, type:"rook", image:img, x:0, y:(c * 7)});
-		board.pieces.push({team:c, type:"rook", image:img, x:7, y:(c * 7)});
+		board.pieces.push({team:c, type:"rook", image:img, x:0, y:(c * 7), moveCount:0});
+		board.pieces.push({team:c, type:"rook", image:img, x:7, y:(c * 7), moveCount:0});
 		//bishops
 		var img = imgWhiteBishop;
 		if (c == 1){
 			img = imgBlackBishop;
 		}
-		board.pieces.push({team:c, type:"bishop", image:img, x:2, y:(c * 7)});
-		board.pieces.push({team:c, type:"bishop", image:img, x:5, y:(c * 7)});
+		board.pieces.push({team:c, type:"bishop", image:img, x:2, y:(c * 7), moveCount:0});
+		board.pieces.push({team:c, type:"bishop", image:img, x:5, y:(c * 7), moveCount:0});
 		//knights
 		var img = imgWhiteKnight;
 		if (c == 1){
 			img = imgBlackKnight;
 		}
-		board.pieces.push({team:c, type:"knight", image:img, x:1, y:(c * 7)});
-		board.pieces.push({team:c, type:"knight", image:img, x:6, y:(c * 7)});
+		board.pieces.push({team:c, type:"knight", image:img, x:1, y:(c * 7), moveCount:0});
+		board.pieces.push({team:c, type:"knight", image:img, x:6, y:(c * 7), moveCount:0});
 	}
 }
 
