@@ -412,20 +412,34 @@ function getBlockers(square1, square2){
 	return blockers;
 }
 
-function blocker(piece, square){
-	for(var i = 0; i <board.pieces.length; i++){
-		var piece2 = board.pieces[i];
-		if (piece2 != piece && piece2.team != piece.team){
-			if (piece2.type == "queen" || piece2.type == "rook"){
-				var blockers = getBlockers(piece2, square);
-				if (blockers.length == 1 && blockers[0] == piece && orthogonal(piece2, square)){
-					return true;
+function blocker(squareTest, squareTarget, team){
+	var squareTest = getSquare(squareTest.x, squareTest.y);
+	var squareTarget = getSquare(squareTarget.x, squareTarget.y);
+	for(var i = 0; i < board.pieces.length; i++){
+		var piece = board.pieces[i];
+		if (piece.team != team){
+			if (piece.type == "queen" || piece.type == "rook"){
+				if (orthogonal(piece, squareTarget)){
+					var blockers = getBlockers(piece, squareTarget);
+					if (blockers.length == 1){
+						var pieceBlocking = blockers[0];
+						var squareBlocking = getSquare(pieceBlocking.x, pieceBlocking.y);
+						if (squareBlocking == squareTest){
+							return true;
+						}
+					}
 				}
 			}
-			if (piece2.type == "queen" || piece2.type == "bishop"){
-				var blockers = getBlockers(piece2, square);
-				if (blockers.length == 1 && blockers[0] == piece && diagonal(piece2, square)){
-					return true;
+			if (piece.type == "queen" || piece.type == "bishop"){
+				if (diagonal(piece, squareTarget)){
+					var blockers = getBlockers(piece, squareTarget);
+					if (blockers.length == 1){
+						var pieceBlocking = blockers[0];
+						var squareBlocking = getSquare(pieceBlocking.x, pieceBlocking.y);
+						if (squareBlocking == squareTest){
+							return true;
+						}
+					}
 				}
 			}
 		}
@@ -435,7 +449,7 @@ function blocker(piece, square){
 
 function checkBlocker(piece){
 	var king = getKing(piece.team);
-	return blocker(piece, king);
+	return blocker(piece, king, piece.team);
 }
 
 function blocks(squareTest, square1, square2){
@@ -484,7 +498,7 @@ function pawnMove(square1, square2, team){
 
 function kingMove(square1, square2, team){
 	if (square1 != square2){
-		if(adjacent(square1, square2) && !threatened(square2, team) && !blocker(getPiece(square1.x, square1.y), square2)){
+		if(adjacent(square1, square2) && !threatened(square2, team) && !blocker(getPiece(square1.x, square1.y), square2, team)){
 			return true;
 		}
 		if(getPiece(square1.x, square1.y).moveCount == 0){
