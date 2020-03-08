@@ -321,6 +321,9 @@ function filterSquares(squares, square1, rule, team){
 			}
 		}
 	}
+	else{
+		
+	}
 	return output;
 }
 
@@ -384,34 +387,26 @@ function jump(square1, square2){
 }
 
 function blocked(square1, square2, team){
-	var angle1 = findAngle(square1, square2);
-	var distance1 = findDistance(square1, square2);
 	for(var i = 0; i < board.pieces.length; i++){
 		var piece = board.pieces[i];
-		var angle2 = findAngle(square1, piece);
-		var distance2 = findDistance(square1, piece);
-		if (angle1 == angle2){
-			if (distance1 > distance2){
-				return true;
-			}
-			if (distance1 == distance2 && team == piece.team){
-				return true;
-			}
+		if (blocks(piece, square1, square2)){
+			return true;
 		}
+		
+	}
+	var destPiece = getPiece(square2.x, square2.y);
+	if (destPiece != null && destPiece.team == team){
+		return true;
 	}
 	return false;
 }
 
 function getBlockers(square1, square2){
 	var blockers = [];
-	var angle1 = findAngle(square1, square2);
-	var distance1 = findDistance(square1, square2);
-	if (diagonal(square1, square2) || orthogonal(square1, square2)){
-		for(var i = 0; i < board.pieces.length; i++){
-			var piece = board.pieces[i];
-			if (findAngle(square1, piece) == angle1 && findDistance(square1, piece) < distance1){
-				blockers.push(piece);
-			}
+	for(var i = 0; i < board.pieces.length; i++){
+		var piece = board.pieces[i];
+		if (blocks(piece, square1, square2)){
+			blockers.push(piece);
 		}
 	}
 	return blockers;
@@ -441,6 +436,19 @@ function blocker(piece, square){
 function checkBlocker(piece){
 	var king = getKing(piece.team);
 	return blocker(piece, king);
+}
+
+function blocks(squareTest, square1, square2){
+	if (diagonal(square1, square2) || orthogonal(square1, square2)){
+		var angle1 = findAngle(square1, square2);
+		var angle2 = findAngle(square1, squareTest);
+		var dist1 = findDistance(square1, square2);
+		var dist2 = findDistance(square1, squareTest);
+		if (angle1 == angle2 && dist1 > dist2){
+			return true;
+		}
+	}
+	return false;
 }
 
 function pawnMove(square1, square2, team){
