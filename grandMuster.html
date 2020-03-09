@@ -314,7 +314,7 @@ function filterSquares(squares, square1, rule, team, allPieces){
 		}
 	}
 	var output = [];
-	if (!checkBlocker(getPiece(square1.x, square1.y, allPieces))){
+	if (!checkBlocker(getPiece(square1.x, square1.y, allPieces), allPieces)){
 		for(var i = 0; i < squaresAllowed.length; i++){
 			if (!blocked(square1, squaresAllowed[i], team, allPieces)){
 				output.push(squaresAllowed[i]);
@@ -487,7 +487,7 @@ function pawnMove(square1, square2, team, allPieces){
 				}
 			}
 			if(adjacent(square1, square2) && diagonal(square1, square2)){
-				for(var i = 0; i < allPiecess.length; i++){
+				for(var i = 0; i < allPieces.length; i++){
 					var piece2 = allPieces[i];
 					if (piece2.team != team){
 						if (piece2.x == square2.x && piece2.y == square2.y){
