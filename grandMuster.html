@@ -291,7 +291,8 @@ function getAvailableMoves(piece, allPieces){
 			var pieces2 = [];
 			for(var i2 = 0; i2 < allPieces.length; i2++){
 				var piece2 = allPieces[i2];
-				if (piece2 != piece){
+				var square3 = getSquare(piece2.x, piece2.y);
+				if (piece2 != piece && square3 != square2){
 					pieces2.push(piece2);					
 				}
 				else{
