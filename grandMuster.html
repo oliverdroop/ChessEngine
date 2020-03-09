@@ -284,6 +284,27 @@ function getAvailableMoves(piece, allPieces){
 		}
 		i--;
 	}
+	squares = [];
+	if (output.length > 0){
+		for(var i = 0; i < output.length; i++){
+			var square2 = output[i];
+			var pieces2 = [];
+			for(var i2 = 0; i2 < allPieces.length; i2++){
+				var piece2 = allPieces[i2];
+				if (piece2 != piece){
+					pieces2.push(piece2);					
+				}
+				else{
+					var piece3 = {team:piece.team, type:piece.type, image:piece.image, x:square2.x, y:square2.y, moveCount:piece.moveCount};
+					pieces2.push(piece3);
+				}
+			}
+			if (!check(piece.team, pieces2)){
+				squares.push(square2);
+			}
+		}
+	}
+	output = squares;
 	return output;
 }
 
@@ -314,22 +335,9 @@ function filterSquares(squares, square1, rule, team, allPieces){
 		}
 	}
 	var output = [];
-	if (!checkBlocker(getPiece(square1.x, square1.y, allPieces), allPieces)){
-		for(var i = 0; i < squaresAllowed.length; i++){
-			if (!blocked(square1, squaresAllowed[i], team, allPieces)){
-				output.push(squaresAllowed[i]);
-			}
-		}
-	}
-	else{
-		for(var i = 0; i < squaresAllowed.length; i++){
-			if (!blocked(square1, squaresAllowed[i], team, allPieces)){
-				var king = getKing(team, allPieces);
-				var kingSquare = getSquare(king.x, king.y);
-				if (blocker(squaresAllowed[i], kingSquare, team, allPieces)){
-					output.push(squaresAllowed[i]);
-				}
-			}
+	for(var i = 0; i < squaresAllowed.length; i++){
+		if (!blocked(square1, squaresAllowed[i], team, allPieces)){
+			output.push(squaresAllowed[i]);
 		}
 	}
 	return output;
@@ -409,57 +417,6 @@ function blocked(square1, square2, team, allPieces){
 	return false;
 }
 
-function getBlockers(square1, square2, allPieces){
-	var blockers = [];
-	for(var i = 0; i < allPieces.length; i++){
-		var piece = allPieces[i];
-		if (blocks(piece, square1, square2)){
-			blockers.push(piece);
-		}
-	}
-	return blockers;
-}
-
-function blocker(squareTest, squareTarget, team, allPieces){
-	var squareTest = getSquare(squareTest.x, squareTest.y);
-	var squareTarget = getSquare(squareTarget.x, squareTarget.y);
-	for(var i = 0; i < allPieces.length; i++){
-		var piece = allPieces[i];
-		if (piece.team != team){
-			if (piece.type == "queen" || piece.type == "rook"){
-				if (orthogonal(piece, squareTarget)){
-					var blockers = getBlockers(piece, squareTarget, allPieces);
-					if (blockers.length == 1){
-						var pieceBlocking = blockers[0];
-						var squareBlocking = getSquare(pieceBlocking.x, pieceBlocking.y);
-						if (squareBlocking == squareTest){
-							return true;
-						}
-					}
-				}
-			}
-			if (piece.type == "queen" || piece.type == "bishop"){
-				if (diagonal(piece, squareTarget)){
-					var blockers = getBlockers(piece, squareTarget, allPieces);
-					if (blockers.length == 1){
-						var pieceBlocking = blockers[0];
-						var squareBlocking = getSquare(pieceBlocking.x, pieceBlocking.y);
-						if (squareBlocking == squareTest){
-							return true;
-						}
-					}
-				}
-			}
-		}
-	}
-	return false;
-}
-
-function checkBlocker(piece, allPieces){
-	var king = getKing(piece.team, allPieces);
-	return blocker(piece, king, piece.team, allPieces);
-}
-
 function blocks(squareTest, square1, square2){
 	if (diagonal(square1, square2) || orthogonal(square1, square2)){
 		var angle1 = findAngle(square1, square2);
@@ -506,7 +463,7 @@ function pawnMove(square1, square2, team, allPieces){
 
 function kingMove(square1, square2, team, allPieces){
 	if (square1 != square2){
-		if(adjacent(square1, square2) && !threatened(square2, team, allPieces) && !blocker(getPiece(square1.x, square1.y, allPieces), square2, team, allPieces)){
+		if(adjacent(square1, square2) && !threatened(square2, team, allPieces)){
 			return true;
 		}
 		if(getPiece(square1.x, square1.y, allPieces).moveCount == 0){
@@ -575,10 +532,37 @@ function getThreats(square, allPieces){
 
 function check(team, allPieces){
 	var king = getKing(team, allPieces);
+	var otherTeam = 1 - team;
 	for(var i = 0; i < allPieces.length; i++){
 		var piece = allPieces[i];
-		if (piece.team != team && threatens(piece, getSquare(king.x, king.y), allPieces)){
-			return true;
+		var square1 = getSquare(piece.x, piece.y, allPieces);
+		var square2 = getSquare(king.x, king.y, allPieces);
+		if (piece.team == otherTeam && !blocked(square1, square2, otherTeam, allPieces)){
+			if (piece.type == "queen" || piece.type == "rook"){
+				if (orthogonal(square1, square2)){
+					return true;
+				}
+			}
+			if (piece.type == "queen" || piece.type == "bishop"){
+				if (diagonal(square1, square2)){
+					return true;
+				}
+			}
+			if (piece.type == "knight"){
+				if (jump(square1, square2)){
+					return true;
+				}
+			}
+			if (piece.type == "king"){
+				if (adjacent(square1, square2)){
+					return true;
+				}
+			}
+			if (piece.type == "pawn"){
+				if (adjacent(square1, square2) && forward(square1, square2) && diagonal(square1, square2)){
+					return true;
+				}
+			}
 		}
 	}
 	return false;
