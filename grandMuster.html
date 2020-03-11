@@ -52,6 +52,7 @@ createSquares();
 createPieces();
 var pieceSelected = null;
 var enPassantable = null;
+var turnTeam = 0;
 setInterval(drawAll, 100);
 
 canv.onmouseup = mouseUp;
@@ -65,7 +66,7 @@ function mouseUp(event){
 	var square = getSquare(coordinates.x, coordinates.y);
 	if (piece != null){
 		//piece has been clicked on
-		if (pieceSelected == null){
+		if (pieceSelected == null && piece.team == turnTeam){
 			//select piece
 			pieceSelected = piece;
 		}
@@ -119,6 +120,17 @@ function move(piece, square){
 		continueCastle(square, board.pieces);
 	}
 	pieceSelected = null;
+	var team = piece.team;
+	if (wins(team)){
+		drawAll();
+		if (team == 0){
+			alert("White wins!");
+		}
+		else{
+			alert("Black wins!");
+		}
+	}
+	turnTeam = 1 - turnTeam;
 }
 
 function getSquare(x, y){
@@ -564,6 +576,26 @@ function check(team, allPieces){
 					return true;
 				}
 			}
+		}
+	}
+	return false;
+}
+
+function wins(team){
+	var availableMoves = 0;
+	for(var i = 0; i < board.pieces.length; i++){
+		var piece = board.pieces[i];
+		if (piece.team != team){
+			availableMoves += getAvailableMoves(piece, board.pieces).length;
+		}
+	}
+	if (availableMoves == 0){
+		if (check(1 - team, board.pieces)){
+			return true;
+		}
+		else{
+			//stalemate
+			alert("Stalemate");
 		}
 	}
 	return false;
