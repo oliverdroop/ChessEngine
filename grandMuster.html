@@ -572,7 +572,7 @@ function check(team, allPieces){
 				}
 			}
 			if (piece.type == "pawn"){
-				if (adjacent(square1, square2) && forward(square1, square2) && diagonal(square1, square2)){
+				if (adjacent(square1, square2) && forward(square1, square2, otherTeam) && diagonal(square1, square2)){
 					return true;
 				}
 			}
