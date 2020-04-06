@@ -12,6 +12,11 @@ public class Board {
 	protected int fullmoveNumber = 1;
 	protected Team turnTeam;
 	
+	public Board(Game game) {
+		this.game = game;
+		createSquares();
+	}
+	
 	public Square getSquare(int x, int y){
 		for(int i = 0; i < squares.size(); i++){
 			Square square = squares.get(i);

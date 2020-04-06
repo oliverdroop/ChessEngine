@@ -812,6 +812,69 @@ function getBoardState(){
 	return fen;
 }
 
+function setBoardState(fen){
+	var fields = fen.split(" ");
+	var ranks = fields[0].split("/");
+	board.pieces = [];
+	for(var y = 0; y < 8; y++) {
+		var rank = ranks[7 - y];
+		var x = 0;
+		for(var i = 0; i < rank.length; i++) {
+			var c = rank.charAt(rank.length - i - 1);
+			if (c.charCodeAt(0) > 64) {
+				var piece = getPieceFromChar(c);
+				piece.x = x;
+				piece.y = y;
+				board.pieces.push(piece);
+				x ++;
+			}
+			else {
+				x += Number(c);
+			}
+		}
+	}
+	
+	if (fields[1] == "w"){
+		turnTeam = 0;
+	}
+	else{
+		turnTeam = 1;
+	}
+	
+	if (!fields[2].includes("K")) {
+		getPiece(0, 0, board.pieces).moveCount = 1;
+	}
+	if (!fields[2].includes("Q")) {
+		getPiece(7, 0, board.pieces).moveCount = 1;
+	}
+	if (!fields[2].includes("k")) {
+		getPiece(0, 7, board.pieces).moveCount = 1;
+	}
+	if (!fields[2].includes("q")) {
+		getPiece(7, 7, board.pieces).moveCount = 1;
+	}
+	
+	for(var i = 0; i < board.pieces.length; i++) {
+		var piece = board.pieces[i];
+		if (piece.type == "pawn" && piece.y != 1 + (piece.team * 5)) {
+			piece.moveCount = 1;
+		}
+	}
+	
+	if (fields[3].length == 2) {
+		var x = fields[3].charCodeAt(0) - 97;
+		var y = fields[3].charAt(1);
+		y += (1) - (2 * (1 - turnTeam));
+		enPassantable = getPiece(x, y, board.pieces);
+	}
+	else {
+		enPassantable = null;
+	}
+	
+	halfmoveClock = fields[4];
+	fullmoveNumber = fields[5];
+}
+
 function getFEN(piece){
 	var c = piece.type.substring(0, 1);
 	if (piece.type == "knight"){
@@ -821,6 +884,45 @@ function getFEN(piece){
 		c = String.fromCharCode(c.charCodeAt(0) - 32);
 	}
 	return c;
+}
+
+function getPieceFromChar(c){
+	var piece = {team:0, type:"pawn", image:null, x:0, y:0, moveCount:0};
+	var imageString = "img";
+	if (c.charCodeAt(0) < 91){
+		piece.team = 0;
+		imageString += "White";
+	}
+	else{
+		piece.team = 1;
+		imageString += "Black";
+	}
+	if (c == "K" || c == "k"){
+		piece.type = "king";
+		imageString += "King";
+	}
+	if (c == "Q" || c == "q"){
+		piece.type = "queen";
+		imageString += "Queen";
+	}
+	if (c == "R" || c == "r"){
+		piece.type = "rook";
+		imageString += "Rook";
+	}
+	if (c == "B" || c == "b"){
+		piece.type = "bishop";
+		imageString += "Bishop";
+	}
+	if (c == "N" || c == "n"){
+		piece.type = "knight";
+		imageString += "Knight";
+	}
+	if (c == "P" || c == "p"){
+		piece.type = "pawn";
+		imageString += "Pawn";
+	}
+	piece.image = window[imageString];
+	return piece;
 }
 
 function transmitBoardState(){
@@ -834,7 +936,7 @@ function transmitBoardState(){
 function processRequest(e) {
 	if (xhr.readyState == 4 && xhr.status == 200) {
         var response = xhr.responseText;
-        alert(response);
+        setBoardState(response);
 		xhr = null;
     }
 }

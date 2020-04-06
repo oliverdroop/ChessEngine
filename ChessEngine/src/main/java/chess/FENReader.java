@@ -1,8 +1,8 @@
 package chess;
 
 public class FENReader {
-	public Board read(String fen) {
-		Board board = new Board();
+	public Board read(String fen, Game game) {
+		Board board = new Board(game);
 		String[] fields = fen.split(" ");
 		String[] ranks = fields[0].split("/");
 		for(int y = 0; y < 8; y++) {

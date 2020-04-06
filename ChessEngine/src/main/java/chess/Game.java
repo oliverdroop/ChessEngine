@@ -1,14 +1,14 @@
 package chess;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 
 public class Game {
 	private Board board;
 	
 	public Game() {
-		board = new Board();
-		board.game = this;
-		board.createSquares();
+		board = new Board(this);
 		board.turnTeam = Team.WHITE;
 		createPieces();
 	}
@@ -118,6 +118,23 @@ public class Game {
 		}
 	}
 	
+	public void playAIMove(){
+		Piece piece = null;
+		Random rnd = new Random();
+		List<Square> availableMoves = new ArrayList<>();
+		while(piece == null) {
+			piece = board.pieces.get(rnd.nextInt(board.pieces.size()));
+			if (piece.team == board.turnTeam) {
+				availableMoves = piece.getAvailableMoves(board.pieces);
+			}
+			if (availableMoves.size() == 0) {
+				piece = null;
+			}
+		}
+		Square square = availableMoves.get(rnd.nextInt(availableMoves.size()));
+		piece.move(square);
+	}
+	
 	public Board getBoard() {
 		return board;
 	}
@@ -135,6 +152,6 @@ public class Game {
 	}
 	
 	public void setBoardState(String fen) {
-		board = new FENReader().read(fen);
+		board = new FENReader().read(fen, this);
 	}
 }

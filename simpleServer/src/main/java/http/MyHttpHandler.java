@@ -37,6 +37,7 @@ public class MyHttpHandler implements HttpHandler {
 				String in = read(httpExchange.getRequestBody());
 				LOGGER.info(in);
 				game.setBoardState(in);
+				game.playAIMove();
 				responseString = game.getBoardState();
 			}
 			
