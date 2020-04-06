@@ -130,4 +130,17 @@ public class Piece extends CoordinateHolder{
 		}
 		return c;
 	}
+	
+	@Override
+	public String toString() {
+		return team.toString()
+				.concat(" ")
+				.concat(type.toString())
+				.concat(" ")
+				.concat(String.valueOf(hasMoved))
+				.concat(" ")
+				.concat(String.valueOf(x))
+				.concat(" ")
+				.concat(String.valueOf(y));
+	}
 }

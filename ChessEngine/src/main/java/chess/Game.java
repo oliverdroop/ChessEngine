@@ -11,12 +11,6 @@ public class Game {
 		board.createSquares();
 		board.turnTeam = Team.WHITE;
 		createPieces();
-		
-		String fen = new FENWriter().write(board);
-		System.out.println(fen);
-		
-		board = new FENReader().read(fen);
-		System.out.println(new FENWriter().write(board));
 	}
 	
 	public boolean wins(Team team){
@@ -124,7 +118,23 @@ public class Game {
 		}
 	}
 	
+	public Board getBoard() {
+		return board;
+	}
+
+	public void setBoard(Board board) {
+		this.board = board;
+	}
+
 	public static void main(String[] args) {
 		new Game();		
+	}
+	
+	public String getBoardState() {
+		return new FENWriter().write(board);
+	}
+	
+	public void setBoardState(String fen) {
+		board = new FENReader().read(fen);
 	}
 }

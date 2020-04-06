@@ -49,7 +49,7 @@ public class FENReader {
 		if (fields[3].length() == 2) {
 			int x = (int)fields[3].charAt(0) - 97;
 			int y = Integer.parseInt(String.valueOf(fields[3].charAt(1)));
-			y += (-1) + (2 * (1 - board.turnTeam.ordinal()));
+			y += (1) - (2 * (1 - board.turnTeam.ordinal()));
 			board.enPassantable = board.getPiece(x, y, board.pieces);
 		}
 		else {

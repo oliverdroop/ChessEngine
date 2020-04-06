@@ -53,6 +53,9 @@ createPieces();
 var pieceSelected = null;
 var enPassantable = null;
 var turnTeam = 0;
+var halfmoveClock = 0;
+var fullmoveNumber = 1;
+var xhr = null;
 setInterval(drawAll, 100);
 
 canv.onmouseup = mouseUp;
@@ -81,7 +84,9 @@ function mouseUp(event){
 					//move to square
 					move(pieceSelected, square);
 					//take piece
-					board.pieces.splice(board.pieces.indexOf(piece), 1);
+					board.pieces.splice(board.pieces.indexOf(piece), 1);					
+					//
+					transmitBoardState();
 				}
 			}
 		}
@@ -92,6 +97,8 @@ function mouseUp(event){
 			if (getAvailableMoves(pieceSelected, board.pieces).includes(square)){
 				//move to square
 				move(pieceSelected, square);
+				
+				transmitBoardState();
 			}
 		}
 	}
@@ -119,6 +126,7 @@ function move(piece, square){
 	if (piece.type == "king" && movementDistance > 1){
 		continueCastle(square, board.pieces);
 	}
+	
 	pieceSelected = null;
 	var team = piece.team;
 	if (wins(team)){
@@ -715,6 +723,120 @@ function loadImage(isrc){
 		imgs.src = cnv2.toDataURL();
 	}
 	return imgs;
+}
+
+function getBoardState(){
+	var fen = "";
+	//board pieces
+	for(var y = 7; y >= 0; y--) {
+		var gapSize = 0;
+		for(var x = 7; x >= 0; x--) {
+			var piece = getPiece(x, y, board.pieces);
+			if (piece != null) {
+				if (gapSize > 0) {
+					fen += gapSize;
+					gapSize = 0;
+				}
+				fen += getFEN(piece);
+			}
+			else {
+				gapSize ++;
+			}
+		}
+		if (gapSize > 0) {
+			fen += gapSize;
+		}
+		if (y != 0) {
+			fen += '/';
+		}
+	}
+	fen += " ";
+	//current turn team
+	if (turnTeam == 0){
+		fen += "w";
+	}
+	else{
+		fen += "b";
+	}
+	fen += ' ';
+	//castling availability
+	var castling = "";
+	var kingW = getPiece(3, 0, board.pieces);
+	if (kingW != null && kingW.moveCount == 0) {
+		var rookWK = getPiece(0, 0, board.pieces);
+		if (rookWK != null && rookWK.moveCount == 0) {
+			castling += 'K';
+		}
+		var rookWQ = getPiece(7, 0, board.pieces);
+		if (rookWQ != null && rookWQ.moveCount == 0) {
+			castling += 'Q';
+		}
+	}
+	var kingB = getPiece(3, 7, board.pieces);
+	if (kingB != null && kingB.moveCount == 0) {
+		var rookBK = getPiece(0, 7, board.pieces);
+		if (rookBK != null && rookBK.moveCount == 0) {
+			castling += 'k';
+		}
+		var rookBQ = getPiece(7, 7, board.pieces);
+		if (rookBQ != null && rookBQ.moveCount == 0) {
+			castling += 'q';
+		}
+	}
+	if (castling.length > 0){
+		fen += castling;
+	}
+	else{
+		fen += "-";
+	}
+	fen += ' ';
+	//en Passant piece
+	var enPassant = "";
+	if (enPassantable != null) {
+		var x = String.fromCharCode(enPassantable.x + 97);
+		var yBehind = enPassantable.y + ((-1) + (2 * enPassantable.team));
+		var y = yBehind;
+		enPassant += x;
+		enPassant += y;
+	}
+	if (enPassant.length > 0){
+		fen += enPassant;
+	}
+	else{
+		fen += "-";
+	}
+	fen += ' ';
+	fen += halfmoveClock;
+	fen += ' ';
+	fen += fullmoveNumber;
+	return fen;
+}
+
+function getFEN(piece){
+	var c = piece.type.substring(0, 1);
+	if (piece.type == "knight"){
+		c = "n";
+	}
+	if (piece.team == 0){
+		c = String.fromCharCode(c.charCodeAt(0) - 32);
+	}
+	return c;
+}
+
+function transmitBoardState(){
+	//Transmit board state
+	xhr = new XMLHttpRequest();
+	xhr.open("POST", "http://127.0.0.1:8080/welcome", true);
+	xhr.send(getBoardState());
+	xhr.onreadystatechange = processRequest;
+}
+
+function processRequest(e) {
+	if (xhr.readyState == 4 && xhr.status == 200) {
+        var response = xhr.responseText;
+        alert(response);
+		xhr = null;
+    }
 }
 
 function findAngle(p1, p2) {

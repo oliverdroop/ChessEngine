@@ -1,12 +1,17 @@
 package http;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+
+import chess.Game;
 
 public class MyHttpHandler implements HttpHandler {
 	
@@ -22,12 +27,35 @@ public class MyHttpHandler implements HttpHandler {
 	public void respond(HttpExchange httpExchange) {
 		try {
 			String responseString = "Hello";
+			
+			Game game = new Game();
+			httpExchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
+			if (httpExchange.getRequestMethod().equals("GET")) {
+				responseString = game.getBoardState();
+			}
+			if (httpExchange.getRequestMethod().equals("POST")) {
+				String in = read(httpExchange.getRequestBody());
+				LOGGER.info(in);
+				game.setBoardState(in);
+				responseString = game.getBoardState();
+			}
+			
 			httpExchange.sendResponseHeaders(200, responseString.length());
 			httpExchange.getResponseBody().write(responseString.getBytes());
+			httpExchange.getResponseBody().close();
 		}
 		catch (IOException ioe) {
 			LOGGER.warn(ioe.getMessage());
 		}
+	}
+	
+	public String read(InputStream inputStream) throws IOException{
+		String in = "";
+		BufferedReader br = new BufferedReader(new InputStreamReader(inputStream));
+		while(br.ready() || in.length() == 0) {
+			in += br.readLine();
+		}
+		return in;
 	}
 
 }
