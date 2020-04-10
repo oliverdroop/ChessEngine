@@ -138,12 +138,12 @@ public class Move {
 		return false;
 	}
 	
-	public boolean blocks(CoordinateHolder squareTest){
+	public boolean blocks(CoordinateHolder testSquare){
 		if (diagonal() || orthogonal()){
 			double angle1 = board.findAngle(startSquare, endSquare);
-			double angle2 = board.findAngle(startSquare, squareTest);
+			double angle2 = board.findAngle(startSquare, testSquare);
 			double dist1 = board.findDistance(startSquare, endSquare);
-			double dist2 = board.findDistance(startSquare, squareTest);
+			double dist2 = board.findDistance(startSquare, testSquare);
 			if (angle1 == angle2 && dist1 > dist2){
 				return true;
 			}
@@ -152,8 +152,7 @@ public class Move {
 	}
 	
 	public boolean blocked(Team team, List<Piece> allPieces){
-		for(int i = 0; i < allPieces.size(); i++){
-			Piece piece = allPieces.get(i);
+		for(Piece piece : allPieces){
 			if (blocks(piece)){
 				return true;
 			}
@@ -166,28 +165,28 @@ public class Move {
 		return false;
 	}
 	
-	public boolean resultsInCheck(List<Piece> allPieces) {
+	public boolean selfCheck(List<Piece> piecesCurrently) {
 		List<Piece> futurePieceList = new ArrayList<>();
-		for(Piece piece2 : allPieces){
-			Square square3 = board.getSquare(piece2.x, piece2.y);
-			if (piece2 != piece && square3 != endSquare){
-				futurePieceList.add(piece2);					
+		for(Piece otherPiece : piecesCurrently){
+			if (otherPiece != piece) {
+				if (otherPiece.getSquare() != endSquare) {
+					futurePieceList.add(otherPiece);
+				}
 			}
-			else{
+			else {
 				futurePieceList.add(new PieceBuilder()
 						.withBoard(board)
+						.withHasMoved(true)
 						.withTeam(piece.team)
 						.withType(piece.type)
 						.withX(endSquare.x)
-						.withY(endSquare.y)
-						.withHasMoved(true)
-						.build());
+						.withY(endSquare.y).build());
 			}
 		}
-		if (!board.check(piece.team, futurePieceList)){
-			return false;
+		if (board.check(piece.team, futurePieceList)) {
+			return true;
 		}
-		return true;
+		return false;
 	}
 	
 	public boolean isLegal(List<Piece> allPieces) {
@@ -210,7 +209,7 @@ public class Move {
 		if (piece.type == PieceType.PAWN && pawnMove(piece.team, allPieces)) {
 			possible = true;
 		}
-		if (possible && !blocked(piece.team, allPieces) && !resultsInCheck(allPieces)) {
+		if (possible && !blocked(piece.team, allPieces) && !selfCheck(allPieces)) {
 			return true;
 		}
 		return false;

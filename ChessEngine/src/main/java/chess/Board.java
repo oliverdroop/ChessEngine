@@ -3,10 +3,14 @@ import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class Board {
+	private static final Logger LOGGER = LoggerFactory.getLogger(Board.class);
 	protected Game game;
 	protected List<Square> squares = new ArrayList<>();
-	protected List<Piece> pieces = new ArrayList<>();
+	List<Piece> pieces = new ArrayList<>();
 	protected Piece enPassantable = null;
 	protected int halfmoveClock = 0;
 	protected int fullmoveNumber = 1;
@@ -58,36 +62,25 @@ public class Board {
 	public boolean check(Team team, List<Piece> allPieces){
 		Piece king = getKing(team, allPieces);
 		Team otherTeam = Team.values()[1 - team.ordinal()];
-		for(int i = 0; i < allPieces.size(); i++){
-			Piece piece = allPieces.get(i);
+		for(Piece piece : allPieces){
 			Square square1 = getSquare(piece.x, piece.y);
 			Square square2 = getSquare(king.x, king.y);
 			Move move = new Move(piece, square1, square2);
 			if (piece.team == otherTeam && !move.blocked(otherTeam, allPieces)){
-				if (piece.type == PieceType.QUEEN || piece.type == PieceType.ROOK){
-					if (move.orthogonal()){
-						return true;
-					}
+				if ((piece.type == PieceType.QUEEN || piece.type == PieceType.ROOK) && move.orthogonal()){
+					return true;
 				}
-				if (piece.type == PieceType.QUEEN || piece.type == PieceType.BISHOP){
-					if (move.diagonal()){
-						return true;
-					}
+				if ((piece.type == PieceType.QUEEN || piece.type == PieceType.BISHOP) && move.diagonal()){
+					return true;
 				}
-				if (piece.type == PieceType.KNIGHT){
-					if (move.jump()){
-						return true;
-					}
+				if (piece.type == PieceType.KNIGHT && move.jump()){
+					return true;
 				}
-				if (piece.type == PieceType.KING){
-					if (move.adjacent()){
-						return true;
-					}
+				if (piece.type == PieceType.KING && move.adjacent()){
+					return true;
 				}
-				if (piece.type == PieceType.PAWN){
-					if (move.adjacent() && move.forward(otherTeam) && move.diagonal()){
-						return true;
-					}
+				if (piece.type == PieceType.PAWN && move.adjacent() && move.forward(otherTeam) && move.diagonal()){
+					return true;
 				}
 			}
 		}
@@ -95,8 +88,7 @@ public class Board {
 	}
 	
 	public Piece getKing(Team team, List<Piece> allPieces){
-		for(int i = 0; i < allPieces.size(); i++){
-			Piece piece = allPieces.get(i);
+		for(Piece piece : allPieces){
 			if (piece.type == PieceType.KING && piece.team == team){
 				return piece;
 			}
@@ -138,6 +130,12 @@ public class Board {
 	public double findAngle(CoordinateHolder p1, CoordinateHolder p2) {
 		double a = 0;
 		if (p1.y - p2.y != 0){
+			if (p2.x == p1.x && p2.y > p1.y) {
+				return Math.PI;
+			}
+			if (p2.x == p1.x && p2.y < p1.y) {
+				return -Math.PI;
+			}
 			a = Math.atan((p2.x - p1.x) / (p1.y - p2.y));
 		}else{
 			a = Math.PI / (2 * Math.signum(p2.x - p1.x));
@@ -157,4 +155,61 @@ public class Board {
 	public double findDistance(CoordinateHolder p0, CoordinateHolder p1){
 		return Math.sqrt(Math.pow(p1.x - p0.x, 2) + Math.pow(p1.y - p0.y, 2));
 	}
+
+	public Game getGame() {
+		return game;
+	}
+
+	public void setGame(Game game) {
+		this.game = game;
+	}
+
+	public List<Square> getSquares() {
+		return squares;
+	}
+
+	public void setSquares(List<Square> squares) {
+		this.squares = squares;
+	}
+
+	public List<Piece> getPieces() {
+		return pieces;
+	}
+
+	public void setPieces(List<Piece> pieces) {
+		this.pieces = pieces;
+	}
+
+	public Piece getEnPassantable() {
+		return enPassantable;
+	}
+
+	public void setEnPassantable(Piece enPassantable) {
+		this.enPassantable = enPassantable;
+	}
+
+	public int getHalfmoveClock() {
+		return halfmoveClock;
+	}
+
+	public void setHalfmoveClock(int halfmoveClock) {
+		this.halfmoveClock = halfmoveClock;
+	}
+
+	public int getFullmoveNumber() {
+		return fullmoveNumber;
+	}
+
+	public void setFullmoveNumber(int fullmoveNumber) {
+		this.fullmoveNumber = fullmoveNumber;
+	}
+
+	public Team getTurnTeam() {
+		return turnTeam;
+	}
+
+	public void setTurnTeam(Team turnTeam) {
+		this.turnTeam = turnTeam;
+	}
+	
 }

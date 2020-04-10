@@ -112,4 +112,38 @@ public class Piece extends CoordinateHolder{
 				.concat(" ")
 				.concat(String.valueOf(y));
 	}
+
+	public Board getBoard() {
+		return board;
+	}
+
+	public void setBoard(Board board) {
+		this.board = board;
+	}
+
+	public Team getTeam() {
+		return team;
+	}
+
+	public void setTeam(Team team) {
+		this.team = team;
+	}
+
+	public boolean isHasMoved() {
+		return hasMoved;
+	}
+
+	public void setHasMoved(boolean hasMoved) {
+		this.hasMoved = hasMoved;
+	}
+
+	public PieceType getType() {
+		return type;
+	}
+
+	public void setType(PieceType type) {
+		this.type = type;
+	}
+	
+	
 }

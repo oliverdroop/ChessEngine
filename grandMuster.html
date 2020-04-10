@@ -798,7 +798,7 @@ function getBoardState(){
 	var enPassant = "";
 	if (enPassantable != null) {
 		var x = String.fromCharCode(enPassantable.x + 97);
-		var yBehind = enPassantable.y + ((-1) + (2 * enPassantable.team));
+		var yBehind = 1 + enPassantable.y + ((-1) + (2 * enPassantable.team));
 		var y = yBehind;
 		enPassant += x;
 		enPassant += y;
@@ -872,7 +872,7 @@ function setBoardState(fen){
 	if (fields[3].length == 2) {
 		var x = fields[3].charCodeAt(0) - 97;
 		var y = fields[3].charAt(1);
-		y += (1) - (2 * (1 - turnTeam));
+		y += (0) - (2 * (1 - turnTeam));
 		enPassantable = getPiece(x, y, board.pieces);
 	}
 	else {

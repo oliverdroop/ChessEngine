@@ -62,7 +62,7 @@ public class FENWriter {
 		String enPassant = "";
 		if (board.enPassantable != null) {
 			char x = (char)(board.enPassantable.x + 97);
-			int yBehind = board.enPassantable.y + ((-1) + (2 * board.enPassantable.team.ordinal()));
+			int yBehind = 1 + board.enPassantable.y + ((-1) + (2 * board.enPassantable.team.ordinal()));
 			char y = String.valueOf(yBehind).charAt(0);
 			enPassant += x;
 			enPassant += y;
