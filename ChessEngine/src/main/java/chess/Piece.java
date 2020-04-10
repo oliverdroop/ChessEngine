@@ -51,110 +51,15 @@ public class Piece extends CoordinateHolder{
 		board.turnTeam = Team.values()[1 - board.turnTeam.ordinal()];
 	}
 	
-	List<Square> getAvailableMoves(List<Piece> allPieces){
-		List<MoveType> moveTypes = new ArrayList<>();
-		if (type==PieceType.PAWN){
-			moveTypes.add(MoveType.PAWN);		
-		}
-		if (type == PieceType.KING){
-			moveTypes.add(MoveType.KING);
-		}
-		if (type==PieceType.QUEEN){
-			moveTypes.add(MoveType.DIAGONAL);
-			moveTypes.add(MoveType.ORTHOGONAL);
-		}
-		if (type==PieceType.ROOK){
-			moveTypes.add(MoveType.ORTHOGONAL);
-		}
-		if (type==PieceType.BISHOP){
-			moveTypes.add(MoveType.DIAGONAL);
-		}
-		if (type==PieceType.KNIGHT){
-			moveTypes.add(MoveType.JUMP);
-		}
-		int i = moveTypes.size();
-		List<Square> squares = board.squares;
-		List<Square> output = new ArrayList<>();
-		while(i > 0){
-			MoveType moveType = moveTypes.get(i - 1);
-			if (type != PieceType.QUEEN){
-				squares = filterSquares(squares, board.getSquare(x, y), moveType, team, allPieces);
-				output = squares;
-			}
-			else{
-				List<Square> squares2 = filterSquares(squares, board.getSquare(x, y), moveType, team, allPieces);
-				for(int i2 = 0; i2 < squares2.size(); i2++){
-					output.add(squares2.get(i2));
-				}
-			}
-			i--;
-		}
-		squares = new ArrayList<>();
-		if (output.size() > 0){
-			for(int i1 = 0; i1 < output.size(); i1++){
-				Square square2 = output.get(i1);
-				List<Piece> pieces2 = new ArrayList<>();
-				for(int i2 = 0; i2 < allPieces.size(); i2++){
-					Piece piece2 = allPieces.get(i2);
-					Square square3 = board.getSquare(piece2.x, piece2.y);
-					if (piece2 != this && square3 != square2){
-						pieces2.add(piece2);					
-					}
-					else{
-						pieces2.add(new PieceBuilder()
-								.withBoard(board)
-								.withTeam(team)
-								.withType(type)
-								.withX(square2.x)
-								.withY(square2.y)
-								.withHasMoved(true)
-								.build());
-					}
-				}
-				if (!board.check(team, pieces2)){
-					squares.add(square2);
-				}
+	public List<Square> getAvailableMoves(List<Piece> allPieces){
+		List<Square> availableMoves = new ArrayList<>();
+		for(Square square : board.squares) {
+			Move move = new Move(this, getSquare(), square);
+			if (move.isLegal(allPieces)) {
+				availableMoves.add(square);
 			}
 		}
-		output = squares;
-		return output;
-	}
-	
-	List<Square> filterSquares(List<Square> squares, Square square1, MoveType moveType, Team team, List<Piece> allPieces){
-		List<Square> squaresAllowed = new ArrayList<>();
-		for(int i = 0; i < squares.size(); i++){
-			Square square2 = squares.get(i);
-			Move move = new Move(this, square1, square2);
-			if (moveType == MoveType.DIAGONAL && move.diagonal()){
-				squaresAllowed.add(square2);
-			}
-			if (moveType == MoveType.ORTHOGONAL && move.orthogonal()){
-				squaresAllowed.add(square2);
-			}
-			if (moveType == MoveType.ADJACENT && move.adjacent()){
-				squaresAllowed.add(square2);
-			}
-			if (moveType == MoveType.FORWARD && move.forward(team)){
-				squaresAllowed.add(square2);
-			}
-			if (moveType == MoveType.JUMP && move.jump()){
-				squaresAllowed.add(square2);
-			}
-			if (moveType == MoveType.PAWN && move.pawnMove(team, allPieces)){
-				squaresAllowed.add(square2);
-			}
-			if (moveType == MoveType.KING && move.kingMove(team, allPieces)){
-				squaresAllowed.add(square2);
-			}
-		}
-		List<Square> output = new ArrayList<>();
-		for(int i = 0; i < squaresAllowed.size(); i++){
-			Move move = new Move(this, square1, squaresAllowed.get(i));
-			if (!move.blocked(square1, squaresAllowed.get(i), team, allPieces)){
-				output.add(squaresAllowed.get(i));
-			}
-		}
-		return output;
+		return availableMoves;
 	}
 	
 	public boolean threatens(Piece piece, Square square, List<Piece> allPieces){
@@ -189,6 +94,10 @@ public class Piece extends CoordinateHolder{
 			c = (char)((byte)c + 32);
 		}
 		return c;
+	}
+	
+	public Square getSquare() {
+		return board.getSquare(x, y);
 	}
 	
 	@Override

@@ -63,7 +63,7 @@ public class Board {
 			Square square1 = getSquare(piece.x, piece.y);
 			Square square2 = getSquare(king.x, king.y);
 			Move move = new Move(piece, square1, square2);
-			if (piece.team == otherTeam && !move.blocked(square1, square2, otherTeam, allPieces)){
+			if (piece.team == otherTeam && !move.blocked(otherTeam, allPieces)){
 				if (piece.type == PieceType.QUEEN || piece.type == PieceType.ROOK){
 					if (move.orthogonal()){
 						return true;
