@@ -622,11 +622,15 @@ function getKing(team, allPieces){
 function continueCastle(square, allPieces){
 	if (square.x == 1){
 		var square2 = getSquare(2, square.y);
-		move(getPiece(0, square.y, allPieces), square2);
+		var rook = getPiece(0, square.y, allPieces);
+		rook.x = square2.x;
+		rook.y = square2.y;
 	}
 	if (square.x == 5){
 		var square2 = getSquare(4, square.y);
-		move(getPiece(7, square.y, allPieces), square2);
+		var rook = getPiece(7, square.y, allPieces);
+		rook.x = square2.x;
+		rook.y = square2.y;
 	}
 }
 
@@ -825,12 +829,23 @@ function setBoardState(fen){
 				var piece = getPieceFromChar(c);
 				piece.x = x;
 				piece.y = y;
+				piece.moveCount = 1;
 				board.pieces.push(piece);
 				x ++;
 			}
 			else {
 				x += Number(c);
 			}
+		}
+	}
+	
+	for(var i = 0; i < board.pieces.length; i++) {
+		var piece = board.pieces[i];
+		if (piece.type == "pawn" && piece.y == 1 + (piece.team * 5)) {
+			piece.moveCount = 0;
+		}
+		if (piece.type == "king" && piece.y == piece.team * 7 && piece.x == 3){
+			piece.moveCount = 0;
 		}
 	}
 	
@@ -841,24 +856,17 @@ function setBoardState(fen){
 		turnTeam = 1;
 	}
 	
-	if (!fields[2].includes("K")) {
-		getPiece(0, 0, board.pieces).moveCount = 1;
+	if (fields[2].includes("K")) {
+		getPiece(0, 0, board.pieces).moveCount = 0;
 	}
-	if (!fields[2].includes("Q")) {
-		getPiece(7, 0, board.pieces).moveCount = 1;
+	if (fields[2].includes("Q")) {
+		getPiece(7, 0, board.pieces).moveCount = 0;
 	}
-	if (!fields[2].includes("k")) {
-		getPiece(0, 7, board.pieces).moveCount = 1;
+	if (fields[2].includes("k")) {
+		getPiece(0, 7, board.pieces).moveCount = 0;
 	}
-	if (!fields[2].includes("q")) {
-		getPiece(7, 7, board.pieces).moveCount = 1;
-	}
-	
-	for(var i = 0; i < board.pieces.length; i++) {
-		var piece = board.pieces[i];
-		if (piece.type == "pawn" && piece.y != 1 + (piece.team * 5)) {
-			piece.moveCount = 1;
-		}
+	if (fields[2].includes("q")) {
+		getPiece(7, 7, board.pieces).moveCount = 0;
 	}
 	
 	if (fields[3].length == 2) {
@@ -936,7 +944,7 @@ function transmitBoardState(){
 function processRequest(e) {
 	if (xhr.readyState == 4 && xhr.status == 200) {
         var response = xhr.responseText;
-        setBoardState(response);
+		setBoardState(response);
 		xhr = null;
     }
 }

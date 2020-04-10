@@ -55,41 +55,6 @@ public class Board {
 		}
 	}
 	
-	List<Square> filterSquares(List<Square> squares, Square square1, MoveType moveType, Team team, List<Piece> allPieces){
-		List<Square> squaresAllowed = new ArrayList<>();
-		for(int i = 0; i < squares.size(); i++){
-			Square square2 = squares.get(i);
-			if (moveType == MoveType.DIAGONAL && diagonal(square1, square2)){
-				squaresAllowed.add(square2);
-			}
-			if (moveType == MoveType.ORTHOGONAL && orthogonal(square1, square2)){
-				squaresAllowed.add(square2);
-			}
-			if (moveType == MoveType.ADJACENT && adjacent(square1, square2)){
-				squaresAllowed.add(square2);
-			}
-			if (moveType == MoveType.FORWARD && forward(square1, square2, team)){
-				squaresAllowed.add(square2);
-			}
-			if (moveType == MoveType.JUMP && jump(square1, square2)){
-				squaresAllowed.add(square2);
-			}
-			if (moveType == MoveType.PAWN && pawnMove(square1, square2, team, allPieces)){
-				squaresAllowed.add(square2);
-			}
-			if (moveType == MoveType.KING && kingMove(square1, square2, team, allPieces)){
-				squaresAllowed.add(square2);
-			}
-		}
-		List<Square> output = new ArrayList<>();
-		for(int i = 0; i < squaresAllowed.size(); i++){
-			if (!blocked(square1, squaresAllowed.get(i), team, allPieces)){
-				output.add(squaresAllowed.get(i));
-			}
-		}
-		return output;
-	}
-	
 	public boolean diagonal(CoordinateHolder square1, CoordinateHolder square2){
 		if (square1 != square2){
 			int xOffsetSize = Math.abs(square2.x - square1.x);
@@ -140,34 +105,6 @@ public class Board {
 				return true;
 			}
 			if (xOffsetSize == 1 && yOffsetSize == 2){
-				return true;
-			}
-		}
-		return false;
-	}
-	
-	public boolean blocked(Square square1, Square square2, Team team, List<Piece> allPieces){
-		for(int i = 0; i < allPieces.size(); i++){
-			Piece piece = allPieces.get(i);
-			if (blocks(piece, square1, square2)){
-				return true;
-			}
-			
-		}
-		Piece destPiece = getPiece(square2.x, square2.y, allPieces);
-		if (destPiece != null && destPiece.team == team){
-			return true;
-		}
-		return false;
-	}
-	
-	public boolean blocks(CoordinateHolder squareTest, Square square1, Square square2){
-		if (diagonal(square1, square2) || orthogonal(square1, square2)){
-			double angle1 = findAngle(square1, square2);
-			double angle2 = findAngle(square1, squareTest);
-			double dist1 = findDistance(square1, square2);
-			double dist2 = findDistance(square1, squareTest);
-			if (angle1 == angle2 && dist1 > dist2){
 				return true;
 			}
 		}
@@ -228,6 +165,34 @@ public class Board {
 						}
 					}
 				}
+			}
+		}
+		return false;
+	}
+	
+	public boolean blocked(Square square1, Square square2, Team team, List<Piece> allPieces){
+		for(int i = 0; i < allPieces.size(); i++){
+			Piece piece = allPieces.get(i);
+			if (blocks(piece, square1, square2)){
+				return true;
+			}
+			
+		}
+		Piece destPiece = getPiece(square2.x, square2.y, allPieces);
+		if (destPiece != null && destPiece.team == team){
+			return true;
+		}
+		return false;
+	}
+	
+	public boolean blocks(CoordinateHolder squareTest, Square square1, Square square2){
+		if (diagonal(square1, square2) || orthogonal(square1, square2)){
+			double angle1 = findAngle(square1, square2);
+			double angle2 = findAngle(square1, squareTest);
+			double dist1 = findDistance(square1, square2);
+			double dist2 = findDistance(square1, squareTest);
+			if (angle1 == angle2 && dist1 > dist2){
+				return true;
 			}
 		}
 		return false;
@@ -324,11 +289,15 @@ public class Board {
 	public void continueCastle(Square square, List<Piece> allPieces){
 		if (square.x == 1){
 			Square square2 = getSquare(2, square.y);
-			getPiece(0, square.y, allPieces).move(square2);
+			Piece rook = getPiece(0, square.y, allPieces);
+			rook.x = square2.x;
+			rook.y = square2.y;
 		}
 		if (square.x == 5){
 			Square square2 = getSquare(4, square.y);
-			getPiece(7, square.y, allPieces).move(square2);
+			Piece rook = getPiece(7, square.y, allPieces);
+			rook.x = square2.x;
+			rook.y = square2.y;
 		}
 	}
 	

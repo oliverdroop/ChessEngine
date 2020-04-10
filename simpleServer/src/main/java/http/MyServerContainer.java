@@ -11,14 +11,14 @@ import com.sun.net.httpserver.HttpServer;
 public class MyServerContainer {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MyServerContainer.class);
 	
-	private static MyHttpHandler myhttpHandler = new MyHttpHandler();
+	private static MyHttpHandler myHttpHandler = new MyHttpHandler();
 	
     public static void main(String[] args){
     	try {
     		LOGGER.info("Starting application");
     		HttpServer httpServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 8080), 8080);
     		LOGGER.info("Created httpServer");
-    		httpServer.createContext("/welcome", myhttpHandler);
+    		httpServer.createContext("/welcome", myHttpHandler);
     		LOGGER.info("Created context '/welcome'");
     		httpServer.start();
     		LOGGER.info("Started httpServer");

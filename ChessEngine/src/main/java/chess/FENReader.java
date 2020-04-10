@@ -1,6 +1,12 @@
 package chess;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class FENReader {
+	
+	private static final Logger LOGGER = LoggerFactory.getLogger(FENReader.class);
+	
 	public Board read(String fen, Game game) {
 		Board board = new Board(game);
 		String[] fields = fen.split(" ");
@@ -15,7 +21,7 @@ public class FENReader {
 					piece.board = board;
 					piece.x = x;
 					piece.y = y;
-					piece.hasMoved = false;
+					piece.hasMoved = true;
 					board.pieces.add(piece);
 					x ++;
 				}
@@ -25,26 +31,32 @@ public class FENReader {
 			}
 		}
 		
-		board.turnTeam = fields[1].equals("w") ? Team.WHITE : Team.BLACK;
-		
-		if (!fields[2].contains("K")) {
-			board.getPiece(0, 0, board.pieces).hasMoved = true;
-		}
-		if (!fields[2].contains("Q")) {
-			board.getPiece(7, 0, board.pieces).hasMoved = true;
-		}
-		if (!fields[2].contains("k")) {
-			board.getPiece(0, 7, board.pieces).hasMoved = true;
-		}
-		if (!fields[2].contains("q")) {
-			board.getPiece(7, 7, board.pieces).hasMoved = true;
-		}
-		
 		for(Piece piece : board.pieces) {
-			if (piece.type == PieceType.PAWN && piece.y != 1 + (piece.team.ordinal() * 5)) {
-				piece.hasMoved = true;
+			if (piece.type == PieceType.PAWN && piece.y == 1 + (piece.team.ordinal() * 5)) {
+				piece.hasMoved = false;
+			}
+			if (piece.type == PieceType.KING && piece.y == piece.team.ordinal() * 7 && piece.x == 3) {
+				piece.hasMoved = false;
 			}
 		}
+		//LOGGER.debug("Pieces set successfully");
+		
+		board.turnTeam = fields[1].equals("w") ? Team.WHITE : Team.BLACK;
+		//LOGGER.debug("Turn team set successfully");
+		
+		if (fields[2].contains("K")) {
+				board.getPiece(0, 0, board.pieces).hasMoved = false;
+		}
+		if (fields[2].contains("Q")) {
+				board.getPiece(7, 0, board.pieces).hasMoved = false;
+		}
+		if (fields[2].contains("k")) {
+				board.getPiece(0, 7, board.pieces).hasMoved = false;
+		}
+		if (fields[2].contains("q")) {
+				board.getPiece(7, 7, board.pieces).hasMoved = false;
+		}
+		//LOGGER.debug("Castling availability set successfully");
 		
 		if (fields[3].length() == 2) {
 			int x = (int)fields[3].charAt(0) - 97;
@@ -55,9 +67,12 @@ public class FENReader {
 		else {
 			board.enPassantable = null;
 		}
+		//LOGGER.debug("EnPassantable set successfully");
 		
 		board.halfmoveClock = Integer.parseInt(fields[4]);
+		//LOGGER.debug("Halfmove clock set successfully");
 		board.fullmoveNumber = Integer.parseInt(fields[5]);
+		//LOGGER.debug("Fullmove number set successfully");
 		return board;
 	}
 	

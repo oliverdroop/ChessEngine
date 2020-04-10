@@ -20,7 +20,7 @@ public class MyHttpHandler implements HttpHandler {
 
 	public void handle(HttpExchange httpExchange) throws IOException {
 		LOGGER.info("Handling httpExchange {}", httpExchange.getHttpContext());
-		LOGGER.info("RequestURI : {}", httpExchange.getRequestURI());
+		//LOGGER.info("RequestURI : {}", httpExchange.getRequestURI());
 		respond(httpExchange);
 	}
 	
@@ -35,10 +35,13 @@ public class MyHttpHandler implements HttpHandler {
 			}
 			if (httpExchange.getRequestMethod().equals("POST")) {
 				String in = read(httpExchange.getRequestBody());
-				LOGGER.info(in);
+				LOGGER.info("Received : " + in);
 				game.setBoardState(in);
+				//LOGGER.info("Board state set successfully");
 				game.playAIMove();
+				//LOGGER.info("AI moved successfully");
 				responseString = game.getBoardState();
+				LOGGER.info("Transmit : " + responseString);
 			}
 			
 			httpExchange.sendResponseHeaders(200, responseString.length());
@@ -56,7 +59,7 @@ public class MyHttpHandler implements HttpHandler {
 		while(br.ready() || in.length() == 0) {
 			in += br.readLine();
 		}
+		inputStream.close();
 		return in;
 	}
-
 }

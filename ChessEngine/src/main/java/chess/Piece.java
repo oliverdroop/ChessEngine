@@ -78,11 +78,11 @@ public class Piece extends CoordinateHolder{
 		while(i > 0){
 			MoveType moveType = moveTypes.get(i - 1);
 			if (type != PieceType.QUEEN){
-				squares = board.filterSquares(squares, board.getSquare(x, y), moveType, team, allPieces);
+				squares = filterSquares(squares, board.getSquare(x, y), moveType, team, allPieces);
 				output = squares;
 			}
 			else{
-				List<Square> squares2 = board.filterSquares(squares, board.getSquare(x, y), moveType, team, allPieces);
+				List<Square> squares2 = filterSquares(squares, board.getSquare(x, y), moveType, team, allPieces);
 				for(int i2 = 0; i2 < squares2.size(); i2++){
 					output.add(squares2.get(i2));
 				}
@@ -117,6 +117,41 @@ public class Piece extends CoordinateHolder{
 			}
 		}
 		output = squares;
+		return output;
+	}
+	
+	List<Square> filterSquares(List<Square> squares, Square square1, MoveType moveType, Team team, List<Piece> allPieces){
+		List<Square> squaresAllowed = new ArrayList<>();
+		for(int i = 0; i < squares.size(); i++){
+			Square square2 = squares.get(i);
+			if (moveType == MoveType.DIAGONAL && board.diagonal(square1, square2)){
+				squaresAllowed.add(square2);
+			}
+			if (moveType == MoveType.ORTHOGONAL && board.orthogonal(square1, square2)){
+				squaresAllowed.add(square2);
+			}
+			if (moveType == MoveType.ADJACENT && board.adjacent(square1, square2)){
+				squaresAllowed.add(square2);
+			}
+			if (moveType == MoveType.FORWARD && board.forward(square1, square2, team)){
+				squaresAllowed.add(square2);
+			}
+			if (moveType == MoveType.JUMP && board.jump(square1, square2)){
+				squaresAllowed.add(square2);
+			}
+			if (moveType == MoveType.PAWN && board.pawnMove(square1, square2, team, allPieces)){
+				squaresAllowed.add(square2);
+			}
+			if (moveType == MoveType.KING && board.kingMove(square1, square2, team, allPieces)){
+				squaresAllowed.add(square2);
+			}
+		}
+		List<Square> output = new ArrayList<>();
+		for(int i = 0; i < squaresAllowed.size(); i++){
+			if (!board.blocked(square1, squaresAllowed.get(i), team, allPieces)){
+				output.add(squaresAllowed.get(i));
+			}
+		}
 		return output;
 	}
 	

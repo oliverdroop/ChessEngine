@@ -122,12 +122,12 @@ public class Game {
 		Piece piece = null;
 		Random rnd = new Random();
 		List<Square> availableMoves = new ArrayList<>();
-		while(piece == null) {
+		while(piece == null || availableMoves.size() == 0) {
 			piece = board.pieces.get(rnd.nextInt(board.pieces.size()));
 			if (piece.team == board.turnTeam) {
 				availableMoves = piece.getAvailableMoves(board.pieces);
 			}
-			if (availableMoves.size() == 0) {
+			else {
 				piece = null;
 			}
 		}
