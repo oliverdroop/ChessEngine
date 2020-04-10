@@ -55,148 +55,8 @@ public class Board {
 		}
 	}
 	
-	public boolean diagonal(CoordinateHolder square1, CoordinateHolder square2){
-		if (square1 != square2){
-			int xOffsetSize = Math.abs(square2.x - square1.x);
-			int yOffsetSize = Math.abs(square2.y - square1.y);
-			if (xOffsetSize == yOffsetSize){
-				return true;
-			}
-		}
-		return false;
-	}
-
-	public boolean orthogonal(CoordinateHolder square1, CoordinateHolder square2){
-		if (square1 != square2){
-			if (square2.x == square1.x || square2.y == square1.y){
-				return true;
-			}
-		}
-		return false;
-	}
-
-	public boolean adjacent(CoordinateHolder square1, CoordinateHolder square2){
-		if (square1 != square2){
-			int xOffset = square2.x - square1.x;
-			int yOffset = square2.y - square1.y;
-			if (Math.pow(xOffset, 2) < 2 && Math.pow(yOffset, 2) < 2){
-				return true;
-			}
-		}
-		return false;
-	}
-
-	public boolean forward(CoordinateHolder square1, CoordinateHolder square2, Team team){
-		int yOffset = square2.y - square1.y;
-		if (yOffset > 0 && team.ordinal() == 0){
-			return true;
-		}
-		if (yOffset < 0 && team.ordinal() == 1){
-			return true;
-		}
-		return false;
-	}
-
-	public boolean jump(Square square1, Square square2){
-		if (square1 != square2){
-			int xOffsetSize = Math.abs(square2.x - square1.x);
-			int yOffsetSize = Math.abs(square2.y - square1.y);
-			if (xOffsetSize == 2 && yOffsetSize == 1){
-				return true;
-			}
-			if (xOffsetSize == 1 && yOffsetSize == 2){
-				return true;
-			}
-		}
-		return false;
-	}
 	
-	public boolean pawnMove(Square square1, Square square2, Team team, List<Piece> allPieces){
-		if (square1 != square2){
-			if (forward(square1, square2, team)){
-				if (orthogonal(square1, square2) && getPiece(square2.x, square2.y, allPieces) == null){
-					if (adjacent(square1, square2)){
-						return true;
-					}
-					int yOffsetSize = Math.abs(square2.y - square1.y);
-					if (yOffsetSize == 2 && getPiece(square1.x, square1.y, allPieces).hasMoved == false){
-						return true;
-					}
-				}
-				if(adjacent(square1, square2) && diagonal(square1, square2)){
-					for(int i = 0; i < allPieces.size(); i++){
-						Piece piece2 = allPieces.get(i);
-						if (piece2.team != team){
-							if (piece2.x == square2.x && piece2.y == square2.y){
-								return true;
-							}
-							if (piece2.y == (3 + piece2.team.ordinal()) && square2.y == (5 - (team.ordinal() * 3)) && piece2.x == square2.x && adjacent(square1, piece2) && enPassantable == piece2){
-								return true;
-							}
-						}
-					}
-				}
-			}
-		}
-		return false;
-	}
 	
-	public boolean kingMove(Square square1, Square square2, Team team, List<Piece> allPieces){
-		if (square1 != square2){
-			if(adjacent(square1, square2) && !threatened(square2, team, allPieces)){
-				return true;
-			}
-			if(getPiece(square1.x, square1.y, allPieces).hasMoved == false){
-				if (square1.y == square2.y && !threatened(square1, team, allPieces) && !threatened(square2, team, allPieces)){
-					Piece closeRook = getPiece(0, square1.y, allPieces);
-					Square square3 = getSquare(1, square1.y);
-					if(closeRook != null && closeRook.hasMoved == false && square2.x == 1 && !blocked(square1, square3, team, allPieces)){
-						Square square5 = getSquare(2, square1.y);
-						if (!threatened(square5, team, allPieces)){
-							return true;
-						}
-					}
-					Piece farRook = getPiece(7, square1.y, allPieces);
-					Square square4 = getSquare(6, square1.y);
-					if(farRook != null && farRook.hasMoved == false && square2.x == 5 && !blocked(square1, square4, team, allPieces)){
-						Square square6 = getSquare(4, square1.y);
-						if (!threatened(square6, team, allPieces)){
-							return true;
-						}
-					}
-				}
-			}
-		}
-		return false;
-	}
-	
-	public boolean blocked(Square square1, Square square2, Team team, List<Piece> allPieces){
-		for(int i = 0; i < allPieces.size(); i++){
-			Piece piece = allPieces.get(i);
-			if (blocks(piece, square1, square2)){
-				return true;
-			}
-			
-		}
-		Piece destPiece = getPiece(square2.x, square2.y, allPieces);
-		if (destPiece != null && destPiece.team == team){
-			return true;
-		}
-		return false;
-	}
-	
-	public boolean blocks(CoordinateHolder squareTest, Square square1, Square square2){
-		if (diagonal(square1, square2) || orthogonal(square1, square2)){
-			double angle1 = findAngle(square1, square2);
-			double angle2 = findAngle(square1, squareTest);
-			double dist1 = findDistance(square1, square2);
-			double dist2 = findDistance(square1, squareTest);
-			if (angle1 == angle2 && dist1 > dist2){
-				return true;
-			}
-		}
-		return false;
-	}
 	
 	public boolean threatened(Square square1, Team team, List<Piece> allPieces){
 		for(int i = 0; i < allPieces.size(); i++){
@@ -214,13 +74,17 @@ public class Board {
 				return true;
 			}
 		}
+		Square pieceSquare = new Square();
+		pieceSquare.x = piece.x;
+		pieceSquare.y = piece.y;
+		Move move = new Move(piece, pieceSquare, square);
 		if (piece.type == PieceType.KING){
-			if (adjacent(piece, square)){
+			if (move.adjacent()){
 				return true;
 			}
 		}
 		if (piece.type == PieceType.PAWN){
-			if (adjacent(piece, square) && diagonal(piece, square) && forward(piece, square, piece.team)){
+			if (move.adjacent() && move.diagonal() && move.forward(piece.team)){
 				return true;
 			}
 		}
@@ -245,29 +109,30 @@ public class Board {
 			Piece piece = allPieces.get(i);
 			Square square1 = getSquare(piece.x, piece.y);
 			Square square2 = getSquare(king.x, king.y);
-			if (piece.team == otherTeam && !blocked(square1, square2, otherTeam, allPieces)){
+			Move move = new Move(piece, square1, square2);
+			if (piece.team == otherTeam && !move.blocked(square1, square2, otherTeam, allPieces)){
 				if (piece.type == PieceType.QUEEN || piece.type == PieceType.ROOK){
-					if (orthogonal(square1, square2)){
+					if (move.orthogonal()){
 						return true;
 					}
 				}
 				if (piece.type == PieceType.QUEEN || piece.type == PieceType.BISHOP){
-					if (diagonal(square1, square2)){
+					if (move.diagonal()){
 						return true;
 					}
 				}
 				if (piece.type == PieceType.KNIGHT){
-					if (jump(square1, square2)){
+					if (move.jump()){
 						return true;
 					}
 				}
 				if (piece.type == PieceType.KING){
-					if (adjacent(square1, square2)){
+					if (move.adjacent()){
 						return true;
 					}
 				}
 				if (piece.type == PieceType.PAWN){
-					if (adjacent(square1, square2) && forward(square1, square2, otherTeam) && diagonal(square1, square2)){
+					if (move.adjacent() && move.forward(otherTeam) && move.diagonal()){
 						return true;
 					}
 				}
