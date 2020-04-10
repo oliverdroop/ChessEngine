@@ -157,6 +157,29 @@ public class Piece extends CoordinateHolder{
 		return output;
 	}
 	
+	public boolean threatens(Piece piece, Square square, List<Piece> allPieces){
+		if (piece.type != PieceType.PAWN && piece.type != PieceType.KING){
+			if (piece.getAvailableMoves(allPieces).contains(square)){
+				return true;
+			}
+		}
+		Square pieceSquare = new Square(board);
+		pieceSquare.x = piece.x;
+		pieceSquare.y = piece.y;
+		Move move = new Move(piece, pieceSquare, square);
+		if (piece.type == PieceType.KING){
+			if (move.adjacent()){
+				return true;
+			}
+		}
+		if (piece.type == PieceType.PAWN){
+			if (move.adjacent() && move.diagonal() && move.forward(piece.team)){
+				return true;
+			}
+		}
+		return false;
+	}
+	
 	public char getFEN() {
 		char c = type.toString().charAt(0);
 		if (type == PieceType.KNIGHT) {

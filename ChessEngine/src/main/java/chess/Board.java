@@ -47,59 +47,12 @@ public class Board {
 	public void createSquares(){
 		for(int x = 0; x < 8; x++){
 			for(int y = 0; y < 8; y++){
-				Square square = new Square();
+				Square square = new Square(this);
 					square.x = x;
 					square.y = y;
 				squares.add(square);
 			}
 		}
-	}
-	
-	
-	
-	
-	public boolean threatened(Square square1, Team team, List<Piece> allPieces){
-		for(int i = 0; i < allPieces.size(); i++){
-			Piece piece2 = allPieces.get(i);
-			if (piece2 != getPiece(square1.x, square1.y, allPieces) && piece2.team != team && threatens(piece2, square1, allPieces)){
-				return true;
-			}
-		}
-		return false;
-	}
-	
-	public boolean threatens(Piece piece, Square square, List<Piece> allPieces){
-		if (piece.type != PieceType.PAWN && piece.type != PieceType.KING){
-			if (piece.getAvailableMoves(allPieces).contains(square)){
-				return true;
-			}
-		}
-		Square pieceSquare = new Square();
-		pieceSquare.x = piece.x;
-		pieceSquare.y = piece.y;
-		Move move = new Move(piece, pieceSquare, square);
-		if (piece.type == PieceType.KING){
-			if (move.adjacent()){
-				return true;
-			}
-		}
-		if (piece.type == PieceType.PAWN){
-			if (move.adjacent() && move.diagonal() && move.forward(piece.team)){
-				return true;
-			}
-		}
-		return false;
-	}
-	
-	public List<Piece> getThreats(Square square, List<Piece> allPieces){
-		List<Piece> threats = new ArrayList<>();
-		for(int i = 0; i < allPieces.size(); i++){
-			Piece piece = allPieces.get(i);
-			if (threatens(piece, square, allPieces)){
-				threats.add(piece);
-			}
-		}
-		return threats;
 	}
 	
 	public boolean check(Team team, List<Piece> allPieces){
@@ -181,8 +134,6 @@ public class Board {
 			}
 		}
 	}
-	
-	
 	
 	public double findAngle(CoordinateHolder p1, CoordinateHolder p2) {
 		double a = 0;

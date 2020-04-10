@@ -103,16 +103,16 @@ public class Move {
 	
 	public boolean kingMove(Team team, List<Piece> allPieces){
 		if (startSquare != endSquare){
-			if(adjacent() && !board.threatened(endSquare, team, allPieces)){
+			if(adjacent() && !endSquare.threatened(team, allPieces)){
 				return true;
 			}
 			if(board.getPiece(startSquare.x, startSquare.y, allPieces).hasMoved == false){
-				if (startSquare.y == endSquare.y && !board.threatened(startSquare, team, allPieces) && !board.threatened(endSquare, team, allPieces)){
+				if (startSquare.y == endSquare.y && !startSquare.threatened(team, allPieces) && !endSquare.threatened(team, allPieces)){
 					Piece closeRook = board.getPiece(0, startSquare.y, allPieces);
 					Square square3 = board.getSquare(1, startSquare.y);
 					if(closeRook != null && closeRook.hasMoved == false && endSquare.x == 1 && !blocked(startSquare, square3, team, allPieces)){
 						Square square5 = board.getSquare(2, startSquare.y);
-						if (!board.threatened(square5, team, allPieces)){
+						if (!square5.threatened(team, allPieces)){
 							return true;
 						}
 					}
@@ -120,7 +120,7 @@ public class Move {
 					Square square4 = board.getSquare(6, startSquare.y);
 					if(farRook != null && farRook.hasMoved == false && endSquare.x == 5 && !blocked(startSquare, square4, team, allPieces)){
 						Square square6 = board.getSquare(4, startSquare.y);
-						if (!board.threatened(square6, team, allPieces)){
+						if (!square6.threatened(team, allPieces)){
 							return true;
 						}
 					}
