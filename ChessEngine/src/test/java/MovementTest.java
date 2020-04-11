@@ -4,15 +4,20 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.BlockJUnit4ClassRunner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import chess.Board;
 import chess.FENReader;
 import chess.Game;
 import chess.Move;
 import chess.Piece;
+import chess.Team;
 
 @RunWith (BlockJUnit4ClassRunner.class)
 public class MovementTest {
+	
+	private static final Logger LOGGER = LoggerFactory.getLogger(MovementTest.class);
 	
 	private Game game = new Game();
 	
@@ -108,7 +113,7 @@ public class MovementTest {
 	}
 	
 	@Test
-	public void testEscapeCheck() {
+	public void testEscapeCheck1() {
 		setupTest("4k3/8/8/8/8/8/7b/7K w - - 0 1");
 		Piece piece = board.getPiece(0, 0, board.getPieces());
 		softly.assertThat(piece.getAvailableMoves(board.getPieces()))
@@ -117,8 +122,12 @@ public class MovementTest {
 			.as("Expected square not in available moves").contains(board.getSquare(0, 1));
 		softly.assertThat(piece.getAvailableMoves(board.getPieces()))
 			.as("Expected square not in available moves").contains(board.getSquare(1, 1));
-		
+	}
+	
+	@Test
+	public void testEscapeCheck2() {		
 		setupTest("4k3/6rr/8/8/8/8/R7/7K w - - 0 1");
+		Piece piece = board.getPiece(0, 0, board.getPieces());
 		softly.assertThat(piece.getAvailableMoves(board.getPieces()))
 			.as("Expected available moves to be empty").isEmpty();
 		piece = board.getPiece(7, 1, board.getPieces());
@@ -126,8 +135,34 @@ public class MovementTest {
 			.as("Expected available moves to have size 1").hasSize(1);
 	}
 	
+	@Test
+	public void testCheckCondition1() {
+		setupTest("rnbqkbnr/pppp2p1/5p1p/4p2Q/3PP3/8/PPP2PPP/RNB1KBNR b KQkq - 0 4");
+		softly.assertThat(board.check(Team.BLACK, board.getPieces())).as("Expected to be in check").isTrue();
+	}
+	
+	@Test
+	public void testCheckCondition2() {
+		setupTest("r3k2r/8/8/7Q/8/8/8/R3K2R b - - 0 1");
+		softly.assertThat(board.check(Team.BLACK, board.getPieces())).as("Expected to be in check").isTrue();
+	}
+	
+	@Test
+	public void testCheckCondition3() {
+		setupTest("4k3/8/8/7Q/8/8/8/4K3 b - - 0 1");
+		softly.assertThat(board.check(Team.BLACK, board.getPieces())).as("Expected to be in check").isTrue();
+	}
+	
+	@Test
+	public void testWinCondition1() {
+		setupTest("rnbqkbnr/ppppp2p/5p2/6pQ/8/2P1P3/PP1P1PPP/RNB1KBNR b KQkq - 0 1");
+		softly.assertThat(board.check(Team.BLACK, board.getPieces())).as("Expected to be in check").isTrue();
+		softly.assertThat(board.getAvailableMoves()).as("Expected to have 0 available moves").isEmpty();
+	}
+	
 	private void setupTest(String fen) {
 		board = fenReader.read(fen, game);
 		game.setBoard(board);
+		board.getPieces().forEach(p -> softly.assertThat(p.getBoard()).isNotNull());
 	}
 }

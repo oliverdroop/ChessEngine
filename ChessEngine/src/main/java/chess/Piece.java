@@ -62,25 +62,29 @@ public class Piece extends CoordinateHolder{
 		return availableMoves;
 	}
 	
-	public boolean threatens(Piece piece, Square square, List<Piece> allPieces){
-		if (piece.type != PieceType.PAWN && piece.type != PieceType.KING){
-			if (piece.getAvailableMoves(allPieces).contains(square)){
-				return true;
-			}
+	public boolean threatens(Square square, List<Piece> allPieces) {
+		boolean possible = false;
+		Move move = new Move(this, getSquare(), square);
+		if (type == PieceType.KING && move.kingMove(team, allPieces)) {
+			possible = true;
 		}
-		Square pieceSquare = new Square(board);
-		pieceSquare.x = piece.x;
-		pieceSquare.y = piece.y;
-		Move move = new Move(piece, pieceSquare, square);
-		if (piece.type == PieceType.KING){
-			if (move.adjacent()){
-				return true;
-			}
+		if (type == PieceType.QUEEN && (move.orthogonal() || move.diagonal())) {
+			possible = true;
 		}
-		if (piece.type == PieceType.PAWN){
-			if (move.adjacent() && move.diagonal() && move.forward(piece.team)){
-				return true;
-			}
+		if (type == PieceType.ROOK && move.orthogonal()) {
+			possible = true;
+		}
+		if (type == PieceType.BISHOP && move.diagonal()) {
+			possible = true;
+		}
+		if (type == PieceType.KNIGHT && move.jump()) {
+			possible = true;
+		}
+		if (type == PieceType.PAWN && move.pawnMove(team, allPieces)) {
+			possible = true;
+		}
+		if (possible && !move.blocked(team, allPieces)) {
+			return true;
 		}
 		return false;
 	}
@@ -144,6 +148,4 @@ public class Piece extends CoordinateHolder{
 	public void setType(PieceType type) {
 		this.type = type;
 	}
-	
-	
 }

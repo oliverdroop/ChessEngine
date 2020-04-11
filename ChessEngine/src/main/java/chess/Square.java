@@ -13,7 +13,7 @@ public class Square extends CoordinateHolder{
 	public boolean threatened(Team team, List<Piece> allPieces){
 		for(int i = 0; i < allPieces.size(); i++){
 			Piece piece2 = allPieces.get(i);
-			if (piece2 != board.getPiece(x, y, allPieces) && piece2.team != team && piece2.threatens(piece2, this, allPieces)){
+			if (piece2 != board.getPiece(x, y, allPieces) && piece2.team != team && piece2.threatens(this, allPieces)){
 				return true;
 			}
 		}
@@ -24,7 +24,7 @@ public class Square extends CoordinateHolder{
 		List<Piece> threats = new ArrayList<>();
 		for(int i = 0; i < allPieces.size(); i++){
 			Piece piece = allPieces.get(i);
-			if (piece.threatens(piece, this, allPieces)){
+			if (piece.threatens(this, allPieces)){
 				threats.add(piece);
 			}
 		}

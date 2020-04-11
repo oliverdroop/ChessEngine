@@ -18,10 +18,10 @@ public class FENReader {
 				char c = rank.charAt(rank.length() - i - 1);
 				if ((int)c > 64) {
 					Piece piece = createPiece(c);
-					piece.board = board;
-					piece.x = x;
-					piece.y = y;
-					piece.hasMoved = true;
+					piece.setBoard(board);
+					piece.setX(x);
+					piece.setY(y);
+					piece.setHasMoved(true);
 					board.pieces.add(piece);
 					x ++;
 				}
@@ -39,24 +39,24 @@ public class FENReader {
 				piece.hasMoved = false;
 			}
 		}
-		//LOGGER.debug("Pieces set successfully");
+		LOGGER.debug("Pieces set successfully");
 		
 		board.turnTeam = fields[1].equals("w") ? Team.WHITE : Team.BLACK;
-		//LOGGER.debug("Turn team set successfully");
+		LOGGER.debug("Turn team set successfully");
 		
 		if (fields[2].contains("K")) {
-				board.getPiece(0, 0, board.pieces).hasMoved = false;
+				board.getPiece(0, 0, board.pieces).setHasMoved(false);
 		}
 		if (fields[2].contains("Q")) {
-				board.getPiece(7, 0, board.pieces).hasMoved = false;
+				board.getPiece(7, 0, board.pieces).setHasMoved(false);
 		}
 		if (fields[2].contains("k")) {
-				board.getPiece(0, 7, board.pieces).hasMoved = false;
+				board.getPiece(0, 7, board.pieces).setHasMoved(false);
 		}
 		if (fields[2].contains("q")) {
-				board.getPiece(7, 7, board.pieces).hasMoved = false;
+				board.getPiece(7, 7, board.pieces).setHasMoved(false);
 		}
-		//LOGGER.debug("Castling availability set successfully");
+		LOGGER.debug("Castling availability set successfully");
 		
 		if (fields[3].length() == 2) {
 			int x = (int)fields[3].charAt(0) - 97;
@@ -67,12 +67,12 @@ public class FENReader {
 		else {
 			board.enPassantable = null;
 		}
-		//LOGGER.debug("EnPassantable set successfully");
+		LOGGER.debug("EnPassantable set successfully");
 		
 		board.halfmoveClock = Integer.parseInt(fields[4]);
-		//LOGGER.debug("Halfmove clock set successfully");
+		LOGGER.debug("Halfmove clock set successfully");
 		board.fullmoveNumber = Integer.parseInt(fields[5]);
-		//LOGGER.debug("Fullmove number set successfully");
+		LOGGER.debug("Fullmove number set successfully");
 		return board;
 	}
 	

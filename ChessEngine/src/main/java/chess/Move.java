@@ -3,7 +3,12 @@ package chess;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.logging.log4j.core.util.Assert;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class Move {
+	private static final Logger LOGGER = LoggerFactory.getLogger(Move.class);
 	protected Piece piece;
 	protected Square startSquare;
 	protected Square endSquare;
@@ -111,12 +116,12 @@ public class Move {
 		if (startSquare == endSquare){
 			return false;
 		}
-		if(adjacent() && !endSquare.threatened(team, allPieces)){
+		if(adjacent()){
 			return true;
 		}
 		Piece king = board.getPiece(startSquare.x, startSquare.y, allPieces);
 		if(king.hasMoved == false){
-			if (startSquare.y == endSquare.y && !startSquare.threatened(team, allPieces) && !endSquare.threatened(team, allPieces)){
+			if (startSquare.y == endSquare.y && !startSquare.threatened(team, allPieces)){
 				Piece closeRook = board.getPiece(0, startSquare.y, allPieces);
 				Square square3 = board.getSquare(1, startSquare.y);
 				if(closeRook != null && closeRook.hasMoved == false && endSquare.x == 1 && !new Move(king, startSquare, square3).blocked(team, allPieces)){
@@ -190,28 +195,46 @@ public class Move {
 	}
 	
 	public boolean isLegal(List<Piece> allPieces) {
-		boolean possible = false;
-		if (piece.type == PieceType.KING && kingMove(piece.team, allPieces)) {
-			possible = true;
-		}
-		if (piece.type == PieceType.QUEEN && (orthogonal() || diagonal())) {
-			possible = true;
-		}
-		if (piece.type == PieceType.ROOK && orthogonal()) {
-			possible = true;
-		}
-		if (piece.type == PieceType.BISHOP && diagonal()) {
-			possible = true;
-		}
-		if (piece.type == PieceType.KNIGHT && diagonal()) {
-			possible = true;
-		}
-		if (piece.type == PieceType.PAWN && pawnMove(piece.team, allPieces)) {
-			possible = true;
-		}
-		if (possible && !blocked(piece.team, allPieces) && !selfCheck(allPieces)) {
+		if (piece.threatens(endSquare, allPieces) && !selfCheck(allPieces)) {
 			return true;
 		}
 		return false;
+	}
+
+	public Piece getPiece() {
+		return piece;
+	}
+
+	public void setPiece(Piece piece) {
+		this.piece = piece;
+	}
+
+	public Square getStartSquare() {
+		return startSquare;
+	}
+
+	public void setStartSquare(Square startSquare) {
+		this.startSquare = startSquare;
+	}
+
+	public Square getEndSquare() {
+		return endSquare;
+	}
+
+	public void setEndSquare(Square endSquare) {
+		this.endSquare = endSquare;
+	}
+
+	public Board getBoard() {
+		return board;
+	}
+
+	public void setBoard(Board board) {
+		this.board = board;
+	}
+	
+	@Override
+	public String toString() {
+		return piece.toString() + " " + startSquare.toString() + " " + endSquare.toString();
 	}
 }

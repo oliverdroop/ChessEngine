@@ -4,7 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class Game {
+	
+	private static final Logger LOGGER = LoggerFactory.getLogger(Game.class);
 	private Board board;
 	
 	public Game() {
@@ -119,20 +124,11 @@ public class Game {
 	}
 	
 	public void playAIMove(){
-		Piece piece = null;
 		Random rnd = new Random();
-		List<Square> availableMoves = new ArrayList<>();
-		while(piece == null || availableMoves.size() == 0) {
-			piece = board.pieces.get(rnd.nextInt(board.pieces.size()));
-			if (piece.team == board.turnTeam) {
-				availableMoves = piece.getAvailableMoves(board.pieces);
-			}
-			else {
-				piece = null;
-			}
-		}
-		Square square = availableMoves.get(rnd.nextInt(availableMoves.size()));
-		piece.move(square);
+		List<Move> availableMoves = board.getAvailableMoves();
+		availableMoves.forEach(m -> LOGGER.info(m.toString()));
+		Move chosenMove = availableMoves.get(rnd.nextInt(availableMoves.size()));
+		chosenMove.getPiece().move(chosenMove.getEndSquare());
 	}
 	
 	public Board getBoard() {

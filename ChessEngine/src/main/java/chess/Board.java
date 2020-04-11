@@ -2,6 +2,7 @@ package chess;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,7 +11,7 @@ public class Board {
 	private static final Logger LOGGER = LoggerFactory.getLogger(Board.class);
 	protected Game game;
 	protected List<Square> squares = new ArrayList<>();
-	List<Piece> pieces = new ArrayList<>();
+	protected List<Piece> pieces = new ArrayList<>();
 	protected Piece enPassantable = null;
 	protected int halfmoveClock = 0;
 	protected int fullmoveNumber = 1;
@@ -22,8 +23,7 @@ public class Board {
 	}
 	
 	public Square getSquare(int x, int y){
-		for(int i = 0; i < squares.size(); i++){
-			Square square = squares.get(i);
+		for(Square square : squares){
 			if (positionMatch(square, x, y)){
 				return square;
 			}
@@ -59,14 +59,14 @@ public class Board {
 		}
 	}
 	
-	public boolean check(Team team, List<Piece> allPieces){
+	public boolean check2(Team team, List<Piece> allPieces){
 		Piece king = getKing(team, allPieces);
 		Team otherTeam = Team.values()[1 - team.ordinal()];
-		for(Piece piece : allPieces){
+		for(Piece piece : getTeamPieces(otherTeam, allPieces)){
 			Square square1 = getSquare(piece.x, piece.y);
 			Square square2 = getSquare(king.x, king.y);
 			Move move = new Move(piece, square1, square2);
-			if (piece.team == otherTeam && !move.blocked(otherTeam, allPieces)){
+			if (!move.blocked(otherTeam, allPieces)){
 				if ((piece.type == PieceType.QUEEN || piece.type == PieceType.ROOK) && move.orthogonal()){
 					return true;
 				}
@@ -87,9 +87,20 @@ public class Board {
 		return false;
 	}
 	
+	public boolean check(Team team, List<Piece> allPieces) {
+		Piece king = getKing(team, allPieces);
+		Team otherTeam = Team.values()[1 - team.ordinal()];
+		for(Piece piece : getTeamPieces(otherTeam, allPieces)) {
+			if (piece.threatens(king.getSquare(), allPieces)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
 	public Piece getKing(Team team, List<Piece> allPieces){
-		for(Piece piece : allPieces){
-			if (piece.type == PieceType.KING && piece.team == team){
+		for(Piece piece : getTeamPieces(team, allPieces)){
+			if (piece.type == PieceType.KING){
 				return piece;
 			}
 		}
@@ -150,6 +161,20 @@ public class Board {
 	        a += Math.PI * 2;
 	    }
 		return a;
+	}
+	
+	public List<Move> getAvailableMoves(){
+		List<Move> moves = new ArrayList<>();
+		for(Piece piece : getTeamPieces(turnTeam, pieces)) {
+			for(Square square : piece.getAvailableMoves(pieces)) {
+				moves.add(new Move(piece, piece.getSquare(), square));
+			}
+		}
+		return moves;
+	}
+	
+	public List<Piece> getTeamPieces(Team team, List<Piece> allPieces){
+		return allPieces.stream().filter(p -> p.team == team).collect(Collectors.toList());
 	}
 
 	public double findDistance(CoordinateHolder p0, CoordinateHolder p1){

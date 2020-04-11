@@ -40,6 +40,7 @@ public class PieceBuilder {
 	
 	public Piece build() {
 		Piece piece = new Piece();
+		piece.board = board;
 		piece.x = x;
 		piece.y = y;
 		piece.team = team;
