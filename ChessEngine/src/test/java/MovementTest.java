@@ -163,6 +163,5 @@ public class MovementTest {
 	private void setupTest(String fen) {
 		board = fenReader.read(fen, game);
 		game.setBoard(board);
-		board.getPieces().forEach(p -> softly.assertThat(p.getBoard()).isNotNull());
 	}
 }

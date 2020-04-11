@@ -9,7 +9,7 @@ public class Piece extends CoordinateHolder{
 	protected PieceType type;
 	
 	public void move(Square square) {
-		double movementDistance = board.findDistance(this, square);
+		double movementDistance = findDistance(this, square);
 		if (type == PieceType.PAWN){
 			if (movementDistance == 2){
 				board.enPassantable = this;

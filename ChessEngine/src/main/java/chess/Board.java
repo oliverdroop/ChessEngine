@@ -138,31 +138,6 @@ public class Board {
 		}
 	}
 	
-	public double findAngle(CoordinateHolder p1, CoordinateHolder p2) {
-		double a = 0;
-		if (p1.y - p2.y != 0){
-			if (p2.x == p1.x && p2.y > p1.y) {
-				return Math.PI;
-			}
-			if (p2.x == p1.x && p2.y < p1.y) {
-				return -Math.PI;
-			}
-			a = Math.atan((p2.x - p1.x) / (p1.y - p2.y));
-		}else{
-			a = Math.PI / (2 * Math.signum(p2.x - p1.x));
-		}
-		if (p2.x - p1.x >= 0 && p2.y - p1.y > 0) {
-			a += Math.PI;
-		}
-		if (p2.x - p1.x < 0 && p2.y - p1.y > 0) {
-	        a += Math.PI;
-	    }
-		if (p2.x - p1.x < 0 && p2.y - p1.y <= 0) {
-	        a += Math.PI * 2;
-	    }
-		return a;
-	}
-	
 	public List<Move> getAvailableMoves(){
 		List<Move> moves = new ArrayList<>();
 		for(Piece piece : getTeamPieces(turnTeam, pieces)) {
@@ -175,10 +150,6 @@ public class Board {
 	
 	public List<Piece> getTeamPieces(Team team, List<Piece> allPieces){
 		return allPieces.stream().filter(p -> p.team == team).collect(Collectors.toList());
-	}
-
-	public double findDistance(CoordinateHolder p0, CoordinateHolder p1){
-		return Math.sqrt(Math.pow(p1.x - p0.x, 2) + Math.pow(p1.y - p0.y, 2));
 	}
 
 	public Game getGame() {

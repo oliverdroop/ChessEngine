@@ -143,29 +143,17 @@ public class Move {
 		return false;
 	}
 	
-	public boolean blocks(CoordinateHolder testSquare){
-		if (diagonal() || orthogonal()){
-			double angle1 = board.findAngle(startSquare, endSquare);
-			double angle2 = board.findAngle(startSquare, testSquare);
-			double dist1 = board.findDistance(startSquare, endSquare);
-			double dist2 = board.findDistance(startSquare, testSquare);
-			if (angle1 == angle2 && dist1 > dist2){
-				return true;
-			}
-		}
-		return false;
-	}
-	
 	public boolean blocked(Team team, List<Piece> allPieces){
-		for(Piece piece : allPieces){
-			if (blocks(piece)){
+		if (diagonal() || orthogonal()){
+			for(Piece piece : allPieces){
+				if (piece != this.piece && piece.blocks(this)){
+					return true;
+				}				
+			}
+			Piece destPiece = board.getPiece(endSquare.x, endSquare.y, allPieces);
+			if (destPiece != null && destPiece.team == team){
 				return true;
 			}
-			
-		}
-		Piece destPiece = board.getPiece(endSquare.x, endSquare.y, allPieces);
-		if (destPiece != null && destPiece.team == team){
-			return true;
 		}
 		return false;
 	}
