@@ -59,34 +59,6 @@ public class Board {
 		}
 	}
 	
-	public boolean check2(Team team, List<Piece> allPieces){
-		Piece king = getKing(team, allPieces);
-		Team otherTeam = Team.values()[1 - team.ordinal()];
-		for(Piece piece : getTeamPieces(otherTeam, allPieces)){
-			Square square1 = getSquare(piece.x, piece.y);
-			Square square2 = getSquare(king.x, king.y);
-			Move move = new Move(piece, square1, square2);
-			if (!move.blocked(otherTeam, allPieces)){
-				if ((piece.type == PieceType.QUEEN || piece.type == PieceType.ROOK) && move.orthogonal()){
-					return true;
-				}
-				if ((piece.type == PieceType.QUEEN || piece.type == PieceType.BISHOP) && move.diagonal()){
-					return true;
-				}
-				if (piece.type == PieceType.KNIGHT && move.jump()){
-					return true;
-				}
-				if (piece.type == PieceType.KING && move.adjacent()){
-					return true;
-				}
-				if (piece.type == PieceType.PAWN && move.adjacent() && move.forward(otherTeam) && move.diagonal()){
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-	
 	public boolean check(Team team, List<Piece> allPieces) {
 		Piece king = getKing(team, allPieces);
 		Team otherTeam = Team.values()[1 - team.ordinal()];

@@ -1,7 +1,10 @@
 package chess;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import org.slf4j.Logger;
@@ -37,6 +40,9 @@ public class Game {
 				//stalemate
 				System.out.println("Stalemate");
 			}
+		}
+		if (board.getTeamPieces(team, board.pieces).size() == 1 && board.getTeamPieces(Team.values()[1 - team.ordinal()], board.pieces).size() == 1) {
+			System.out.println("Draw");
 		}
 		return false;
 	}
@@ -143,9 +149,18 @@ public class Game {
 	
 	public Move getAIMove() {
 		Random rnd = new Random();
+		Map<Move,Double> evaluationMap = new HashMap<>();
 		List<Move> availableMoves = board.getAvailableMoves();
+		MoveEvaluator moveEvaluator = new MoveEvaluator();
 		if (availableMoves.size() > 0) {
-			return availableMoves.get(rnd.nextInt(availableMoves.size()));
+			Collections.shuffle(availableMoves);
+			for(Move move : availableMoves) {
+				moveEvaluator.setMove(move);
+				moveEvaluator.evaluate();
+			}
+			availableMoves.sort(null);
+			//return availableMoves.get(rnd.nextInt(availableMoves.size()));
+			return availableMoves.get(availableMoves.size() - 1);
 		}
 		return null;
 	}

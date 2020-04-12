@@ -7,13 +7,14 @@ import org.apache.logging.log4j.core.util.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Move {
+public class Move implements Comparable {
 	private static final Logger LOGGER = LoggerFactory.getLogger(Move.class);
 	protected Piece piece;
 	protected Square startSquare;
 	protected Square endSquare;
 	protected Board board;
 	private Piece pieceTaken;
+	private double evaluation = 1;
 	
 	public Move(Piece piece, Square startSquare, Square endSquare) {
 		this.piece = piece;
@@ -121,7 +122,7 @@ public class Move {
 		if(adjacent()){
 			return true;
 		}
-		Piece king = board.getPiece(startSquare.x, startSquare.y, allPieces);
+		Piece king = board.getKing(team, allPieces);
 		if(king.hasMoved == false){
 			if (startSquare.y == endSquare.y && !startSquare.threatened(team, allPieces)){
 				Piece closeRook = board.getPiece(0, startSquare.y, allPieces);
@@ -225,6 +226,19 @@ public class Move {
 		this.board = board;
 	}
 	
+	public double getEvaluation() {
+		return evaluation;
+	}
+
+	public void setEvaluation(double evaluation) {
+		this.evaluation = evaluation;
+	}
+	
+	@Override
+	public int compareTo(Object move){
+		return ((Double) getEvaluation()).compareTo(((Move) move).getEvaluation());
+	}
+
 	@Override
 	public String toString() {
 		return piece.toString() + " " + startSquare.toString() + " " + endSquare.toString();

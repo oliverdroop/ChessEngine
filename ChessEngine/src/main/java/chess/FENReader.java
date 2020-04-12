@@ -46,15 +46,19 @@ public class FENReader {
 		
 		if (fields[2].contains("K")) {
 				board.getPiece(0, 0, board.pieces).setHasMoved(false);
+				board.getPiece(3, 0, board.pieces).setHasMoved(false);
 		}
 		if (fields[2].contains("Q")) {
 				board.getPiece(7, 0, board.pieces).setHasMoved(false);
+				board.getPiece(3, 0, board.pieces).setHasMoved(false);
 		}
 		if (fields[2].contains("k")) {
 				board.getPiece(0, 7, board.pieces).setHasMoved(false);
+				board.getPiece(3, 7, board.pieces).setHasMoved(false);
 		}
 		if (fields[2].contains("q")) {
 				board.getPiece(7, 7, board.pieces).setHasMoved(false);
+				board.getPiece(3, 7, board.pieces).setHasMoved(false);
 		}
 		LOGGER.debug("Castling availability set successfully");
 		

@@ -140,6 +140,10 @@ public class Piece extends CoordinateHolder{
 		//king
 		return 400;
 	}
+	
+	public Team getOpposingTeam() {
+		return Team.values()[1 - team.ordinal()];
+	}
 
 	public Board getBoard() {
 		return board;
