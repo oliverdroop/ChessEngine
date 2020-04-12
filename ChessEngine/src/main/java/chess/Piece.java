@@ -33,8 +33,11 @@ public class Piece extends CoordinateHolder{
 		x = square.x;
 		y = square.y;
 		hasMoved = true;
-		if (type == PieceType.KING && movementDistance > 1){
+		if (type == PieceType.KING && movementDistance == 2){
 			board.continueCastle(square, board.pieces);
+		}
+		if (type == PieceType.PAWN && y == 7 * (1 - team.ordinal())) {
+			convertPawn();
 		}
 		if (board.game.wins(team)){
 			if (team.ordinal() == 0){
@@ -89,6 +92,10 @@ public class Piece extends CoordinateHolder{
 		return false;
 	}
 	
+	public void convertPawn() {
+		this.setType(PieceType.QUEEN);
+	}
+	
 	public char getFEN() {
 		char c = type.toString().charAt(0);
 		if (type == PieceType.KNIGHT) {
@@ -115,6 +122,23 @@ public class Piece extends CoordinateHolder{
 				.concat(String.valueOf(x))
 				.concat(" ")
 				.concat(String.valueOf(y));
+	}
+	
+	public int getValue() {
+		if (type == PieceType.PAWN) {
+			return 1;
+		}
+		if (type == PieceType.KNIGHT || type == PieceType.BISHOP) {
+			return 3;
+		}
+		if (type == PieceType.ROOK) {
+			return 5;
+		}
+		if (type == PieceType.QUEEN) {
+			return 9;
+		}
+		//king
+		return 400;
 	}
 
 	public Board getBoard() {

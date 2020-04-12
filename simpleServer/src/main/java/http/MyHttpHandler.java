@@ -28,7 +28,7 @@ public class MyHttpHandler implements HttpHandler {
 		try {
 			String responseString = "Hello";
 			
-			Game game = new Game();
+			Game game = new Game(false);
 			httpExchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
 			if (httpExchange.getRequestMethod().equals("GET")) {
 				responseString = game.getBoardState();

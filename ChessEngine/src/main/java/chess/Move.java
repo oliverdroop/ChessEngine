@@ -13,12 +13,14 @@ public class Move {
 	protected Square startSquare;
 	protected Square endSquare;
 	protected Board board;
+	private Piece pieceTaken;
 	
 	public Move(Piece piece, Square startSquare, Square endSquare) {
 		this.piece = piece;
 		this.startSquare = startSquare;
 		this.endSquare = endSquare;
 		this.board = piece.board;
+		pieceTaken = board.getPiece(endSquare.x, endSquare.y, board.getPieces());
 	}
 	
 	public boolean diagonal(){
@@ -144,16 +146,14 @@ public class Move {
 	}
 	
 	public boolean blocked(Team team, List<Piece> allPieces){
-		if (diagonal() || orthogonal()){
-			for(Piece piece : allPieces){
-				if (piece != this.piece && piece.blocks(this)){
-					return true;
-				}				
-			}
-			Piece destPiece = board.getPiece(endSquare.x, endSquare.y, allPieces);
-			if (destPiece != null && destPiece.team == team){
+		for(Piece piece : allPieces){
+			if (piece != this.piece && piece.blocks(this)){
 				return true;
-			}
+			}				
+		}
+		Piece destPiece = board.getPiece(endSquare.x, endSquare.y, allPieces);
+		if (destPiece != null && destPiece.team == team){
+			return true;
 		}
 		return false;
 	}
@@ -187,6 +187,10 @@ public class Move {
 			return true;
 		}
 		return false;
+	}
+	
+	public Piece getPieceTaken() {
+		return pieceTaken;
 	}
 
 	public Piece getPiece() {

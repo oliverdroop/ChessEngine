@@ -12,10 +12,13 @@ public class Game {
 	private static final Logger LOGGER = LoggerFactory.getLogger(Game.class);
 	private Board board;
 	
-	public Game() {
+	public Game(boolean aiOnly) {
 		board = new Board(this);
 		board.turnTeam = Team.WHITE;
 		createPieces();
+		if (aiOnly) {
+			playAIGame();
+		}
 	}
 	
 	public boolean wins(Team team){
@@ -124,11 +127,27 @@ public class Game {
 	}
 	
 	public void playAIMove(){
+		Move chosenMove = getAIMove();
+		chosenMove.getPiece().move(chosenMove.getEndSquare());
+	}
+	
+	public void playAIGame() {
+		Move currentMove = getAIMove();
+		while(currentMove != null) {
+			currentMove.getPiece().move(currentMove.getEndSquare());
+			LOGGER.info(currentMove.toString());
+			LOGGER.info(getBoardState());
+			currentMove = getAIMove();
+		}
+	}
+	
+	public Move getAIMove() {
 		Random rnd = new Random();
 		List<Move> availableMoves = board.getAvailableMoves();
-		availableMoves.forEach(m -> LOGGER.info(m.toString()));
-		Move chosenMove = availableMoves.get(rnd.nextInt(availableMoves.size()));
-		chosenMove.getPiece().move(chosenMove.getEndSquare());
+		if (availableMoves.size() > 0) {
+			return availableMoves.get(rnd.nextInt(availableMoves.size()));
+		}
+		return null;
 	}
 	
 	public Board getBoard() {
@@ -140,7 +159,7 @@ public class Game {
 	}
 
 	public static void main(String[] args) {
-		new Game();		
+		new Game(true);
 	}
 	
 	public String getBoardState() {

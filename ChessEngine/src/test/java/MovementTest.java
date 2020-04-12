@@ -19,7 +19,7 @@ public class MovementTest {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(MovementTest.class);
 	
-	private Game game = new Game();
+	private Game game = new Game(false);
 	
 	private Board board;
 	
@@ -158,6 +158,20 @@ public class MovementTest {
 		setupTest("rnbqkbnr/ppppp2p/5p2/6pQ/8/2P1P3/PP1P1PPP/RNB1KBNR b KQkq - 0 1");
 		softly.assertThat(board.check(Team.BLACK, board.getPieces())).as("Expected to be in check").isTrue();
 		softly.assertThat(board.getAvailableMoves()).as("Expected to have 0 available moves").isEmpty();
+	}
+	
+	@Test
+	public void testKnightMove1() {
+		setupTest("4k3/6P1/5P2/7N/8/6p1/8/4K3 w - - 0 1");
+		Piece piece = board.getPiece(0, 4, board.getPieces());
+		softly.assertThat(piece.getAvailableMoves(board.getPieces())).as("Expected only 2 available moves").hasSize(2);
+	}
+	
+	@Test
+	public void testKingMove1() {
+		setupTest("4k3/8/4K3/8/8/8/8/8 b - - 0 1");
+		Piece piece = board.getPiece(3, 7, board.getPieces());
+		softly.assertThat(piece.getAvailableMoves(board.getPieces())).as("Expected only 2 available moves").hasSize(2);
 	}
 	
 	private void setupTest(String fen) {
