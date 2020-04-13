@@ -161,7 +161,7 @@ public class Piece extends CoordinateHolder{
 		this.team = team;
 	}
 
-	public boolean isHasMoved() {
+	public boolean getHasMoved() {
 		return hasMoved;
 	}
 

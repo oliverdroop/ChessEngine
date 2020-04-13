@@ -160,24 +160,27 @@ public class Move implements Comparable {
 	}
 	
 	public boolean selfCheck(List<Piece> piecesCurrently) {
-		List<Piece> futurePieceList = new ArrayList<>();
-		for(Piece otherPiece : piecesCurrently){
-			if (otherPiece != piece) {
-				if (otherPiece.getSquare() != endSquare) {
-					futurePieceList.add(otherPiece);
-				}
+		//List<Piece> futurePieceList = new ArrayList<>();
+		Board newBoard = new Board(board.getGame(), false);
+		Piece pieceToMove = null;
+		for(Piece existingPiece : piecesCurrently){
+			Piece newPiece = new PieceBuilder()
+					.withBoard(newBoard)
+					.withTeam(existingPiece.getTeam())
+					.withType(existingPiece.getType())
+					.withHasMoved(existingPiece.getHasMoved())
+					.withX(existingPiece.getX())
+					.withY(existingPiece.getY()).build();
+			newBoard.getPieces().add(newPiece);
+			if (existingPiece.equals(piece)) {
+				pieceToMove = newPiece;
 			}
-			else {
-				futurePieceList.add(new PieceBuilder()
-						.withBoard(board)
-						.withHasMoved(true)
-						.withTeam(piece.team)
-						.withType(piece.type)
-						.withX(endSquare.x)
-						.withY(endSquare.y).build());
+			if (existingPiece.equals(board.enPassantable)) {
+				newBoard.setEnPassantable(newPiece);
 			}
 		}
-		if (board.check(piece.team, futurePieceList)) {
+		pieceToMove.move(endSquare);
+		if (newBoard.check(pieceToMove.getTeam(), newBoard.getPieces())) {
 			return true;
 		}
 		return false;
