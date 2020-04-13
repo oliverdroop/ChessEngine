@@ -160,11 +160,25 @@ public class Move implements Comparable {
 	}
 	
 	public boolean selfCheck(List<Piece> piecesCurrently) {
-		//List<Piece> futurePieceList = new ArrayList<>();
+		Board newBoard = getResultantBoard();
+		if (newBoard.check(piece.getTeam(), newBoard.getPieces())) {
+			return true;
+		}
+		return false;
+	}
+	
+	public boolean isLegal(List<Piece> allPieces) {
+		if (piece.threatens(endSquare, allPieces) && !selfCheck(allPieces)) {
+			return true;
+		}
+		return false;
+	}
+	
+	public Board getResultantBoard() {
 		Board newBoard = new Board(null);
 		newBoard.setTurnTeam(board.getTurnTeam());
 		Piece pieceToMove = null;
-		for(Piece existingPiece : piecesCurrently){
+		for(Piece existingPiece : board.getPieces()){
 			Piece newPiece = new PieceBuilder()
 					.withBoard(newBoard)
 					.withTeam(existingPiece.getTeam())
@@ -181,17 +195,7 @@ public class Move implements Comparable {
 			}
 		}
 		pieceToMove.move(newBoard.getSquare(endSquare.x, endSquare.y));
-		if (newBoard.check(pieceToMove.getTeam(), newBoard.getPieces())) {
-			return true;
-		}
-		return false;
-	}
-	
-	public boolean isLegal(List<Piece> allPieces) {
-		if (piece.threatens(endSquare, allPieces) && !selfCheck(allPieces)) {
-			return true;
-		}
-		return false;
+		return newBoard;
 	}
 	
 	public Piece getPieceTaken() {
