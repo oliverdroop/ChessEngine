@@ -47,16 +47,11 @@ public class MoveEvaluator {
 				newThreats += move.getPiece().getValue();
 			}
 		}
-		if (newThreats == existingThreats) {
-			return input;
+		int threatFactor = 1;
+		if (newThreats != 0) {
+			threatFactor = existingThreats / newThreats;
 		}
-		int threatDiff = existingThreats - newThreats;
-		int threatDiffMagnitude = Math.abs(threatDiff);
-		while(threatDiffMagnitude > 0) {
-			input = input * (1 + (Math.signum(threatDiff) * weightMap.get("considerVulnerability")));
-			threatDiffMagnitude --;
-		}
-		return input;
+		return input * threatFactor * weightMap.get("considerVulnerability");
 	}
 	
 	public double considerPotency(double input) {
@@ -74,16 +69,11 @@ public class MoveEvaluator {
 				newTargets += opposingPiece.getValue();
 			}
 		}
-		if (newTargets == existingTargets) {
-			return input;
+		int potencyFactor = 1;
+		if (existingTargets != 0) {
+			potencyFactor = newTargets / existingTargets;
 		}
-		int targetDiff = existingTargets - newTargets;
-		int targetDiffMagnitude = Math.abs(targetDiff);
-		while(targetDiffMagnitude > 0) {
-			input = input * (1 + (Math.signum(targetDiff) * weightMap.get("considerPotency")));
-			targetDiffMagnitude --;
-		}
-		return input;
+		return input * potencyFactor * weightMap.get("considerPotency");
 	}
 	
 	public double considerDependence(double input) {
@@ -92,26 +82,23 @@ public class MoveEvaluator {
 		List<Piece> allPieces = new ArrayList<>();
 		move.getBoard().getPieces().forEach(p -> allPieces.add(p));
 		allPieces.remove(move.piece);
-		for(Piece friendlyPiece : move.getBoard().getTeamPieces(move.getPiece().getTeam(), allPieces)) {
-			if (friendlyPiece != move.getPiece()) {
-				if (friendlyPiece.threatens(move.getStartSquare(), allPieces)) {
-					existingBackups += move.getPiece().getValue();
-				}
-				if (friendlyPiece.threatens(move.getEndSquare(), allPieces)) {
-					newBackups += move.getPiece().getValue();
+		if (move.getPiece().getType() != PieceType.KING) {
+			for(Piece friendlyPiece : move.getBoard().getTeamPieces(move.getPiece().getTeam(), allPieces)) {
+				if (friendlyPiece != move.getPiece()) {
+					if (friendlyPiece.threatens(move.getStartSquare(), allPieces)) {
+						existingBackups += move.getPiece().getValue();
+					}
+					if (friendlyPiece.threatens(move.getEndSquare(), allPieces)) {
+						newBackups += move.getPiece().getValue();
+					}
 				}
 			}
 		}
-		if (newBackups == existingBackups) {
-			return input;
+		int dependenceFactor = 1;
+		if(existingBackups != 0) {
+			dependenceFactor = newBackups / existingBackups;
 		}
-		int backupDiff = existingBackups - newBackups;
-		int backupDiffMagnitude = Math.abs(backupDiff);
-		while(backupDiffMagnitude > 0) {
-			input = input * (1 + (Math.signum(backupDiff) * weightMap.get("considerDependence")));
-			backupDiffMagnitude --;
-		}
-		return input;
+		return input * dependenceFactor * weightMap.get("considerDependence");
 	}
 	
 	public double considerDependants(double input) {
@@ -142,16 +129,11 @@ public class MoveEvaluator {
 				}
 			}
 		}
-		if (newDependants == existingDependants) {
-			return input;
+		int dependenceFactor = 1;
+		if (existingDependants != 0) {
+			dependenceFactor = newDependants / existingDependants;
 		}
-		int backupDiff = existingDependants - newDependants;
-		int backupDiffMagnitude = Math.abs(backupDiff);
-		while(backupDiffMagnitude > 0) {
-			input = input * (1 + (Math.signum(backupDiff) * weightMap.get("considerDependants")));
-			backupDiffMagnitude --;
-		}
-		return input;
+		return input * dependenceFactor * weightMap.get("considerDependants");
 	}
 
 	public Move getMove() {
