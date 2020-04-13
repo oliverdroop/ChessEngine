@@ -870,9 +870,9 @@ function setBoardState(fen){
 	}
 	
 	if (fields[3].length == 2) {
-		var x = fields[3].charCodeAt(0) - 97;
-		var y = fields[3].charAt(1);
-		y += (0) - (2 * (1 - turnTeam));
+		var x = Number(fields[3].charCodeAt(0) - 97);
+		var y = Number(fields[3].charAt(1));
+		y += Number(0) - Number(2 * (1 - turnTeam));
 		enPassantable = getPiece(x, y, board.pieces);
 	}
 	else {

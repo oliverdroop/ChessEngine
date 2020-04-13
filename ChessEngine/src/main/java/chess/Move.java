@@ -161,7 +161,8 @@ public class Move implements Comparable {
 	
 	public boolean selfCheck(List<Piece> piecesCurrently) {
 		//List<Piece> futurePieceList = new ArrayList<>();
-		Board newBoard = new Board(board.getGame(), false);
+		Board newBoard = new Board(null);
+		newBoard.setTurnTeam(board.getTurnTeam());
 		Piece pieceToMove = null;
 		for(Piece existingPiece : piecesCurrently){
 			Piece newPiece = new PieceBuilder()
@@ -175,11 +176,11 @@ public class Move implements Comparable {
 			if (existingPiece.equals(piece)) {
 				pieceToMove = newPiece;
 			}
-			if (existingPiece.equals(board.enPassantable)) {
+			if (board.getEnPassantable() != null && board.getEnPassantable().equals(existingPiece)) {
 				newBoard.setEnPassantable(newPiece);
 			}
 		}
-		pieceToMove.move(endSquare);
+		pieceToMove.move(newBoard.getSquare(endSquare.x, endSquare.y));
 		if (newBoard.check(pieceToMove.getTeam(), newBoard.getPieces())) {
 			return true;
 		}

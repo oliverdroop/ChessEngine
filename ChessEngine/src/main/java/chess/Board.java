@@ -17,11 +17,9 @@ public class Board {
 	protected int fullmoveNumber = 1;
 	protected Team turnTeam;
 	
-	public Board(Game game, boolean standardSetup) {
+	public Board(Game game) {
 		this.game = game;
-		if (standardSetup) {
-			createSquares();
-		}
+		createSquares();
 	}
 	
 	public Square getSquare(int x, int y){

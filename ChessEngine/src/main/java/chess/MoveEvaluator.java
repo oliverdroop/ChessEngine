@@ -22,7 +22,7 @@ public class MoveEvaluator {
 		double result = considerPieceTaken(start);
 		result = considerVulnerability(result);
 		result = considerIsBackedUp(result);
-		//result = considerBacksUp(result);
+		result = considerBacksUp(result);
 		move.setEvaluation(result);
 	}
 	
@@ -89,41 +89,27 @@ public class MoveEvaluator {
 	public double considerBacksUp(double input) {
 		int existingReliants = 0;
 		int newReliants = 0;
-		List<Piece> allPieces = new ArrayList<>();
-		move.getBoard().getPieces().forEach(p -> allPieces.add(p));
-		allPieces.remove(move.piece);
-		for(Piece friendlyPiece : move.getBoard().getTeamPieces(move.getPiece().getTeam(), allPieces)) {
-			if (friendlyPiece != move.getPiece() && friendlyPiece.getType() != PieceType.KING) {
-				allPieces.remove(friendlyPiece);
-				if (move.getPiece().getType() != PieceType.KING) {
-					if (move.getPiece().threatens(friendlyPiece.getSquare(), allPieces)) {
-						existingReliants ++;
-					}
+		for(Piece friendlyPiece : move.getBoard().getTeamPieces(move.getPiece().getTeam(), move.getBoard().getPieces())) {
+			List<Piece> allPieces = new ArrayList<>();
+			for(Piece piece : move.getBoard().getPieces()) {
+				if (piece != friendlyPiece) {
+					allPieces.add(piece);
 				}
-				else {
-					if (new Move(move.getPiece(), move.getStartSquare(), friendlyPiece.getSquare()).adjacent()) {
-						existingReliants ++;
-					}
-				}
-				allPieces.remove(move.getPiece());
-				Piece movedPiece = new PieceBuilder()
-						.withBoard(move.getBoard())
-						.withHasMoved(true)
-						.withTeam(move.getPiece().getTeam())
-						.withType(move.getPiece().getType())
-						.withX(move.getEndSquare().getX())
-						.withY(move.getEndSquare().getY()).build();
-				allPieces.add(movedPiece);
-				if (movedPiece.getType() != PieceType.KING) {
-					if (movedPiece.threatens(friendlyPiece.getSquare(), allPieces)) {
-						newReliants ++;
-					}
-				}
-				else {
-					if (new Move(movedPiece, movedPiece.getSquare(), friendlyPiece.getSquare()).adjacent()) {
-						newReliants ++;
-					}
-				}
+			}
+			if (move.getPiece().threatens(friendlyPiece.getSquare(), allPieces)) {
+				existingReliants ++;
+			}
+			allPieces.remove(move.getPiece());
+			Piece movedPiece = new PieceBuilder()
+					.withBoard(move.getPiece().getBoard())
+					.withTeam(move.getPiece().getTeam())
+					.withType(move.getPiece().getType())
+					.withHasMoved(true)
+					.withX(move.getEndSquare().getX())
+					.withY(move.getEndSquare().getY()).build();
+			allPieces.add(movedPiece);
+			if (movedPiece.threatens(friendlyPiece.getSquare(), allPieces)) {
+				newReliants ++;
 			}
 		}
 		if (newReliants == existingReliants) {

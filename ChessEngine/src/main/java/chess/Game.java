@@ -16,7 +16,7 @@ public class Game {
 	private Board board;
 	
 	public Game(boolean aiOnly) {
-		board = new Board(this, true);
+		board = new Board(this);
 		board.turnTeam = Team.WHITE;
 		createPieces();
 		if (aiOnly) {

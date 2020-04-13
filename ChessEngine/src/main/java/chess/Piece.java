@@ -39,7 +39,7 @@ public class Piece extends CoordinateHolder{
 		if (type == PieceType.PAWN && y == 7 * (1 - team.ordinal())) {
 			convertPawn();
 		}
-		if (board.game.wins(team)){
+		if (board.game != null && board.game.wins(team)){
 			if (team.ordinal() == 0){
 				System.out.println("White wins!");
 			}
