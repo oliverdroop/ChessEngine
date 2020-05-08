@@ -12,6 +12,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
 import chess.Game;
+import chess.MoveEvaluator;
 
 public class MyHttpHandler implements HttpHandler {
 	
@@ -28,7 +29,10 @@ public class MyHttpHandler implements HttpHandler {
 		try {
 			String responseString = "Hello";
 			
-			Game game = new Game(false);
+			Game game = new Game();
+			MoveEvaluator evaluator = new MoveEvaluator();
+			game.getMoveEvaluators().add(evaluator);
+			game.getMoveEvaluators().add(evaluator);
 			httpExchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
 			if (httpExchange.getRequestMethod().equals("GET")) {
 				responseString = game.getBoardState();

@@ -1,5 +1,7 @@
 package chess;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -11,19 +13,39 @@ public class MoveEvaluator {
 	private static Map<String, Double> weightMap = new HashMap<>();
 	
 	static {
-		weightMap.put("considerPieceTaken", 0.1);
-		weightMap.put("considerVulnerability", 0.1);
-		weightMap.put("considerDependence", 0.1);
-		weightMap.put("considerDependants", 0.1);
-		weightMap.put("considerPotency", 0.1);
+		weightMap.put("considerPieceTaken", 2.0);
+		weightMap.put("considerVulnerability", 1.9);
+		weightMap.put("considerDependence", 0.75);
+		weightMap.put("considerDependants", 0.75);
+		weightMap.put("considerPotency", 1.0);
+		weightMap.put("considerCentrality", 0.5);
 	}
 	
-	public void evaluate() {
-		double start = 1;
-		double result = considerPieceTaken(start);
+	public MoveEvaluator() {
+		// TODO Auto-generated constructor stub
+	}
+	
+	public MoveEvaluator(double taken, double vulnerability, double dependence, double dependants, double potency, double centrality) {
+		weightMap.put("considerPieceTaken", taken);
+		weightMap.put("considerVulnerability", vulnerability);
+		weightMap.put("considerDependence", dependence);
+		weightMap.put("considerDependants", dependants);
+		weightMap.put("considerPotency", potency);
+		weightMap.put("considerCentrality", centrality);
+	}
+
+	public void evaluate(int halfmovesAhead) {
+		double result = 1;
+		result = considerPieceTaken(result);
+		result = considerPotency(result);
 		result = considerVulnerability(result);
 		result = considerDependence(result);
 		result = considerDependants(result);
+		result = considerCentrality(result);
+		if (halfmovesAhead > 0) {
+			halfmovesAhead --;
+			result = considerFuture(result, halfmovesAhead);
+		}
 		move.setEvaluation(result);
 	}
 	
@@ -47,11 +69,8 @@ public class MoveEvaluator {
 				newThreats += move.getPiece().getValue();
 			}
 		}
-		int threatFactor = 1;
-		if (newThreats != 0) {
-			threatFactor = existingThreats / newThreats;
-		}
-		return input * threatFactor * weightMap.get("considerVulnerability");
+		int threatFactor = existingThreats - newThreats;
+		return input + Math.pow(threatFactor, weightMap.get("considerVulnerability"));
 	}
 	
 	public double considerPotency(double input) {
@@ -69,11 +88,8 @@ public class MoveEvaluator {
 				newTargets += opposingPiece.getValue();
 			}
 		}
-		int potencyFactor = 1;
-		if (existingTargets != 0) {
-			potencyFactor = newTargets / existingTargets;
-		}
-		return input * potencyFactor * weightMap.get("considerPotency");
+		int	potencyFactor = newTargets - existingTargets;
+		return input + Math.pow(potencyFactor, weightMap.get("considerPotency"));
 	}
 	
 	public double considerDependence(double input) {
@@ -94,11 +110,8 @@ public class MoveEvaluator {
 				}
 			}
 		}
-		int dependenceFactor = 1;
-		if(existingBackups != 0) {
-			dependenceFactor = newBackups / existingBackups;
-		}
-		return input * dependenceFactor * weightMap.get("considerDependence");
+		int	dependenceFactor = newBackups - existingBackups;
+		return input + Math.pow(dependenceFactor, weightMap.get("considerDependence"));
 	}
 	
 	public double considerDependants(double input) {
@@ -129,13 +142,34 @@ public class MoveEvaluator {
 				}
 			}
 		}
-		int dependenceFactor = 1;
-		if (existingDependants != 0) {
-			dependenceFactor = newDependants / existingDependants;
-		}
-		return input * dependenceFactor * weightMap.get("considerDependants");
+		int	dependenceFactor = newDependants - existingDependants;
+		return input + Math.pow(dependenceFactor, weightMap.get("considerDependants"));
+	}
+	
+	public double considerCentrality(double input) {
+		double d1 = CoordinateHolder.findDistance(move.getStartSquare().getX(), move.getStartSquare().getY(), 3.5, 3.5);
+		double d2 = CoordinateHolder.findDistance(move.getEndSquare().getX(), move.getEndSquare().getY(), 3.5, 3.5);
+		double centralityFactor = d1 - d2;
+		return input + Math.pow(centralityFactor, weightMap.get("considerCentrality"));
 	}
 
+	public double considerFuture(double input, int halfmovesAhead) {
+		List<Move> futureMoves = new ArrayList<>();
+		move.getResultantBoard().getAvailableMoves().forEach(m -> futureMoves.add(m));
+		if (futureMoves.size() > 0) {
+			for(Move futureMove : futureMoves) {
+				setMove(futureMove);
+				evaluate(halfmovesAhead);
+			}
+			futureMoves.sort(null);
+			
+			return input - futureMoves.get(futureMoves.size() - 1).getEvaluation();
+		}
+		else {
+			return input;
+		}
+	}
+	
 	public Move getMove() {
 		return move;
 	}

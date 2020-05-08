@@ -14,14 +14,16 @@ public class Game {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(Game.class);
 	private Board board;
+	private GameState gameState = GameState.IN_PROGRESS;
+	public static enum GameState {
+		WON_BY_WHITE, WON_BY_BLACK, DRAWN, IN_PROGRESS;
+	}
+	private List<MoveEvaluator> moveEvaluators = new ArrayList<>();
 	
-	public Game(boolean aiOnly) {
+	public Game() {
 		board = new Board(this);
 		board.turnTeam = Team.WHITE;
 		createPieces();
-		if (aiOnly) {
-			playAIGame();
-		}
 	}
 	
 	public boolean wins(Team team){
@@ -34,15 +36,21 @@ public class Game {
 		}
 		if (availableMoves == 0){
 			if (board.check(Team.values()[1 - team.ordinal()], board.pieces)){
+				gameState = GameState.values()[team.ordinal()];
 				return true;
 			}
 			else{
-				//stalemate
-				System.out.println("Stalemate");
+				LOGGER.info("Stalemate");
+				gameState = GameState.DRAWN;
 			}
 		}
 		if (board.getTeamPieces(team, board.pieces).size() == 1 && board.getTeamPieces(Team.values()[1 - team.ordinal()], board.pieces).size() == 1) {
-			System.out.println("Draw");
+			LOGGER.info("Draw due to neither team having enough pieces to win");
+			gameState = GameState.DRAWN;
+		}
+		if (board.getHalfmoveClock() >= 50) {
+			LOGGER.info("Draw due to halfmove clock reaching 50");
+			gameState = GameState.DRAWN;
 		}
 		return false;
 	}
@@ -139,7 +147,7 @@ public class Game {
 	
 	public void playAIGame() {
 		Move currentMove = getAIMove();
-		while(currentMove != null) {
+		while(currentMove != null && gameState == GameState.IN_PROGRESS) {
 			currentMove.getPiece().move(currentMove.getEndSquare());
 			LOGGER.info(currentMove.toString());
 			LOGGER.info(getBoardState());
@@ -151,16 +159,24 @@ public class Game {
 		Random rnd = new Random();
 		Map<Move,Double> evaluationMap = new HashMap<>();
 		List<Move> availableMoves = board.getAvailableMoves();
-		MoveEvaluator moveEvaluator = new MoveEvaluator();
-		if (availableMoves.size() > 0) {
-			Collections.shuffle(availableMoves);
-			for(Move move : availableMoves) {
-				moveEvaluator.setMove(move);
-				moveEvaluator.evaluate();
+		MoveEvaluator moveEvaluator = null;
+		if (moveEvaluators.size() == 2) {
+			moveEvaluator = moveEvaluators.get(board.getTurnTeam().ordinal());
+		}
+		if (moveEvaluator != null) {
+			if (availableMoves.size() > 0) {
+				Collections.shuffle(availableMoves);
+				for(Move move : availableMoves) {
+					moveEvaluator.setMove(move);
+					moveEvaluator.evaluate(2);
+				}
+				availableMoves.sort(null);
+				//return availableMoves.get(rnd.nextInt(availableMoves.size()));
+				return availableMoves.get(availableMoves.size() - 1);
 			}
-			availableMoves.sort(null);
-			//return availableMoves.get(rnd.nextInt(availableMoves.size()));
-			return availableMoves.get(availableMoves.size() - 1);
+		}
+		else {
+			LOGGER.info("No move evaluator present to select move");
 		}
 		return null;
 	}
@@ -174,7 +190,11 @@ public class Game {
 	}
 
 	public static void main(String[] args) {
-		new Game(true);
+		Game game = new Game();
+		MoveEvaluator evaluator = new MoveEvaluator();
+		game.moveEvaluators.add(evaluator);
+		game.moveEvaluators.add(evaluator);
+		game.playAIGame();
 	}
 	
 	public String getBoardState() {
@@ -184,4 +204,23 @@ public class Game {
 	public void setBoardState(String fen) {
 		board = new FENReader().read(fen, this);
 	}
+
+	public GameState getGameState() {
+		return gameState;
+	}
+
+	public void setGameState(GameState gameState) {
+		this.gameState = gameState;
+	}
+
+	public List<MoveEvaluator> getMoveEvaluators() {
+		return moveEvaluators;
+	}
+
+	public void setMoveEvaluators(List<MoveEvaluator> moveEvaluators) {
+		this.moveEvaluators = moveEvaluators;
+	}
+	
+	
+	
 }

@@ -2,7 +2,11 @@ package chess;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class Piece extends CoordinateHolder{
+	private static final Logger LOGGER = LoggerFactory.getLogger(Piece.class);
 	protected Board board;
 	protected Team team;
 	protected boolean hasMoved;
@@ -41,10 +45,10 @@ public class Piece extends CoordinateHolder{
 		}
 		if (board.game != null && board.game.wins(team)){
 			if (team.ordinal() == 0){
-				System.out.println("White wins!");
+				LOGGER.info("White wins!");
 			}
 			else{
-				System.out.println("Black wins!");
+				LOGGER.info("Black wins!");
 			}
 		}
 		if (team == Team.BLACK) {

@@ -19,7 +19,7 @@ public class MovementTest {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(MovementTest.class);
 	
-	private Game game = new Game(false);
+	private Game game = new Game();
 	
 	private Board board;
 	
