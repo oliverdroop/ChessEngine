@@ -17,10 +17,8 @@ public class AIHoner {
 		while(iterations > 0) {
 			List<Game.GameState> gameStates = new ArrayList<>();
 			int count = 100;
-			double[] doubles0 = getRandomDoubles(6, 2);
-			MoveEvaluator whiteEvaluator = new MoveEvaluator(doubles0[0], doubles0[1], doubles0[2], doubles0[3], doubles0[4], doubles0[5]);
-			double[] doubles = getRandomDoubles(6, 2);
-			MoveEvaluator blackEvaluator = new MoveEvaluator(doubles[0], doubles[1], doubles[2], doubles[3], doubles[4], doubles[5]);
+			MoveEvaluator whiteEvaluator = new MoveEvaluator();
+			MoveEvaluator blackEvaluator = new MoveEvaluator();
 			List<MoveEvaluator> moveEvaluators = new ArrayList<>();
 			moveEvaluators.add(whiteEvaluator);
 			moveEvaluators.add(blackEvaluator);
@@ -44,10 +42,6 @@ public class AIHoner {
 				if (gameState == GameState.DRAWN) {
 					draws ++;
 				}
-			}
-			LOGGER.info("Black evaluation constants :");
-			for(double d : doubles) {
-				LOGGER.info(String.valueOf(d));
 			}
 			LOGGER.info("White : " + whiteWins);
 			LOGGER.info("Black : " + blackWins);

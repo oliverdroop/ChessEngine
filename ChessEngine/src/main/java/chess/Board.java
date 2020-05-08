@@ -16,6 +16,7 @@ public class Board {
 	protected int halfmoveClock = 0;
 	protected int fullmoveNumber = 1;
 	protected Team turnTeam;
+	private double evaluation = 0;
 	
 	public Board(Game game) {
 		this.game = game;
@@ -123,6 +124,10 @@ public class Board {
 	public List<Piece> getTeamPieces(Team team, List<Piece> allPieces){
 		return allPieces.stream().filter(p -> p.team == team).collect(Collectors.toList());
 	}
+	
+	public Team getOpposingTeam() {
+		return Team.values()[1 - turnTeam.ordinal()];
+	}
 
 	public Game getGame() {
 		return game;
@@ -179,5 +184,12 @@ public class Board {
 	public void setTurnTeam(Team turnTeam) {
 		this.turnTeam = turnTeam;
 	}
-	
+
+	public double getEvaluation() {
+		return evaluation;
+	}
+
+	public void setEvaluation(double evaluation) {
+		this.evaluation = evaluation;
+	}
 }
