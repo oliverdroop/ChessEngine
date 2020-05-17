@@ -123,10 +123,12 @@ function move(piece, square){
 	piece.x = square.x;
 	piece.y = square.y;
 	piece.moveCount++;
-	if (piece.type == "king" && movementDistance > 1){
+	if (piece.type == "king" && movementDistance > Math.sqrt(2)){
 		continueCastle(square, board.pieces);
 	}
-	
+	if (piece.type == "pawn" && piece.y == 7 * (1 - piece.team)) {
+		piece.type = "queen";
+	}
 	pieceSelected = null;
 	var team = piece.team;
 	if (wins(team)){

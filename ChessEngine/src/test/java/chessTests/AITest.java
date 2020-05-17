@@ -1,0 +1,36 @@
+package chessTests;
+
+import org.assertj.core.api.JUnitSoftAssertions;
+import org.junit.Rule;
+import org.junit.Test;
+
+import chess.Board;
+import chess.FENReader;
+import chess.Game;
+import chess.MoveEvaluator;
+
+public class AITest {
+	
+	private FENReader fenReader = new FENReader();
+	
+	private Game game = new Game();
+	
+	private Board board;
+	
+	@Rule
+	public JUnitSoftAssertions softly = new JUnitSoftAssertions();
+	
+	@Test
+	public void testAITakesQueen() {
+		setupTest("4k3/8/8/3q4/4P3/8/8/4K3 w - - 0 1");
+		softly.assertThat(game.getAIMove().toString()).as("White pawn should take black queen").contains("WHITE PAWN true 3 3 [3 3] [4 4]");
+		setupTest("4k3/8/8/3q1r2/4P3/8/8/4K3 w - - 0 1");
+		softly.assertThat(game.getAIMove().toString()).as("White pawn should take black queen").contains("WHITE PAWN true 3 3 [3 3] [4 4]");
+	}
+	
+	private void setupTest(String fen) {
+		board = fenReader.read(fen, game);
+		game.setBoard(board);
+	}
+}
+

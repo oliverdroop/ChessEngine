@@ -121,6 +121,10 @@ public class Board {
 		return moves;
 	}
 	
+	public int compareTo(Object board) {
+		return ((Double)this.getEvaluation()).compareTo(((Board)board).getEvaluation());
+	}
+	
 	public List<Piece> getTeamPieces(Team team, List<Piece> allPieces){
 		return allPieces.stream().filter(p -> p.team == team).collect(Collectors.toList());
 	}

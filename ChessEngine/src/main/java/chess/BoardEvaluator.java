@@ -7,26 +7,30 @@ public class BoardEvaluator {
 	private Board board;
 	
 	private double pieceValueWeight = 1;
-	private double potencyWeight = 0.7;
-	private double backupWeight = 0.4;
-	private double positionWeight = 0.2;
+	private double potencyWeight = 0.05;
+	private double backupWeight = 0.01;
+	private double positionWeight = 0.01;
 	
 	public void evaluate() {
 		double input = 0;
 		input += calculatePieceValueDifference() * pieceValueWeight;
-		input += calculatePotencyDifference() * potencyWeight;
-		input += calculateBackupDifference() * backupWeight;
-		input += calculateThreatenedSquareDifference() * positionWeight;
+//		input += calculatePotencyDifference() * potencyWeight;
+//		input += calculateBackupDifference() * backupWeight;
+//		input += calculateThreatenedSquareDifference() * positionWeight;
 		board.setEvaluation(input);
 	}
 	
 	public int calculatePieceValueDifference() {
 		int piecesValue = 0;
 		for (Piece p : board.getTeamPieces(board.getTurnTeam(), board.getPieces())) {
-			piecesValue += p.getValue();
+			if (p.getType() != PieceType.KING) {
+				piecesValue += p.getValue();
+			}
 		}
 		for(Piece p : board.getTeamPieces(board.getOpposingTeam(), board.getPieces())) {
-			piecesValue -= p.getValue();
+			if (p.getType() != PieceType.KING) {
+				piecesValue -= p.getValue();
+			}
 		}
 		return piecesValue;
 	}

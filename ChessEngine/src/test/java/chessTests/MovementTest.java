@@ -1,3 +1,4 @@
+package chessTests;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.Assert;
 import org.junit.Rule;

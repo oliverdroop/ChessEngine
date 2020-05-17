@@ -249,6 +249,6 @@ public class Move implements Comparable {
 
 	@Override
 	public String toString() {
-		return piece.toString() + " " + startSquare.toString() + " " + endSquare.toString();
+		return piece.toString() + " " + startSquare.toString() + " " + endSquare.toString() + " " + String.valueOf(evaluation);
 	}
 }

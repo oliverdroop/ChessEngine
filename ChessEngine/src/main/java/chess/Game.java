@@ -24,6 +24,9 @@ public class Game {
 		board = new Board(this);
 		board.turnTeam = Team.WHITE;
 		createPieces();
+		MoveEvaluator evaluator = new MoveEvaluator();
+		moveEvaluators.add(evaluator);
+		moveEvaluators.add(evaluator);
 	}
 	
 	public boolean wins(Team team){
@@ -53,6 +56,47 @@ public class Game {
 			gameState = GameState.DRAWN;
 		}
 		return false;
+	}
+	
+	public void playAIMove(){
+		Move chosenMove = getAIMove();
+		chosenMove.getPiece().move(chosenMove.getEndSquare());
+	}
+	
+	public void playAIGame() {
+		Move currentMove = getAIMove();
+		while(currentMove != null && gameState == GameState.IN_PROGRESS) {
+			currentMove.getPiece().move(currentMove.getEndSquare());
+			LOGGER.info(currentMove.toString());
+			LOGGER.info(getBoardState());
+			currentMove = getAIMove();
+		}
+	}
+	
+	public Move getAIMove() {
+		Random rnd = new Random();
+		Map<Move,Double> evaluationMap = new HashMap<>();
+		List<Move> availableMoves = board.getAvailableMoves();
+		MoveEvaluator moveEvaluator = null;
+		if (moveEvaluators.size() == 2) {
+			moveEvaluator = moveEvaluators.get(board.getTurnTeam().ordinal());
+		}
+		if (moveEvaluator != null) {
+			if (availableMoves.size() > 0) {
+				Collections.shuffle(availableMoves);
+				for(Move move : availableMoves) {
+					moveEvaluator.setMove(move);
+					moveEvaluator.evaluate(2);
+				}
+				availableMoves.sort(null);
+				//return availableMoves.get(rnd.nextInt(availableMoves.size()));
+				return availableMoves.get(availableMoves.size() - 1);
+			}
+		}
+		else {
+			LOGGER.info("No move evaluator present to select move");
+		}
+		return null;
 	}
 	
 	public void createPieces(){
@@ -140,47 +184,6 @@ public class Game {
 		}
 	}
 	
-	public void playAIMove(){
-		Move chosenMove = getAIMove();
-		chosenMove.getPiece().move(chosenMove.getEndSquare());
-	}
-	
-	public void playAIGame() {
-		Move currentMove = getAIMove();
-		while(currentMove != null && gameState == GameState.IN_PROGRESS) {
-			currentMove.getPiece().move(currentMove.getEndSquare());
-			LOGGER.info(currentMove.toString());
-			LOGGER.info(getBoardState());
-			currentMove = getAIMove();
-		}
-	}
-	
-	public Move getAIMove() {
-		Random rnd = new Random();
-		Map<Move,Double> evaluationMap = new HashMap<>();
-		List<Move> availableMoves = board.getAvailableMoves();
-		MoveEvaluator moveEvaluator = null;
-		if (moveEvaluators.size() == 2) {
-			moveEvaluator = moveEvaluators.get(board.getTurnTeam().ordinal());
-		}
-		if (moveEvaluator != null) {
-			if (availableMoves.size() > 0) {
-				Collections.shuffle(availableMoves);
-				for(Move move : availableMoves) {
-					moveEvaluator.setMove(move);
-					moveEvaluator.evaluate(2);
-				}
-				availableMoves.sort(null);
-				//return availableMoves.get(rnd.nextInt(availableMoves.size()));
-				return availableMoves.get(availableMoves.size() - 1);
-			}
-		}
-		else {
-			LOGGER.info("No move evaluator present to select move");
-		}
-		return null;
-	}
-	
 	public Board getBoard() {
 		return board;
 	}
@@ -191,9 +194,6 @@ public class Game {
 
 	public static void main(String[] args) {
 		Game game = new Game();
-		MoveEvaluator evaluator = new MoveEvaluator();
-		game.moveEvaluators.add(evaluator);
-		game.moveEvaluators.add(evaluator);
 		game.playAIGame();
 	}
 	

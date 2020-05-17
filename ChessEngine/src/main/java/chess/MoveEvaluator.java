@@ -7,7 +7,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class MoveEvaluator {
+	private static final Logger LOGGER = LoggerFactory.getLogger(MoveEvaluator.class);
 	private Move move;
 	private BoardEvaluator boardEvaluator = new BoardEvaluator();
 	
@@ -20,28 +24,30 @@ public class MoveEvaluator {
 		Board resultantBoard = move.getResultantBoard();
 		boardEvaluator.setBoard(resultantBoard);
 		boardEvaluator.evaluate();
-		result = resultantBoard.getEvaluation();
+		result = -resultantBoard.getEvaluation();
 		if (halfmovesAhead > 0) {
 			halfmovesAhead --;
-			result = considerFuture(result, halfmovesAhead);
+			result += considerFuture(halfmovesAhead);
 		}
 		move.setEvaluation(result);
+		LOGGER.debug(move.toString() + " " + result);
 	}
 
-	public double considerFuture(double input, int halfmovesAhead) {
+	public double considerFuture(int halfmovesAhead) {
 		List<Move> futureMoves = new ArrayList<>();
 		move.getResultantBoard().getAvailableMoves().forEach(m -> futureMoves.add(m));
 		if (futureMoves.size() > 0) {
 			for(Move futureMove : futureMoves) {
-				setMove(futureMove);
-				evaluate(halfmovesAhead);
+				MoveEvaluator secondaryMoveEvaluator = new MoveEvaluator();
+				secondaryMoveEvaluator.setMove(futureMove);
+				secondaryMoveEvaluator.evaluate(halfmovesAhead);
 			}
 			futureMoves.sort(null);
 			
-			return input - futureMoves.get(futureMoves.size() - 1).getEvaluation();
+			return -futureMoves.get(futureMoves.size() - 1).getEvaluation();
 		}
 		else {
-			return input;
+			return 0;
 		}
 	}
 	
