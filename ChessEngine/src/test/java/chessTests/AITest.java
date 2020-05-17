@@ -7,7 +7,6 @@ import org.junit.Test;
 import chess.Board;
 import chess.FENReader;
 import chess.Game;
-import chess.MoveEvaluator;
 
 public class AITest {
 	
@@ -26,6 +25,14 @@ public class AITest {
 		softly.assertThat(game.getAIMove().toString()).as("White pawn should take black queen").contains("WHITE PAWN true 3 3 [3 3] [4 4]");
 		setupTest("4k3/8/8/3q1r2/4P3/8/8/4K3 w - - 0 1");
 		softly.assertThat(game.getAIMove().toString()).as("White pawn should take black queen").contains("WHITE PAWN true 3 3 [3 3] [4 4]");
+	}
+	
+	@Test
+	public void testAIChoosesCheckmate() {
+		setupTest("k5B1/7R/8/8/8/8/P1PPPPPP/1R2K3 w - - 0 1");
+		softly.assertThat(game.getAIMove().toString()).as("White bishop should force checkmate").contains("WHITE BISHOP true 1 7 [1 7] [4 4]");
+		setupTest("k5B1/3N4/8/1N6/8/8/8/4K3 w - - 0 1");
+		softly.assertThat(game.getAIMove().toString()).as("White bishop should force checkmate").contains("WHITE BISHOP true 1 7 [1 7] [4 4]");
 	}
 	
 	private void setupTest(String fen) {

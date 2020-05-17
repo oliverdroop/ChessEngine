@@ -14,6 +14,7 @@ public class MoveEvaluator {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MoveEvaluator.class);
 	private Move move;
 	private BoardEvaluator boardEvaluator = new BoardEvaluator();
+	private Board resultantBoard;
 	
 	public MoveEvaluator() {
 		// TODO Auto-generated constructor stub
@@ -21,7 +22,7 @@ public class MoveEvaluator {
 
 	public void evaluate(int halfmovesAhead) {
 		double result = 0;
-		Board resultantBoard = move.getResultantBoard();
+		resultantBoard = move.getResultantBoard();
 		boardEvaluator.setBoard(resultantBoard);
 		boardEvaluator.evaluate();
 		result = -resultantBoard.getEvaluation();
@@ -35,7 +36,7 @@ public class MoveEvaluator {
 
 	public double considerFuture(int halfmovesAhead) {
 		List<Move> futureMoves = new ArrayList<>();
-		move.getResultantBoard().getAvailableMoves().forEach(m -> futureMoves.add(m));
+		resultantBoard.getAvailableMoves().forEach(m -> futureMoves.add(m));
 		if (futureMoves.size() > 0) {
 			for(Move futureMove : futureMoves) {
 				MoveEvaluator secondaryMoveEvaluator = new MoveEvaluator();
@@ -47,7 +48,12 @@ public class MoveEvaluator {
 			return -futureMoves.get(futureMoves.size() - 1).getEvaluation();
 		}
 		else {
-			return 0;
+			if (resultantBoard.check(move.getPiece().getOpposingTeam(), resultantBoard.getPieces())) {
+				return Double.MAX_VALUE;
+			}
+			else {
+				return Double.MIN_VALUE;
+			}
 		}
 	}
 	
