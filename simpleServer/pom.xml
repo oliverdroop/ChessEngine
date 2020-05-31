@@ -42,6 +42,13 @@
 		    <version>2.12.1</version>
 		    <!-- <scope>test</scope> -->
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.sun.net.httpserver/http -->
+		<dependency>
+		    <groupId>com.sun.net.httpserver</groupId>
+		    <artifactId>http</artifactId>
+		    <version>20070405</version>
+		</dependency>
+		
 		
 		<dependency>
 			<groupId>oliverdroop</groupId>

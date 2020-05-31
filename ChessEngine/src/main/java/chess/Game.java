@@ -86,7 +86,7 @@ public class Game {
 				Collections.shuffle(availableMoves);
 				for(Move move : availableMoves) {
 					moveEvaluator.setMove(move);
-					moveEvaluator.evaluate(2);
+					moveEvaluator.evaluate(3);
 				}
 				availableMoves.sort(null);
 				//return availableMoves.get(rnd.nextInt(availableMoves.size()));

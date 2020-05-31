@@ -33,6 +33,8 @@ public class AITest {
 		softly.assertThat(game.getAIMove().toString()).as("White bishop should force checkmate").contains("WHITE BISHOP true 1 7 [1 7] [4 4]");
 		setupTest("k5B1/3N4/8/1N6/8/8/8/4K3 w - - 0 1");
 		softly.assertThat(game.getAIMove().toString()).as("White bishop should force checkmate").contains("WHITE BISHOP true 1 7 [1 7] [4 4]");
+		setupTest("k7/7R/6R1/8/8/8/p3K3/8 w - - 0 1");
+		softly.assertThat(game.getAIMove().toString()).as("White rook should force checkmate").contains("WHITE ROOK true 1 5 [1 5] [1 7]");
 	}
 	
 	private void setupTest(String fen) {
