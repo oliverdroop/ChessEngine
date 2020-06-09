@@ -1,0 +1,6 @@
+DATABASE=myDatabase
+TABLE=CAR
+COLUMN=registration,VARCHAR,7
+COLUMN=manufacturer,VARCHAR,16
+COLUMN=model,VARCHAR,16
+COLUMN=colour,VARCHAR,10
