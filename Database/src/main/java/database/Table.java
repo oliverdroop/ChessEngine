@@ -6,6 +6,8 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -151,14 +153,37 @@ public class Table {
 			System.arraycopy(row, 0, newData, data.length, row.length);
 			data = newData;
 			LOGGER.info("Added data row. New length: {}", data.length);
-			for(byte[] dataRow : getAllRows()) {
-				StringBuilder dataString = new StringBuilder();
-				for(byte b : dataRow) {
-					dataString.append((char) b);
-				}
-				LOGGER.info(dataString.toString());
+			StringBuilder dataString = new StringBuilder();
+			for(Column column : columns.values()) {
+				dataString.append(column.getDataType().getValue(getValueBytes(column, row), column).toString());
+				dataString.append("\t");
 			}
+			LOGGER.info(dataString.toString());
 		}
+	}
+	
+	public void save(String path) {
+		try {
+			File file = new File(path);
+    		Path actualPath = file.toPath();
+			Files.write(actualPath, data);
+		}
+		catch(IOException e) {
+    		e.printStackTrace();
+    		LOGGER.warn(e.getMessage());
+    	}
+	}
+	
+	public void load(String path) {
+		try {
+    		File file = new File(path);
+    		Path actualPath = file.toPath();
+    		data = Files.readAllBytes(actualPath);
+    	}
+    	catch(IOException e) {
+    		e.printStackTrace();
+    		LOGGER.warn(e.getMessage());
+    	}
 	}
 	
 	public String getName() {
@@ -168,5 +193,9 @@ public class Table {
 	public Map<String, Column> getColumns(){
 		return this.columns;
 	}
+
+	public byte[] getData() {
+		return data;
+	}	
 	
 }

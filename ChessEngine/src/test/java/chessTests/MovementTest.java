@@ -1,6 +1,5 @@
 package chessTests;
 import org.assertj.core.api.JUnitSoftAssertions;
-import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -11,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import chess.Board;
 import chess.FENReader;
 import chess.Game;
-import chess.Move;
 import chess.Piece;
 import chess.Team;
 

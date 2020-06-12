@@ -1,10 +1,14 @@
 package database;
 
 public class Car {
+	private long id;
 	private String registration;
 	private String manufacturer;
 	private String model;
 	private String colour;
+	private int yearOfRegistration;
+	private byte seats;
+	private double engineSize;
 	public String getRegistration() {
 		return registration;
 	}
@@ -29,5 +33,30 @@ public class Car {
 	public void setColour(String colour) {
 		this.colour = colour;
 	}
+	public long getId() {
+		return id;
+	}
+	public void setId(long id) {
+		this.id = id;
+	}
+	public int getYearOfRegistration() {
+		return yearOfRegistration;
+	}
+	public void setYearOfRegistration(int yearOfRegistration) {
+		this.yearOfRegistration = yearOfRegistration;
+	}
+	public byte getSeats() {
+		return seats;
+	}
+	public void setSeats(byte seats) {
+		this.seats = seats;
+	}
+	public double getEngineSize() {
+		return engineSize;
+	}
+	public void setEngineSize(double engineSize) {
+		this.engineSize = engineSize;
+	}
+	
 	
 }

@@ -1,6 +1,5 @@
 package database;
 
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 
 import org.slf4j.Logger;
@@ -63,7 +62,7 @@ public class ObjectParser {
 		return null;
 	}
 	
-	private Table getApplicableTable(Object o) {
+	public Table getApplicableTable(Object o) {
 		return database.getTables().get(o.getClass().getSimpleName().toUpperCase());
 	}
 }

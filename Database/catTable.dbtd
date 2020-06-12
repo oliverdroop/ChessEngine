@@ -1,4 +1,0 @@
-DATABASE=myDatabase
-TABLE=cat
-COLUMN=name,VARCHAR,10
-COLUMN=age,INT,1
