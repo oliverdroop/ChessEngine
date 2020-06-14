@@ -15,7 +15,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.BlockJUnit4ClassRunner;
 
 @RunWith(BlockJUnit4ClassRunner.class)
-public class DatabaseTest {
+public class TableTest {
 	
 	private static Database database;
 	
@@ -68,7 +68,58 @@ public class DatabaseTest {
 	}
 	
 	@Test
-	public void testSelect() {		
+	public void testGetByteMatchedRows() {		
+		Table table = setUpMatchedRowsTestTable();
+		
+		Map<String, byte[]> propertyValueMap = new HashMap<>();
+		propertyValueMap.put("colour", "Black".getBytes());
+		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find 2 black cars").hasSize(2);
+		
+		propertyValueMap = new HashMap<>();
+		propertyValueMap.put("engineSize", ByteBuffer.allocate(8).putDouble(1.25).array());
+		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find 1 car with engineSize 1.25").hasSize(1);
+		
+		propertyValueMap = new HashMap<>();
+		propertyValueMap.put("model", "Fiesta".getBytes());
+		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find 3 Fiestas").hasSize(3);
+		
+		propertyValueMap.put("colour", "Black".getBytes());
+		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find 2 Black Fiestas").hasSize(2);
+		
+		propertyValueMap.put("engineSize", ByteBuffer.allocate(8).putDouble(1.25).array());
+		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find 1 Black Fiesta with engineSize 1.25").hasSize(1);
+		
+		propertyValueMap.put("seats", new byte[] {2});
+		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find no Black 1.25 Fiestas with 2 seats").isEmpty();
+	}
+	
+	@Test
+	public void testGetStringMatchedRows() {
+		Table table = setUpMatchedRowsTestTable();
+		
+		Map<String, String> propertyStringMap = new HashMap<>();
+		propertyStringMap.put("colour", "Black");
+		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find 2 black cars").hasSize(2);
+		
+		propertyStringMap = new HashMap<>();
+		propertyStringMap.put("engineSize", "1.25");
+		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find 1 car with engineSize 1.25").hasSize(1);
+		
+		propertyStringMap = new HashMap<>();
+		propertyStringMap.put("model", "Fiesta");
+		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find 3 Fiestas").hasSize(3);
+		
+		propertyStringMap.put("colour", "Black");
+		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find 2 Black Fiestas").hasSize(2);
+		
+		propertyStringMap.put("engineSize", "1.25");
+		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find 1 Black Fiesta with engineSize 1.25").hasSize(1);
+		
+		propertyStringMap.put("seats", "2");
+		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find no Black 1.25 Fiestas with 2 seats").isEmpty();
+	}
+	
+	private Table setUpMatchedRowsTestTable() {
 		int year = 2020;
 		ObjectParser parser = new ObjectParser(database);
 		Car car1 = createCar(createRandomRegistration(year), "Ford", "Fiesta", "Black", year, (byte)5, 1.4);
@@ -81,27 +132,7 @@ public class DatabaseTest {
 		table.addRow(parser.parse(car3));
 		Car car4 = createCar(createRandomRegistration(year), "Ford", "Fiesta", "Blue", year, (byte)5, 1.6);
 		table.addRow(parser.parse(car4));
-		
-		Map<String, byte[]> propertyValueMap = new HashMap<>();
-		propertyValueMap.put("colour", "Black".getBytes());
-		softly.assertThat(table.getRows(propertyValueMap)).as("Expected to find 2 black cars").hasSize(2);
-		
-		propertyValueMap = new HashMap<>();
-		propertyValueMap.put("engineSize", ByteBuffer.allocate(8).putDouble(1.25).array());
-		softly.assertThat(table.getRows(propertyValueMap)).as("Expected to find 1 car with engineSize 1.25").hasSize(1);
-		
-		propertyValueMap = new HashMap<>();
-		propertyValueMap.put("model", "Fiesta".getBytes());
-		softly.assertThat(table.getRows(propertyValueMap)).as("Expected to find 3 Fiestas").hasSize(3);
-		
-		propertyValueMap.put("colour", "Black".getBytes());
-		softly.assertThat(table.getRows(propertyValueMap)).as("Expected to find 2 Black Fiestas").hasSize(2);
-		
-		propertyValueMap.put("engineSize", ByteBuffer.allocate(8).putDouble(1.25).array());
-		softly.assertThat(table.getRows(propertyValueMap)).as("Expected to find 1 Black Fiesta with engineSize 1.25").hasSize(1);
-		
-		propertyValueMap.put("seats", new byte[] {2});
-		softly.assertThat(table.getRows(propertyValueMap)).as("Expected to find no Black 1.25 Fiestas with 2 seats").isEmpty();
+		return table;
 	}
 	
 	private Car createRandomCar() {

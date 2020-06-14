@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -76,7 +77,7 @@ public class Table {
 		return rowLength;
 	}
 	
-	public List<byte[]> getRows(Map<String, byte[]> propertyValueMap) {
+	public List<byte[]> getByteMatchedRows(Map<String, byte[]> propertyValueMap) {
 		for(String fieldName : propertyValueMap.keySet()) {
 			Column column = columns.get(fieldName);
 			byte[] value = propertyValueMap.get(fieldName);
@@ -103,6 +104,16 @@ public class Table {
 			}
 		}
 		return matches;
+	}
+	
+	public List<byte[]> getStringMatchedRows(Map<String, String> propertyStringMap) {
+		Map<String, byte[]> propertyValueMap = new HashMap<>();
+		for(String fieldName : propertyStringMap.keySet()) {
+			Column column = columns.get(fieldName);
+			byte[] bytes = column.getDataType().getBytes(propertyStringMap.get(fieldName));
+			propertyValueMap.put(fieldName, bytes);
+		}
+		return getByteMatchedRows(propertyValueMap);
 	}
 	
 	private byte[] getValueBytes(Column column, byte[] row) {
