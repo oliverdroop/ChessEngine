@@ -1,7 +1,11 @@
 package database;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.file.FileVisitOption;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,11 +64,21 @@ public class TableTest {
 		String message = ("Expected data length to be " + expectedDatabaseLength);
 		softly.assertThat(table.getData().length).as(message).isEqualTo(expectedDatabaseLength);
 		
-		String fileName = rootDirectory + File.separator + table.getName() + ".ddbt";
-		table.save(fileName);
-		table.load(fileName);
-		
-		softly.assertThat(table.getData().length).as(message).isEqualTo(expectedDatabaseLength);
+		try {
+			Path tempDirectoryPath = Files.createTempDirectory("temp");
+			String fileName = tempDirectoryPath.toString() + File.separator + table.getName() + ".ddbt";
+			
+			table.save(fileName);
+			table.load(fileName);
+			
+			softly.assertThat(table.getData().length).as(message).isEqualTo(expectedDatabaseLength);
+
+			Files.delete(new File(fileName).toPath());
+			Files.delete(tempDirectoryPath);
+		}
+		catch(IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	@Test

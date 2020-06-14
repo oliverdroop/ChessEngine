@@ -91,24 +91,38 @@ public enum DataType {
 		return getBytes(o);
 	}
 	
-	public static Object getValue(byte[] fieldBytes, Column column) {
-		if (column.getDataType() == DataType.BOOLEAN) {
+	public Object getValue(byte[] fieldBytes) {
+		if (this == DataType.BOOLEAN) {
 			return (boolean) (fieldBytes[0] != 0);
 		}
-		if (column.getDataType() == DataType.BYTE) {
+		if (this == DataType.BYTE) {
 			return fieldBytes[0];
 		}
-		if (column.getDataType() == DataType.INT) {
+		if (this == DataType.INT) {
 		    return ByteBuffer.wrap(fieldBytes).getInt();
 		}
-		if (column.getDataType() == DataType.LONG) {
+		if (this == DataType.LONG) {
 		    return ByteBuffer.wrap(fieldBytes).getLong();
 		}
-		if (column.getDataType() == DataType.DOUBLE) {
+		if (this == DataType.DOUBLE) {
 		    return ByteBuffer.wrap(fieldBytes).getDouble();
 		}
-		if (column.getDataType() == DataType.VARCHAR) {
+		if (this == DataType.VARCHAR) {
 			return new String(fieldBytes, StandardCharsets.UTF_8);
+		}
+		return null;
+	}
+	
+	public String getValueString(byte[] fieldBytes) {
+		if (this == DataType.BOOLEAN) {
+			return ((boolean) (fieldBytes[0] != 0) ? "true" : "false");
+		}
+		if (this == DataType.BYTE || this == DataType.INT
+				|| this == DataType.LONG || this == DataType.DOUBLE) {
+			return String.valueOf(getValue(fieldBytes));
+		}
+		if (this == DataType.VARCHAR) {
+			return ((String) getValue(fieldBytes)).trim();
 		}
 		return null;
 	}

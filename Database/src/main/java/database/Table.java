@@ -168,13 +168,7 @@ public class Table {
 			System.arraycopy(row, 0, newData, data.length, row.length);
 			data = newData;
 			LOGGER.info("Added data row. New length: {}", data.length);
-			StringBuilder dataString = new StringBuilder();
-			for(Column column : columns.values()) {
-				dataString.append(column.getDataType().getValue(getValueBytes(column, row), column).toString());
-				//dataString.append(getValue(column, row).toString());
-				dataString.append("\t");
-			}
-			LOGGER.info(dataString.toString());
+			LOGGER.info(getRowString(row));
 		}
 	}
 	
@@ -200,6 +194,15 @@ public class Table {
     		e.printStackTrace();
     		LOGGER.warn(e.getMessage());
     	}
+	}
+	
+	public String getRowString(byte[] row) {
+		StringBuilder rowString = new StringBuilder();
+		for(Column column : columns.values()) {
+			rowString.append(column.getDataType().getValueString(getValueBytes(column, row)));
+			rowString.append("\t");
+		}
+		return rowString.toString();
 	}
 	
 	public String getName() {

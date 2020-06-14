@@ -48,7 +48,7 @@ public class ObjectParser {
 				String setterName = "set" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
 				byte[] fieldBytes = new byte[column.getLength()];
 				System.arraycopy(row, table.getIndexInRow(column), fieldBytes, 0, column.getLength());
-				o.getClass().getMethod(setterName).invoke(o, DataType.getValue(fieldBytes, column));
+				o.getClass().getMethod(setterName).invoke(o, column.getDataType().getValue(fieldBytes));
 			}	
 		}
 		catch(ClassNotFoundException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
