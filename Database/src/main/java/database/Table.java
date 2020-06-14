@@ -77,6 +77,16 @@ public class Table {
 	}
 	
 	public List<byte[]> getRows(Map<String, byte[]> propertyValueMap) {
+		for(String fieldName : propertyValueMap.keySet()) {
+			Column column = columns.get(fieldName);
+			byte[] value = propertyValueMap.get(fieldName);
+			if (value.length < column.getLength() && column.getDataType() == DataType.VARCHAR) {
+				byte[] valueWithWhitespace = new byte[column.getLength()];
+				System.arraycopy(value, 0, valueWithWhitespace, 0, value.length);
+				propertyValueMap.put(fieldName, valueWithWhitespace);
+			}
+		}
+		
 		List<byte[]> matches = new ArrayList<>();
 		for(byte[] row : getAllRows()) {
 			boolean match = true;
@@ -84,7 +94,7 @@ public class Table {
 				if (!match) {
 					continue;
 				}
-				if (!getValueBytes(columnName, row).equals(propertyValueMap.get(columnName))) {
+				if (!Arrays.equals(getValueBytes(columnName, row), propertyValueMap.get(columnName))) {
 					match = false;
 				}
 			}
@@ -93,12 +103,6 @@ public class Table {
 			}
 		}
 		return matches;
-	}
-	
-	public <T> T getValue(Column column, byte[] row){
-		byte[] rawValue = getValueBytes(column, row);
-		Class type = column.getDataType().getType();
-		return (T) type.cast(rawValue);
 	}
 	
 	private byte[] getValueBytes(Column column, byte[] row) {
@@ -156,6 +160,7 @@ public class Table {
 			StringBuilder dataString = new StringBuilder();
 			for(Column column : columns.values()) {
 				dataString.append(column.getDataType().getValue(getValueBytes(column, row), column).toString());
+				//dataString.append(getValue(column, row).toString());
 				dataString.append("\t");
 			}
 			LOGGER.info(dataString.toString());
@@ -196,6 +201,10 @@ public class Table {
 
 	public byte[] getData() {
 		return data;
-	}	
+	}
+	
+	public void setData(byte[] data) {
+		this.data = data;
+	}
 	
 }

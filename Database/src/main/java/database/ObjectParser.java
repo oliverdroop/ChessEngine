@@ -27,11 +27,11 @@ public class ObjectParser {
 				Object fieldValue = o.getClass().getMethod(getterName).invoke(o);
 				byte[] objectFieldBytes = DataType.getBytes(fieldValue);
 				System.arraycopy(objectFieldBytes, 0, fieldBytes, 0, objectFieldBytes.length);
-				for(byte b : fieldBytes) {
-					if(b == 0 && column.getDataType() == DataType.VARCHAR) {
-						b = 32;
-					}
-				}
+//				for(byte b : fieldBytes) {
+//					if(b == 0 && column.getDataType() == DataType.VARCHAR) {
+//						b = 32;
+//					}
+//				}
 				System.arraycopy(fieldBytes, 0, rowBytes, index, column.getLength());
 				index += column.getLength();
 			}	

@@ -1,6 +1,10 @@
 package database;
 
 import java.io.File;
+import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import org.assertj.core.api.JUnitSoftAssertions;
@@ -44,7 +48,7 @@ public class DatabaseTest {
 		ObjectParser parser = new ObjectParser(database);
 		Table table = null;
 		for(int i = 0; i < count; i++) {
-			Car car = createCar();
+			Car car = createRandomCar();
 			if (table == null) {				
 				 table = parser.getApplicableTable(car);
 			}
@@ -63,7 +67,41 @@ public class DatabaseTest {
 		softly.assertThat(table.getData().length).as(message).isEqualTo(expectedDatabaseLength);
 	}
 	
-	private Car createCar() {
+	@Test
+	public void testSelect() {		
+		int year = 2020;
+		ObjectParser parser = new ObjectParser(database);
+		Car car1 = createCar(createRandomRegistration(year), "Ford", "Fiesta", "Black", year, (byte)5, 1.4);
+		Table table = parser.getApplicableTable(car1);
+		table.setData(null);
+		table.addRow(parser.parse(car1));
+		Car car2 = createCar(createRandomRegistration(year), "Ford", "Fiesta", "Black", year, (byte)5, 1.25);
+		table.addRow(parser.parse(car2));
+		Car car3 = createCar(createRandomRegistration(year), "Ford", "Focus", "Blue", year, (byte)5, 1.6);
+		table.addRow(parser.parse(car3));
+		Car car4 = createCar(createRandomRegistration(year), "Ford", "Fiesta", "Blue", year, (byte)5, 1.6);
+		table.addRow(parser.parse(car4));
+		
+		Map<String, byte[]> propertyValueMap = new HashMap<>();
+		propertyValueMap.put("colour", "Black".getBytes());
+		softly.assertThat(table.getRows(propertyValueMap)).as("Expected to find 2 black cars").hasSize(2);
+		
+		propertyValueMap = new HashMap<>();
+		propertyValueMap.put("engineSize", ByteBuffer.allocate(8).putDouble(1.25).array());
+		softly.assertThat(table.getRows(propertyValueMap)).as("Expected to find 1 car with engineSize 1.25").hasSize(1);
+		
+		propertyValueMap = new HashMap<>();
+		propertyValueMap.put("model", "Fiesta".getBytes());
+		softly.assertThat(table.getRows(propertyValueMap)).as("Expected to find 3 Fiestas").hasSize(3);
+		
+		propertyValueMap.put("colour", "Blue".getBytes());
+		softly.assertThat(table.getRows(propertyValueMap)).as("Expected to find 1 Blue Fiesta").hasSize(1);
+		
+		propertyValueMap.put("engineSize", ByteBuffer.allocate(8).putDouble(1.25).array());
+		softly.assertThat(table.getRows(propertyValueMap)).as("Expected to find 0 Blue Fiestas with engineSize 1.25").isEmpty();
+	}
+	
+	private Car createRandomCar() {
 		Car car = new Car();
 		int year = random.nextInt(18) + 2002;
 		car.setRegistration(createRandomRegistration(year));
@@ -73,8 +111,19 @@ public class DatabaseTest {
 		car.setYearOfRegistration(year);
 		car.setSeats((byte)((random.nextInt(2) * 3) + 2));
 		car.setEngineSize((double)((Math.round(random.nextDouble() * 20) + 10) / (double) 10));
-		return car;
-		
+		return car;		
+	}
+	
+	private Car createCar(String registration, String manufacturer, String model, String colour, int year, byte seats, double engineSize) {
+		Car car = new Car();
+		car.setRegistration(registration);
+		car.setManufacturer(manufacturer);
+		car.setModel(model);
+		car.setColour(colour);
+		car.setYearOfRegistration(year);
+		car.setSeats(seats);
+		car.setEngineSize(engineSize);
+		return car;		
 	}
 	
 	private String createRandomRegistration(int year) {
@@ -104,7 +153,7 @@ public class DatabaseTest {
 	private char getRandomCapitalLetter() {
 		Random random = new Random();
 		char c = (char) (byte)(random.nextInt(26) + 65);
-		if (c == 'O' || c == 'I') {
+		if (c == 'O' || c == 'I' || c == 'Q') {
 			c = getRandomCapitalLetter();
 		}
 		return c;
