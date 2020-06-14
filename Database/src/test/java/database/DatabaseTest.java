@@ -94,11 +94,14 @@ public class DatabaseTest {
 		propertyValueMap.put("model", "Fiesta".getBytes());
 		softly.assertThat(table.getRows(propertyValueMap)).as("Expected to find 3 Fiestas").hasSize(3);
 		
-		propertyValueMap.put("colour", "Blue".getBytes());
-		softly.assertThat(table.getRows(propertyValueMap)).as("Expected to find 1 Blue Fiesta").hasSize(1);
+		propertyValueMap.put("colour", "Black".getBytes());
+		softly.assertThat(table.getRows(propertyValueMap)).as("Expected to find 2 Black Fiestas").hasSize(2);
 		
 		propertyValueMap.put("engineSize", ByteBuffer.allocate(8).putDouble(1.25).array());
-		softly.assertThat(table.getRows(propertyValueMap)).as("Expected to find 0 Blue Fiestas with engineSize 1.25").isEmpty();
+		softly.assertThat(table.getRows(propertyValueMap)).as("Expected to find 1 Black Fiesta with engineSize 1.25").hasSize(1);
+		
+		propertyValueMap.put("seats", new byte[] {2});
+		softly.assertThat(table.getRows(propertyValueMap)).as("Expected to find no Black 1.25 Fiestas with 2 seats").isEmpty();
 	}
 	
 	private Car createRandomCar() {
