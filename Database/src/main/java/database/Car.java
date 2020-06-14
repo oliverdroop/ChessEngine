@@ -9,6 +9,7 @@ public class Car {
 	private int yearOfRegistration;
 	private byte seats;
 	private double engineSize;
+	private boolean taxed;
 	public String getRegistration() {
 		return registration;
 	}
@@ -57,6 +58,10 @@ public class Car {
 	public void setEngineSize(double engineSize) {
 		this.engineSize = engineSize;
 	}
-	
-	
+	public boolean isTaxed() {
+		return taxed;
+	}
+	public void setTaxed(boolean taxed) {
+		this.taxed = taxed;
+	}
 }

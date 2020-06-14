@@ -23,7 +23,8 @@ public class ObjectParser {
 			for(Column column : table.getColumns().values()) {
 				byte[] fieldBytes = new byte[column.getLength()];
 				String fieldName = column.getName();
-				String getterName = "get" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
+				String getterPrefix = column.getDataType() == DataType.BOOLEAN ? "is" : "get";
+				String getterName = getterPrefix + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
 				Object fieldValue = o.getClass().getMethod(getterName).invoke(o);
 				byte[] objectFieldBytes = DataType.getBytes(fieldValue);
 				System.arraycopy(objectFieldBytes, 0, fieldBytes, 0, objectFieldBytes.length);

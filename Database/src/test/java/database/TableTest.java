@@ -87,24 +87,27 @@ public class TableTest {
 		
 		Map<String, byte[]> propertyValueMap = new HashMap<>();
 		propertyValueMap.put("colour", "Black".getBytes());
-		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find 2 black cars").hasSize(2);
+		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find 3 black cars").hasSize(3);
 		
 		propertyValueMap = new HashMap<>();
 		propertyValueMap.put("engineSize", ByteBuffer.allocate(8).putDouble(1.25).array());
-		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find 1 car with engineSize 1.25").hasSize(1);
+		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find 2 cars with engineSize 1.25").hasSize(2);
 		
 		propertyValueMap = new HashMap<>();
 		propertyValueMap.put("model", "Fiesta".getBytes());
-		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find 3 Fiestas").hasSize(3);
+		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find 4 Fiestas").hasSize(4);
 		
 		propertyValueMap.put("colour", "Black".getBytes());
-		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find 2 Black Fiestas").hasSize(2);
+		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find 3 Black Fiestas").hasSize(3);
 		
 		propertyValueMap.put("engineSize", ByteBuffer.allocate(8).putDouble(1.25).array());
-		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find 1 Black Fiesta with engineSize 1.25").hasSize(1);
+		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find 2 Black Fiestas with engineSize 1.25").hasSize(2);
+		
+		propertyValueMap.put("taxed", new byte[] {1});
+		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find 1 taxed Black Fiesta with engineSize 1.25").hasSize(1);
 		
 		propertyValueMap.put("seats", new byte[] {2});
-		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find no Black 1.25 Fiestas with 2 seats").isEmpty();
+		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find no taxed Black 1.25 Fiestas with 2 seats").isEmpty();
 	}
 	
 	@Test
@@ -113,39 +116,44 @@ public class TableTest {
 		
 		Map<String, String> propertyStringMap = new HashMap<>();
 		propertyStringMap.put("colour", "Black");
-		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find 2 black cars").hasSize(2);
+		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find 3 black cars").hasSize(3);
 		
 		propertyStringMap = new HashMap<>();
 		propertyStringMap.put("engineSize", "1.25");
-		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find 1 car with engineSize 1.25").hasSize(1);
+		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find 2 cars with engineSize 1.25").hasSize(2);
 		
 		propertyStringMap = new HashMap<>();
 		propertyStringMap.put("model", "Fiesta");
-		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find 3 Fiestas").hasSize(3);
+		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find 4 Fiestas").hasSize(4);
 		
 		propertyStringMap.put("colour", "Black");
-		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find 2 Black Fiestas").hasSize(2);
+		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find 3 Black Fiestas").hasSize(3);
 		
 		propertyStringMap.put("engineSize", "1.25");
-		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find 1 Black Fiesta with engineSize 1.25").hasSize(1);
+		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find 2 Black Fiestas with engineSize 1.25").hasSize(2);
+		
+		propertyStringMap.put("taxed", "true");
+		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find 1 taxed Black Fiesta with engineSize 1.25").hasSize(1);
 		
 		propertyStringMap.put("seats", "2");
-		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find no Black 1.25 Fiestas with 2 seats").isEmpty();
+		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find no taxed Black 1.25 Fiestas with 2 seats").isEmpty();
 	}
 	
 	private Table setUpMatchedRowsTestTable() {
 		int year = 2020;
 		ObjectParser parser = new ObjectParser(database);
-		Car car1 = createCar(createRandomRegistration(year), "Ford", "Fiesta", "Black", year, (byte)5, 1.4);
+		Car car1 = createCar(createRandomRegistration(year), "Ford", "Fiesta", "Black", year, (byte)5, 1.4, true);
 		Table table = parser.getApplicableTable(car1);
 		table.setData(null);
 		table.addRow(parser.parse(car1));
-		Car car2 = createCar(createRandomRegistration(year), "Ford", "Fiesta", "Black", year, (byte)5, 1.25);
+		Car car2 = createCar(createRandomRegistration(year), "Ford", "Fiesta", "Black", year, (byte)5, 1.25, true);
 		table.addRow(parser.parse(car2));
-		Car car3 = createCar(createRandomRegistration(year), "Ford", "Focus", "Blue", year, (byte)5, 1.6);
+		Car car3 = createCar(createRandomRegistration(year), "Ford", "Focus", "Blue", year, (byte)5, 1.6, true);
 		table.addRow(parser.parse(car3));
-		Car car4 = createCar(createRandomRegistration(year), "Ford", "Fiesta", "Blue", year, (byte)5, 1.6);
+		Car car4 = createCar(createRandomRegistration(year), "Ford", "Fiesta", "Blue", year, (byte)5, 1.6, true);
 		table.addRow(parser.parse(car4));
+		Car car5 = createCar(createRandomRegistration(year), "Ford", "Fiesta", "Black", year, (byte)5, 1.25, false);
+		table.addRow(parser.parse(car5));
 		return table;
 	}
 	
@@ -159,10 +167,11 @@ public class TableTest {
 		car.setYearOfRegistration(year);
 		car.setSeats((byte)((random.nextInt(2) * 3) + 2));
 		car.setEngineSize((double)((Math.round(random.nextDouble() * 20) + 10) / (double) 10));
+		car.setTaxed(random.nextBoolean());
 		return car;		
 	}
 	
-	private Car createCar(String registration, String manufacturer, String model, String colour, int year, byte seats, double engineSize) {
+	private Car createCar(String registration, String manufacturer, String model, String colour, int year, byte seats, double engineSize, boolean taxed) {
 		Car car = new Car();
 		car.setRegistration(registration);
 		car.setManufacturer(manufacturer);
@@ -171,6 +180,7 @@ public class TableTest {
 		car.setYearOfRegistration(year);
 		car.setSeats(seats);
 		car.setEngineSize(engineSize);
+		car.setTaxed(taxed);
 		return car;		
 	}
 	

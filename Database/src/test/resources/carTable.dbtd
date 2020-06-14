@@ -8,3 +8,4 @@ COLUMN=colour,VARCHAR,8
 COLUMN=yearOfRegistration,INT,1
 COLUMN=seats,BYTE,1
 COLUMN=engineSize,DOUBLE,1
+COLUMN=taxed,BOOLEAN,1
