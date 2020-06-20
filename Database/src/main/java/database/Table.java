@@ -25,9 +25,11 @@ public class Table {
 	private String name;
 	private String databaseName;
 	private Map<String, Column> columns;
-	private String idColumn;
+	private String primaryKey;
+	private boolean autoGenerateKey = false;
+	private byte[] lastGeneratedKey;
 	private int rowLength = 0;
-	private byte[] data;
+	private byte[] data = new byte[0];
 	
 	public Table(File schemaFile) {
 		try {
@@ -45,8 +47,11 @@ public class Table {
 				if (line.startsWith("TABLE=")) {
 					name = line.replace("TABLE=", "");
 				}
-				if (line.startsWith("ID=")) {
-					idColumn = line.replace("ID=", "");
+				if (line.startsWith("PRIMARY_KEY=")) {
+					primaryKey = line.replace("PRIMARY_KEY=", "");
+				}
+				if (line.startsWith("AUTO_GENERATE_KEY=")) {
+					autoGenerateKey = Boolean.parseBoolean(line.replace("AUTO_GENERATE_KEY=", ""));
 				}
 				if (line.startsWith("COLUMN=")) {
 					line = line.replace("COLUMN=", "");
@@ -56,9 +61,9 @@ public class Table {
 				}
 			}
 			this.columns = columns;
-			if (idColumn != null && columns.get(idColumn) == null) {
-				LOGGER.warn("No column {} exists in table {} : Unable to set idColumn", idColumn, name);
-				idColumn = null;
+			if (primaryKey != null && columns.get(primaryKey) == null) {
+				LOGGER.warn("No column {} exists in table {} : Unable to set idColumn", primaryKey, name);
+				primaryKey = null;
 			}
 			
 		} catch (FileNotFoundException e) {
@@ -124,11 +129,11 @@ public class Table {
 	}
 	
 	public int getRowIndexById(Object id) {
-		if (idColumn == null) {
+		if (primaryKey == null) {
 			LOGGER.warn("Unable to get index by id : No idColumn specified for table {}", name);
 			return -1;
 		}
-		Column column = columns.get(idColumn);
+		Column column = columns.get(primaryKey);
 		int rows = countRows();
 		int columnLength = column.getLength();
 		int columnPosition = getIndexInRow(column);
@@ -141,8 +146,8 @@ public class Table {
 				return i;
 			}
 		}
-		DataType dataType = columns.get(idColumn).getDataType();
-		LOGGER.warn("Unable to get index by id {} in table {} : No match found", dataType.getValue(DataType.getBytes(id)), name);
+		DataType dataType = columns.get(primaryKey).getDataType();
+		LOGGER.info("Unable to get index by id {} in table {} : No match found", dataType.getValue(DataType.getBytes(id)), name);
 		return -1;
 	}
 	
@@ -210,19 +215,35 @@ public class Table {
 		return index;
 	}
 	
+	private boolean isAddableRow(byte[] row) {
+		if (row.length != getRowLength()) {
+			return false;
+		}
+		byte[] id = null;
+		if (primaryKey != null) {
+			id = getValueBytes(primaryKey, row);
+		}
+		if (id != null) {
+			if (getRowIndexById(id) != -1) {
+				if (autoGenerateKey) {
+					byte[] key = generateKey();
+					Column primaryKeyColumn = columns.get(primaryKey);
+					System.arraycopy(key, 0, row, getIndexInRow(primaryKeyColumn), primaryKeyColumn.getLength());
+				}
+				else {
+					LOGGER.warn("Unable to add row to table {} : id {} exists", name, columns.get(primaryKey).getDataType().getValue(id));
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+	
 	public void addRow(byte[] row) {
 		if (data == null) {
 			data = new byte[0];
 		}
-		byte[] id = null;
-		if (idColumn != null) {
-			id = getValueBytes(idColumn, row);
-		}
-		if (id != null && getRowIndexById(id) != -1) {
-			LOGGER.warn("Unable to add row to table {} : id {} exists", name, columns.get(idColumn).getDataType().getValue(id));
-			return;
-		}
-		if (row.length == getRowLength()) {
+		if (isAddableRow(row)) {
 			byte[] newData = new byte[data.length + row.length];
 			System.arraycopy(data, 0, newData, 0, data.length);
 			System.arraycopy(row, 0, newData, data.length, row.length);
@@ -230,6 +251,25 @@ public class Table {
 			LOGGER.info("Added data row. New length: {}", data.length);
 			LOGGER.info(getRowString(row));
 		}
+	}
+	
+	private byte[] generateKey() {
+		if (primaryKey == null) {
+			return null;
+		}
+		byte[] output = null;
+		if (lastGeneratedKey != null) {
+			byte[] lastGeneratedKeyBytes = DataType.getBytes(lastGeneratedKey);
+			output = DataType.increment(lastGeneratedKeyBytes);
+		}
+		else {
+			output = new byte[columns.get(primaryKey).getLength()];
+		}
+		lastGeneratedKey = output;
+		if(getRowIndexById(output) != -1) {
+			output = generateKey();
+		}
+		return output;
 	}
 	
 	public int countRows() {

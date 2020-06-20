@@ -1,6 +1,7 @@
 DATABASE=myDatabase
 TABLE=CAR
-ID=id
+PRIMARY_KEY=id
+AUTO_GENERATE_KEY=true
 COLUMN=id,LONG,1
 COLUMN=registration,VARCHAR,4
 COLUMN=manufacturer,VARCHAR,8

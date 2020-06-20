@@ -3,6 +3,9 @@ package database;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public enum DataType {
 	BOOLEAN(1, boolean.class), 
 	BYTE(1, byte.class), 
@@ -10,6 +13,7 @@ public enum DataType {
 	LONG(8, long.class), 
 	DOUBLE(8, double.class), 
 	VARCHAR(2, char.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(DataType.class);
 	private final int length;
 	private final Class type;
 	
@@ -128,5 +132,10 @@ public enum DataType {
 			return ((String) getValue(fieldBytes)).trim();
 		}
 		return null;
+	}
+	
+	public static byte[] increment(byte[] bytes) {
+		long outputLong = ByteBuffer.wrap(bytes).getLong() + 1;
+		return ByteBuffer.allocate(bytes.length).putLong(outputLong).array();
 	}
 }
