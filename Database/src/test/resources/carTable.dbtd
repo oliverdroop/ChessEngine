@@ -1,5 +1,6 @@
 DATABASE=myDatabase
 TABLE=CAR
+ID=id
 COLUMN=id,LONG,1
 COLUMN=registration,VARCHAR,4
 COLUMN=manufacturer,VARCHAR,8

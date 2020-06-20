@@ -57,6 +57,9 @@ public enum DataType {
 			out = ((String) o).getBytes();
 			return out;
 		}
+		if (o instanceof byte[]) {
+			return (byte[]) o;
+		}
 		return null;
 	}
 	

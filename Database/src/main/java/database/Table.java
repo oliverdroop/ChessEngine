@@ -25,7 +25,7 @@ public class Table {
 	private String name;
 	private String databaseName;
 	private Map<String, Column> columns;
-	private Column id;
+	private String idColumn;
 	private int rowLength = 0;
 	private byte[] data;
 	
@@ -45,6 +45,9 @@ public class Table {
 				if (line.startsWith("TABLE=")) {
 					name = line.replace("TABLE=", "");
 				}
+				if (line.startsWith("ID=")) {
+					idColumn = line.replace("ID=", "");
+				}
 				if (line.startsWith("COLUMN=")) {
 					line = line.replace("COLUMN=", "");
 					String[] columnParamaters = line.split(",");
@@ -53,6 +56,10 @@ public class Table {
 				}
 			}
 			this.columns = columns;
+			if (idColumn != null && columns.get(idColumn) == null) {
+				LOGGER.warn("No column {} exists in table {} : Unable to set idColumn", idColumn, name);
+				idColumn = null;
+			}
 			
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -116,6 +123,51 @@ public class Table {
 		return getByteMatchedRows(propertyValueMap);
 	}
 	
+	public int getRowIndexById(Object id) {
+		if (idColumn == null) {
+			LOGGER.warn("Unable to get index by id : No idColumn specified for table {}", name);
+			return -1;
+		}
+		Column column = columns.get(idColumn);
+		int rows = countRows();
+		int columnLength = column.getLength();
+		int columnPosition = getIndexInRow(column);
+		byte[] idBytes = DataType.getBytes(id);
+		
+		for(int i = 0; i < rows; i++) {
+			byte[] fieldValue = new byte[columnLength];
+			System.arraycopy(data, (i * getRowLength()) + columnPosition, fieldValue, 0, columnLength);
+			if (Arrays.equals(fieldValue, idBytes)) {
+				return i;
+			}
+		}
+		DataType dataType = columns.get(idColumn).getDataType();
+		LOGGER.warn("Unable to get index by id {} in table {} : No match found", dataType.getValue(DataType.getBytes(id)), name);
+		return -1;
+	}
+	
+	public byte[] getRowById(Object id) {
+		return getRowByIndex(getRowIndexById(id));
+	}
+	
+	public byte[] getRowByIndex(int index) {
+		byte[] row = new byte[getRowLength()];
+		System.arraycopy(data, getRowLength() * index, row, 0, getRowLength());
+		return row;
+	}
+	
+	private byte[] getColumnBytes(Column column){
+		int rows = countRows();
+		int columnLength = column.getLength();
+		int outputLength = columnLength * rows;
+		byte[] output = new byte[outputLength];
+		int columnPosition = getIndexInRow(column);
+		for(int i = 0; i < rows; i++) {
+			System.arraycopy(data, (i * getRowLength()) + columnPosition, output, i * columnLength, columnLength);
+		}
+		return output;
+	}
+	
 	private byte[] getValueBytes(Column column, byte[] row) {
 		byte[] value = new byte[column.getLength()];
 		System.arraycopy(row, getIndexInRow(column), value, 0, column.getLength());
@@ -162,6 +214,14 @@ public class Table {
 		if (data == null) {
 			data = new byte[0];
 		}
+		byte[] id = null;
+		if (idColumn != null) {
+			id = getValueBytes(idColumn, row);
+		}
+		if (id != null && getRowIndexById(id) != -1) {
+			LOGGER.warn("Unable to add row to table {} : id {} exists", name, columns.get(idColumn).getDataType().getValue(id));
+			return;
+		}
 		if (row.length == getRowLength()) {
 			byte[] newData = new byte[data.length + row.length];
 			System.arraycopy(data, 0, newData, 0, data.length);
@@ -170,6 +230,10 @@ public class Table {
 			LOGGER.info("Added data row. New length: {}", data.length);
 			LOGGER.info(getRowString(row));
 		}
+	}
+	
+	public int countRows() {
+		return data.length / getRowLength();
 	}
 	
 	public void save(String path) {
@@ -198,9 +262,13 @@ public class Table {
 	
 	public String getRowString(byte[] row) {
 		StringBuilder rowString = new StringBuilder();
+		int count = 0;
 		for(Column column : columns.values()) {
 			rowString.append(column.getDataType().getValueString(getValueBytes(column, row)));
-			rowString.append("\t");
+			count += 1;
+			if (count < columns.keySet().size()) {
+				rowString.append("\t");
+			}
 		}
 		return rowString.toString();
 	}
