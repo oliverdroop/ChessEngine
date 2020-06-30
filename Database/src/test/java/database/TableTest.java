@@ -17,9 +17,13 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.BlockJUnit4ClassRunner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RunWith(BlockJUnit4ClassRunner.class)
 public class TableTest {
+	
+	private static final Logger LOGGER = LoggerFactory.getLogger(TableTest.class);
 	
 	private static Database database;
 	
@@ -150,15 +154,15 @@ public class TableTest {
 		
 		table.addRow(parser.parse(car));
 		car.setId(1L);
-		softly.assertThat(table.countRows()).as("Table {} should contain only 1 row", table.getName()).isEqualTo(1);
+		softly.assertThat(table.countRows()).as("Table %s should contain only 1 row", table.getName()).isEqualTo(1);
 		table.addRow(parser.parse(car));
-		softly.assertThat(table.countRows()).as("Table {} should contain 2 rows", table.getName()).isEqualTo(2);
+		softly.assertThat(table.countRows()).as("Table %s should contain 2 rows", table.getName()).isEqualTo(2);
 		table.addRow(parser.parse(car));
-		softly.assertThat(table.countRows()).as("Table {} should contain 2 rows", table.getName()).isEqualTo(2);
+		softly.assertThat(table.countRows()).as("Table %s should contain 2 rows", table.getName()).isEqualTo(2);
 
 		table.setAutoGenerateKey(true);
 		table.addRow(parser.parse(car));
-		softly.assertThat(table.countRows()).as("Table {} should contain 3 rows", table.getName()).isEqualTo(3);
+		softly.assertThat(table.countRows()).as("Table %s should contain 3 rows", table.getName()).isEqualTo(3);
 		Map<String,String> propertyStringMap = new HashMap<>();
 		propertyStringMap.put("id", "1");
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Only 1 row should be returned with id of 1").hasSize(1);
@@ -166,12 +170,46 @@ public class TableTest {
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Only 1 row should be returned with id of 2").hasSize(1);
 	}
 	
+	@Test
+	public void testDeleteRows() {
+		Table table = setUpMatchedRowsTestTable();
+		Map<String,String> propertyStringMap = new HashMap<>();
+		propertyStringMap.put("model", "Focus");
+		ObjectParser parser = new ObjectParser(database);
+		Car focus = (Car)parser.unparse(table.getStringMatchedRows(propertyStringMap).get(0), table);
+		byte[] focusId = DataType.getBytes(focus.getId());
+		
+		softly.assertThat(table.countRows()).as("Table %s should have a size of 5 when the test starts", table.getName()).isEqualTo(5);
+		table.deleteRow(focusId);
+		table.getAllRows().forEach(r -> LOGGER.info(table.getRowString(r)));
+		softly.assertThat(table.countRows()).as("Table %s should have a size of 4 after the first removal", table.getName()).isEqualTo(4);
+		
+		propertyStringMap.remove("model", "Focus");
+		propertyStringMap.put("taxed", "false");
+		table.deleteStringMatchedRows(propertyStringMap);
+		table.getAllRows().forEach(r -> LOGGER.info(table.getRowString(r)));
+		softly.assertThat(table.countRows()).as("Table %s should have a size of 3 after the second removal", table.getName()).isEqualTo(3);
+		
+		propertyStringMap.remove("taxed", "false");
+		propertyStringMap.put("colour", "Black");
+		table.deleteStringMatchedRows(propertyStringMap);
+		table.getAllRows().forEach(r -> LOGGER.info(table.getRowString(r)));
+		softly.assertThat(table.countRows()).as("Table %s should have a size of 1 after the third removal", table.getName()).isEqualTo(1);
+		
+		byte[] finalId = DataType.getBytes(3L);
+		table.deleteRow(finalId);
+		table.getAllRows().forEach(r -> LOGGER.info(table.getRowString(r)));
+		softly.assertThat(table.countRows()).as("Table %s should have a size of 0 after the final removal", table.getName()).isEqualTo(0);
+	}
+	
 	private Table setUpMatchedRowsTestTable() {
 		int year = 2020;
 		ObjectParser parser = new ObjectParser(database);
 		Car car1 = createCar(createRandomRegistration(year), "Ford", "Fiesta", "Black", year, (byte)5, 1.4, true);
 		Table table = parser.getApplicableTable(car1);
+		table.setLastGeneratedKey(null);
 		table.setData(null);
+		table.setClassName("database.Car");
 		table.addRow(parser.parse(car1));
 		Car car2 = createCar(createRandomRegistration(year), "Ford", "Fiesta", "Black", year, (byte)5, 1.25, true);
 		table.addRow(parser.parse(car2));

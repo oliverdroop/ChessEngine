@@ -23,6 +23,7 @@ public class Table {
 	private static final Logger LOGGER = LoggerFactory.getLogger(Table.class);
 	private File schemaFile;
 	private String name;
+	private String className;
 	private String databaseName;
 	private Map<String, Column> columns;
 	private String primaryKey;
@@ -178,7 +179,7 @@ public class Table {
 		return getValueBytes(columns.get(columnName), row);
 	}
 	
-	private List<byte[]> getAllRows(){
+	public List<byte[]> getAllRows(){
 		int rowCount = data.length / getRowLength();
 		List<byte[]> output = new ArrayList<>(rowCount);
 		for(int i = 0; i < rowCount; i++) {
@@ -253,7 +254,7 @@ public class Table {
 			LOGGER.warn("Unable to delete row without primary key for table {}", name);
 			return;
 		}
-		int start = getRowIndexById(id);
+		int start = getRowIndexById(id) * getRowLength();
 		int end = start + getRowLength();
 		int newLength = data.length - getRowLength();
 		byte[] newData = new byte[newLength];
@@ -390,6 +391,10 @@ public class Table {
 		return propertyValueMap;
 	}
 	
+	public void setLastGeneratedKey(byte[] lastGeneratedKey) {
+		this.lastGeneratedKey = lastGeneratedKey;
+	}
+	
 	public String getName() {
 		return this.name;
 	}
@@ -412,5 +417,13 @@ public class Table {
 
 	public void setAutoGenerateKey(boolean autoGenerateKey) {
 		this.autoGenerateKey = autoGenerateKey;
+	}
+
+	public String getClassName() {
+		return className;
+	}
+
+	public void setClassName(String className) {
+		this.className = className;
 	}
 }

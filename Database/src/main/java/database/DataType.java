@@ -12,7 +12,7 @@ public enum DataType {
 	INT(4, int.class), 
 	LONG(8, long.class), 
 	DOUBLE(8, double.class), 
-	VARCHAR(2, char.class);
+	VARCHAR(2, String.class);
 	private static final Logger LOGGER = LoggerFactory.getLogger(DataType.class);
 	private final int length;
 	private final Class type;
@@ -100,7 +100,7 @@ public enum DataType {
 	
 	public Object getValue(byte[] fieldBytes) {
 		if (this == DataType.BOOLEAN) {
-			return (boolean) (fieldBytes[0] != 0);
+			return fieldBytes[0] != 0;
 		}
 		if (this == DataType.BYTE) {
 			return fieldBytes[0];

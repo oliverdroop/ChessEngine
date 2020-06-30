@@ -41,18 +41,28 @@ public class ObjectParser {
 	
 	public Object unparse(byte[] row, Table table) {
 		try {
-			String tableClassName = table.getName().substring(0, 1).toUpperCase() + table.getName().substring(1).toLowerCase();
+			String tableClassName = null;
+			if (table.getClassName() != null) {
+				tableClassName = table.getClassName();
+			}
+			else {
+				tableClassName = table.getName().substring(0, 1).toUpperCase() + table.getName().substring(1).toLowerCase();
+			}
 			Class tableClass = Class.forName(tableClassName);
-			Object o = tableClass.cast(new Object());
+			Object o = tableClass.cast(tableClass.newInstance());
 			for(Column column : table.getColumns().values()) {
 				String fieldName = column.getName();
 				String setterName = "set" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
 				byte[] fieldBytes = new byte[column.getLength()];
 				System.arraycopy(row, table.getIndexInRow(column), fieldBytes, 0, column.getLength());
-				o.getClass().getMethod(setterName).invoke(o, column.getDataType().getValue(fieldBytes));
-			}	
+				Object value = column.getDataType().getValue(fieldBytes);
+				Class parameterClass = column.getDataType().getType();
+				o.getClass().getMethod(setterName, parameterClass).invoke(o, value);
+			}
+			return o;
 		}
-		catch(ClassNotFoundException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
+		catch(ClassNotFoundException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException | InstantiationException e) {
+			e.printStackTrace();
 			LOGGER.warn(e.getMessage());
 		}
 		return null;
