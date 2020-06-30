@@ -181,25 +181,43 @@ public class TableTest {
 		
 		softly.assertThat(table.countRows()).as("Table %s should have a size of 5 when the test starts", table.getName()).isEqualTo(5);
 		table.deleteRow(focusId);
-		table.getAllRows().forEach(r -> LOGGER.info(table.getRowString(r)));
 		softly.assertThat(table.countRows()).as("Table %s should have a size of 4 after the first removal", table.getName()).isEqualTo(4);
 		
 		propertyStringMap.remove("model", "Focus");
 		propertyStringMap.put("taxed", "false");
 		table.deleteStringMatchedRows(propertyStringMap);
-		table.getAllRows().forEach(r -> LOGGER.info(table.getRowString(r)));
 		softly.assertThat(table.countRows()).as("Table %s should have a size of 3 after the second removal", table.getName()).isEqualTo(3);
 		
 		propertyStringMap.remove("taxed", "false");
 		propertyStringMap.put("colour", "Black");
 		table.deleteStringMatchedRows(propertyStringMap);
-		table.getAllRows().forEach(r -> LOGGER.info(table.getRowString(r)));
 		softly.assertThat(table.countRows()).as("Table %s should have a size of 1 after the third removal", table.getName()).isEqualTo(1);
 		
 		byte[] finalId = DataType.getBytes(3L);
 		table.deleteRow(finalId);
-		table.getAllRows().forEach(r -> LOGGER.info(table.getRowString(r)));
 		softly.assertThat(table.countRows()).as("Table %s should have a size of 0 after the final removal", table.getName()).isEqualTo(0);
+	}
+	
+	@Test
+	public void testUpdateRows() {
+		Table table = setUpMatchedRowsTestTable();
+		Map<String,String> propertyStringMap = new HashMap<>();
+		propertyStringMap.put("model", "Focus");
+		
+		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Only one Focus should exist in database").hasSize(1);
+		Map<String,String> updateMap = new HashMap<>();
+		updateMap.put("model", "Fiesta");
+		table.updateStringMatchedRows(propertyStringMap, updateMap);
+		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("No Focuses should exist in database").hasSize(0);
+		
+		propertyStringMap.remove("model", "Focus");
+		propertyStringMap.put("engineSize", "1.6");
+		updateMap.put("model", "Fiesta RS");
+		updateMap.put("colour", "Yellow");
+		updateMap.put("seats", "2");
+		
+		table.updateStringMatchedRows(propertyStringMap, updateMap);
+		softly.assertThat(table.getStringMatchedRows(updateMap)).as("Two updated cars should exist with the specified properties").hasSize(2);
 	}
 	
 	private Table setUpMatchedRowsTestTable() {

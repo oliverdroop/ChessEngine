@@ -288,17 +288,17 @@ public class Table {
 			LOGGER.warn("Unable to update rows without primary key for table {}", name);
 			return;
 		}
-		int rowIndex = getRowIndexById(id);
+		int rowIndex = getRowIndexById(id) * getRowLength();
 		for(String key : propertyValueMap.keySet()) {
 			if (!columns.containsKey(key)) {
-				LOGGER.warn("Unable to set property {} of row in table {} : No matching column found", key, name);
+				LOGGER.warn("Unable to set property {} of row {} in table {} : No matching column found", key, columns.get("id").getDataType().getValue(id), name);
 			}
 			int propertyIndex = getIndexInRow(key);
 			int propertyLength = columns.get(key).getLength();
 			byte[] newProperty = new byte[propertyLength];
 			System.arraycopy(propertyValueMap.get(key), 0, newProperty, 0, propertyValueMap.get(key).length);
 			System.arraycopy(newProperty, 0, data, rowIndex + propertyIndex, propertyLength);
-			LOGGER.debug("Successfully updated property {} of row in table {}", key, name);
+			LOGGER.info("Successfully updated property {} of row {} in table {}", key, columns.get("id").getDataType().getValue(id), name);
 		}
 	}
 	
