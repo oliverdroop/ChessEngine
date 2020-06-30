@@ -39,6 +39,7 @@ public class Table {
 			while(br.ready() || lines.size() == 0) {
 				lines.add(br.readLine());
 			}
+			br.close();
 			Map<String, Column> columns = new LinkedHashMap<>();
 			for(String line : lines) {
 				if (line.startsWith("DATABASE=")) {
@@ -119,13 +120,7 @@ public class Table {
 	}
 	
 	public List<byte[]> getStringMatchedRows(Map<String, String> propertyStringMap) {
-		Map<String, byte[]> propertyValueMap = new HashMap<>();
-		for(String fieldName : propertyStringMap.keySet()) {
-			Column column = columns.get(fieldName);
-			byte[] bytes = column.getDataType().getBytes(propertyStringMap.get(fieldName));
-			propertyValueMap.put(fieldName, bytes);
-		}
-		return getByteMatchedRows(propertyValueMap);
+		return getByteMatchedRows(getPropertyValueMap(propertyStringMap));
 	}
 	
 	public int getRowIndexById(Object id) {
@@ -253,6 +248,78 @@ public class Table {
 		}
 	}
 	
+	public void deleteRow(byte[] id) {
+		if (primaryKey == null) {
+			LOGGER.warn("Unable to delete row without primary key for table {}", name);
+			return;
+		}
+		int start = getRowIndexById(id);
+		int end = start + getRowLength();
+		int newLength = data.length - getRowLength();
+		byte[] newData = new byte[newLength];
+		if (start > 0) {
+			System.arraycopy(data, 0, newData, 0, start);
+		}
+		if (end <= newLength) {
+			System.arraycopy(data, end, newData, start, newLength - start);
+		}
+		data = newData;
+		LOGGER.info("Deleted row with id {} from table {}", columns.get(primaryKey).getDataType().getValueString(id), name);
+	}
+	
+	public void deleteByteMatchedRows(Map<String,byte[]> propertyValueMap) {
+		if (primaryKey == null) {
+			LOGGER.warn("Unable to delete byte matched rows without primary key for table {}", name);
+			return;
+		}
+		for(byte[] row : getByteMatchedRows(propertyValueMap)) {
+			byte[] id = getValueBytes(primaryKey, row);
+			deleteRow(id);
+		}
+	}
+	
+	public void deleteStringMatchedRows(Map<String,String> propertyStringMap) {
+		deleteByteMatchedRows(getPropertyValueMap(propertyStringMap));
+	}
+	
+	public void updateRowValues(byte[] id, Map<String,byte[]> propertyValueMap) {
+		if (primaryKey == null) {
+			LOGGER.warn("Unable to update rows without primary key for table {}", name);
+			return;
+		}
+		int rowIndex = getRowIndexById(id);
+		for(String key : propertyValueMap.keySet()) {
+			if (!columns.containsKey(key)) {
+				LOGGER.warn("Unable to set property {} of row in table {} : No matching column found", key, name);
+			}
+			int propertyIndex = getIndexInRow(key);
+			int propertyLength = columns.get(key).getLength();
+			byte[] newProperty = new byte[propertyLength];
+			System.arraycopy(propertyValueMap.get(key), 0, newProperty, 0, propertyValueMap.get(key).length);
+			System.arraycopy(newProperty, 0, data, rowIndex + propertyIndex, propertyLength);
+			LOGGER.debug("Successfully updated property {} of row in table {}", key, name);
+		}
+	}
+	
+	public void updateRowStrings(byte[] id, Map<String,String> propertyStringMap) {
+		updateRowValues(id, getPropertyValueMap(propertyStringMap));
+	}
+	
+	public void updateByteMatchedRows(Map<String,byte[]> searchMap, Map<String,byte[]> replacementMap){
+		if (primaryKey == null) {
+			LOGGER.warn("Unable to update rows without primary key for table {}", name);
+			return;
+		}
+		for(byte[] row : getByteMatchedRows(searchMap)) {
+			byte[] id = getValueBytes(primaryKey, row);
+			updateRowValues(id, replacementMap);
+		}
+	}
+	
+	public void updateStringMatchedRows(Map<String,String> searchMap, Map<String,String> replacementMap){
+		updateByteMatchedRows(getPropertyValueMap(searchMap), getPropertyValueMap(replacementMap));
+	}
+	
 	private byte[] generateKey() {
 		if (primaryKey == null) {
 			return null;
@@ -313,6 +380,16 @@ public class Table {
 		return rowString.toString();
 	}
 	
+	private Map<String,byte[]> getPropertyValueMap(Map<String, String> propertyStringMap){
+		Map<String, byte[]> propertyValueMap = new HashMap<>();
+		for(String fieldName : propertyStringMap.keySet()) {
+			Column column = columns.get(fieldName);
+			byte[] bytes = column.getDataType().getBytes(propertyStringMap.get(fieldName));
+			propertyValueMap.put(fieldName, bytes);
+		}
+		return propertyValueMap;
+	}
+	
 	public String getName() {
 		return this.name;
 	}
@@ -328,5 +405,12 @@ public class Table {
 	public void setData(byte[] data) {
 		this.data = data;
 	}
-	
+
+	public boolean isAutoGenerateKey() {
+		return autoGenerateKey;
+	}
+
+	public void setAutoGenerateKey(boolean autoGenerateKey) {
+		this.autoGenerateKey = autoGenerateKey;
+	}
 }

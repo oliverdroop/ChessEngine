@@ -139,6 +139,33 @@ public class TableTest {
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find no taxed Black 1.25 Fiestas with 2 seats").isEmpty();
 	}
 	
+	@Test
+	public void testAddDuplicatePrimaryKey() {
+		setUp();
+		Car car = createCar("D730DAV", "Ford", "Sierra", "Blue", 1986, (byte) 5, 1.4, false);
+		car.setId(0L);
+		ObjectParser parser = new ObjectParser(database);		
+		Table table = parser.getApplicableTable(car);
+		table.setAutoGenerateKey(false);
+		
+		table.addRow(parser.parse(car));
+		car.setId(1L);
+		softly.assertThat(table.countRows()).as("Table {} should contain only 1 row", table.getName()).isEqualTo(1);
+		table.addRow(parser.parse(car));
+		softly.assertThat(table.countRows()).as("Table {} should contain 2 rows", table.getName()).isEqualTo(2);
+		table.addRow(parser.parse(car));
+		softly.assertThat(table.countRows()).as("Table {} should contain 2 rows", table.getName()).isEqualTo(2);
+
+		table.setAutoGenerateKey(true);
+		table.addRow(parser.parse(car));
+		softly.assertThat(table.countRows()).as("Table {} should contain 3 rows", table.getName()).isEqualTo(3);
+		Map<String,String> propertyStringMap = new HashMap<>();
+		propertyStringMap.put("id", "1");
+		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Only 1 row should be returned with id of 1").hasSize(1);
+		propertyStringMap.put("id", "2");
+		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Only 1 row should be returned with id of 2").hasSize(1);
+	}
+	
 	private Table setUpMatchedRowsTestTable() {
 		int year = 2020;
 		ObjectParser parser = new ObjectParser(database);
