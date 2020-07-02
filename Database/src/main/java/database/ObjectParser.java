@@ -22,7 +22,7 @@ public class ObjectParser {
 			byte[] rowBytes = new byte[table.getRowLength()];
 			for(Column column : table.getColumns().values()) {
 				byte[] fieldBytes = new byte[column.getLength()];
-				String fieldName = column.getName();
+				String fieldName = getCamelCase(column.getName());
 				String getterPrefix = column.getDataType() == DataType.BOOLEAN ? "is" : "get";
 				String getterName = getterPrefix + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
 				Object fieldValue = o.getClass().getMethod(getterName).invoke(o);
@@ -51,7 +51,7 @@ public class ObjectParser {
 			Class tableClass = Class.forName(tableClassName);
 			Object o = tableClass.cast(tableClass.newInstance());
 			for(Column column : table.getColumns().values()) {
-				String fieldName = column.getName();
+				String fieldName = getCamelCase(column.getName());
 				String setterName = "set" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
 				byte[] fieldBytes = new byte[column.getLength()];
 				System.arraycopy(row, table.getIndexInRow(column), fieldBytes, 0, column.getLength());
@@ -70,5 +70,27 @@ public class ObjectParser {
 	
 	public Table getApplicableTable(Object o) {
 		return database.getTables().get(o.getClass().getSimpleName().toUpperCase());
+	}
+	
+	private String getCamelCase(String capitalized) {
+		String[] parts = capitalized.split("_");
+		String output = "";
+		for(String s : parts) {
+			output += s.substring(0, 1).toUpperCase() + s.substring(1).toLowerCase();
+		}
+		return output.substring(0, 1).toLowerCase() + output.substring(1);
+	}
+	
+	private String getCapitalizedString(String camelCase) {
+		String output = "";
+		for(String c : camelCase.split("(?!^)")) {
+			if (c == c.toLowerCase()) {
+				output += c.toUpperCase();
+			}
+			else {
+				output += "_" + c;
+			}
+		}
+		return output;
 	}
 }

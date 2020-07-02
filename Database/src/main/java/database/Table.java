@@ -64,7 +64,7 @@ public class Table {
 			}
 			this.columns = columns;
 			if (primaryKey != null && columns.get(primaryKey) == null) {
-				LOGGER.warn("No column {} exists in table {} : Unable to set idColumn", primaryKey, name);
+				LOGGER.warn("No column {} exists in table {} : Unable to set primaryKey", primaryKey, name);
 				primaryKey = null;
 			}
 			
@@ -296,7 +296,7 @@ public class Table {
 			byte[] newProperty = new byte[propertyLength];
 			System.arraycopy(propertyValueMap.get(key), 0, newProperty, 0, propertyValueMap.get(key).length);
 			System.arraycopy(newProperty, 0, data, rowIndex + propertyIndex, propertyLength);
-			LOGGER.info("Successfully updated property {} of row {} in table {}", key, columns.get("id").getDataType().getValue(id), name);
+			LOGGER.info("Successfully updated property {} of row {} in table {}", key, columns.get(primaryKey).getDataType().getValue(id), name);
 		}
 	}
 	

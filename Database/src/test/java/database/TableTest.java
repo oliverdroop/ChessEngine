@@ -90,27 +90,27 @@ public class TableTest {
 		Table table = setUpMatchedRowsTestTable();
 		
 		Map<String, byte[]> propertyValueMap = new HashMap<>();
-		propertyValueMap.put("colour", "Black".getBytes());
+		propertyValueMap.put("COLOUR", "Black".getBytes());
 		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find 3 black cars").hasSize(3);
 		
 		propertyValueMap = new HashMap<>();
-		propertyValueMap.put("engineSize", ByteBuffer.allocate(8).putDouble(1.25).array());
+		propertyValueMap.put("ENGINE_SIZE", ByteBuffer.allocate(8).putDouble(1.25).array());
 		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find 2 cars with engineSize 1.25").hasSize(2);
 		
 		propertyValueMap = new HashMap<>();
-		propertyValueMap.put("model", "Fiesta".getBytes());
+		propertyValueMap.put("MODEL", "Fiesta".getBytes());
 		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find 4 Fiestas").hasSize(4);
 		
-		propertyValueMap.put("colour", "Black".getBytes());
+		propertyValueMap.put("COLOUR", "Black".getBytes());
 		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find 3 Black Fiestas").hasSize(3);
 		
-		propertyValueMap.put("engineSize", ByteBuffer.allocate(8).putDouble(1.25).array());
+		propertyValueMap.put("ENGINE_SIZE", ByteBuffer.allocate(8).putDouble(1.25).array());
 		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find 2 Black Fiestas with engineSize 1.25").hasSize(2);
 		
-		propertyValueMap.put("taxed", new byte[] {1});
+		propertyValueMap.put("TAXED", new byte[] {1});
 		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find 1 taxed Black Fiesta with engineSize 1.25").hasSize(1);
 		
-		propertyValueMap.put("seats", new byte[] {2});
+		propertyValueMap.put("SEATS", new byte[] {2});
 		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find no taxed Black 1.25 Fiestas with 2 seats").isEmpty();
 	}
 	
@@ -119,27 +119,27 @@ public class TableTest {
 		Table table = setUpMatchedRowsTestTable();
 		
 		Map<String, String> propertyStringMap = new HashMap<>();
-		propertyStringMap.put("colour", "Black");
+		propertyStringMap.put("COLOUR", "Black");
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find 3 black cars").hasSize(3);
 		
 		propertyStringMap = new HashMap<>();
-		propertyStringMap.put("engineSize", "1.25");
+		propertyStringMap.put("ENGINE_SIZE", "1.25");
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find 2 cars with engineSize 1.25").hasSize(2);
 		
 		propertyStringMap = new HashMap<>();
-		propertyStringMap.put("model", "Fiesta");
+		propertyStringMap.put("MODEL", "Fiesta");
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find 4 Fiestas").hasSize(4);
 		
-		propertyStringMap.put("colour", "Black");
+		propertyStringMap.put("COLOUR", "Black");
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find 3 Black Fiestas").hasSize(3);
 		
-		propertyStringMap.put("engineSize", "1.25");
+		propertyStringMap.put("ENGINE_SIZE", "1.25");
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find 2 Black Fiestas with engineSize 1.25").hasSize(2);
 		
-		propertyStringMap.put("taxed", "true");
+		propertyStringMap.put("TAXED", "true");
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find 1 taxed Black Fiesta with engineSize 1.25").hasSize(1);
 		
-		propertyStringMap.put("seats", "2");
+		propertyStringMap.put("SEATS", "2");
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find no taxed Black 1.25 Fiestas with 2 seats").isEmpty();
 	}
 	
@@ -164,9 +164,9 @@ public class TableTest {
 		table.addRow(parser.parse(car));
 		softly.assertThat(table.countRows()).as("Table %s should contain 3 rows", table.getName()).isEqualTo(3);
 		Map<String,String> propertyStringMap = new HashMap<>();
-		propertyStringMap.put("id", "1");
+		propertyStringMap.put("ID", "1");
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Only 1 row should be returned with id of 1").hasSize(1);
-		propertyStringMap.put("id", "2");
+		propertyStringMap.put("ID", "2");
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Only 1 row should be returned with id of 2").hasSize(1);
 	}
 	
@@ -174,7 +174,7 @@ public class TableTest {
 	public void testDeleteRows() {
 		Table table = setUpMatchedRowsTestTable();
 		Map<String,String> propertyStringMap = new HashMap<>();
-		propertyStringMap.put("model", "Focus");
+		propertyStringMap.put("MODEL", "Focus");
 		ObjectParser parser = new ObjectParser(database);
 		Car focus = (Car)parser.unparse(table.getStringMatchedRows(propertyStringMap).get(0), table);
 		byte[] focusId = DataType.getBytes(focus.getId());
@@ -183,13 +183,13 @@ public class TableTest {
 		table.deleteRow(focusId);
 		softly.assertThat(table.countRows()).as("Table %s should have a size of 4 after the first removal", table.getName()).isEqualTo(4);
 		
-		propertyStringMap.remove("model", "Focus");
-		propertyStringMap.put("taxed", "false");
+		propertyStringMap.remove("MODEL", "Focus");
+		propertyStringMap.put("TAXED", "false");
 		table.deleteStringMatchedRows(propertyStringMap);
 		softly.assertThat(table.countRows()).as("Table %s should have a size of 3 after the second removal", table.getName()).isEqualTo(3);
 		
-		propertyStringMap.remove("taxed", "false");
-		propertyStringMap.put("colour", "Black");
+		propertyStringMap.remove("TAXED", "false");
+		propertyStringMap.put("COLOUR", "Black");
 		table.deleteStringMatchedRows(propertyStringMap);
 		softly.assertThat(table.countRows()).as("Table %s should have a size of 1 after the third removal", table.getName()).isEqualTo(1);
 		
@@ -202,19 +202,19 @@ public class TableTest {
 	public void testUpdateRows() {
 		Table table = setUpMatchedRowsTestTable();
 		Map<String,String> propertyStringMap = new HashMap<>();
-		propertyStringMap.put("model", "Focus");
+		propertyStringMap.put("MODEL", "Focus");
 		
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Only one Focus should exist in database").hasSize(1);
 		Map<String,String> updateMap = new HashMap<>();
-		updateMap.put("model", "Fiesta");
+		updateMap.put("MODEL", "Fiesta");
 		table.updateStringMatchedRows(propertyStringMap, updateMap);
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("No Focuses should exist in database").hasSize(0);
 		
-		propertyStringMap.remove("model", "Focus");
-		propertyStringMap.put("engineSize", "1.6");
-		updateMap.put("model", "Fiesta RS");
-		updateMap.put("colour", "Yellow");
-		updateMap.put("seats", "2");
+		propertyStringMap.remove("MODEL", "Focus");
+		propertyStringMap.put("ENGINE_SIZE", "1.6");
+		updateMap.put("MODEL", "Fiesta RS");
+		updateMap.put("COLOUR", "Yellow");
+		updateMap.put("SEATS", "2");
 		
 		table.updateStringMatchedRows(propertyStringMap, updateMap);
 		softly.assertThat(table.getStringMatchedRows(updateMap)).as("Two updated cars should exist with the specified properties").hasSize(2);
