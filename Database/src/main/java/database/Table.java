@@ -179,13 +179,11 @@ public class Table {
 		return getValueBytes(columns.get(columnName), row);
 	}
 	
-	public List<byte[]> getAllRows(){
+	public byte[][] getAllRows(){
 		int rowCount = data.length / getRowLength();
-		List<byte[]> output = new ArrayList<>(rowCount);
+		byte[][] output = new byte[rowCount][getRowLength()];
 		for(int i = 0; i < rowCount; i++) {
-			byte[] row = new byte[getRowLength()];
-			System.arraycopy(data, i * getRowLength(), row, 0, getRowLength());
-			output.add(row); 
+			System.arraycopy(data, i * getRowLength(), output[i], 0, getRowLength());
 		}
 		return output;
 	}
