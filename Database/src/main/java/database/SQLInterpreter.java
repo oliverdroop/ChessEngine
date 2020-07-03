@@ -36,10 +36,32 @@ public class SQLInterpreter {
 		for(int i = 0; i < parts0.length; i++) {
 			if (i % 2 == 0) {
 				String[] parts1 = parts0[i].split(" ");
-				Arrays.asList(parts1).forEach(s -> output.add(s.toUpperCase()));
+				for(String s : parts1) {
+					output.add(s.toUpperCase());
+				}
 			}
 			else {
 				output.add(parts0[i]);
+			}
+		}
+		output = separateSubstrings(output, "=");
+		return output;
+	}
+	
+	private List<String> separateSubstrings(List<String> strings, String pattern){
+		List<String> output = new ArrayList<>();
+		for(String s : strings) {
+			if (!s.equals(pattern) && s.contains(pattern)) {
+				String[] parts = s.split(pattern, 0);
+				for(int i = 0; i < parts.length; i++) {
+					output.add(parts[i]);
+					if (i < parts.length - 1) {
+						output.add(pattern);
+					}
+				}
+			}
+			else {
+				output.add(s);
 			}
 		}
 		return output;
