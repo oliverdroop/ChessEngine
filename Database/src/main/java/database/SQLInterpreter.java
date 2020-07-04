@@ -3,6 +3,7 @@ package database;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -18,15 +19,14 @@ public class SQLInterpreter {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(SQLInterpreter.class);
 	
-	private static final Set<String> INSTRUCTION_KEYWORDS = (Set) Arrays.asList("INSERT", "SELECT DISTINCT", "SELECT", "UPDATE", "DELETE");
+	private static final Set<String> INSTRUCTION_KEYWORDS = new HashSet<>(Arrays.asList("INSERT", "SELECT DISTINCT", "SELECT", "UPDATE", "DELETE"));
 	
-	private static final Set<String> TABLE_IDENTIFIER_KEYWORDS = (Set) Arrays.asList("FROM", "INTO");
+	private static final Set<String> TABLE_IDENTIFIER_KEYWORDS = new HashSet<>(Arrays.asList("FROM", "INTO"));
 	
-	private static final Set<String> EXPRESSION_KEYWORDS = (Set) Arrays.asList( "WHERE", "AND" );
+	private static final Set<String> EXPRESSION_KEYWORDS = new HashSet<>(Arrays.asList( "WHERE", "AND" ));
 	
-	public String executeQuery(String queryString, Database database) {
-		List<String> words = getWords(getCleanQuery(queryString));
-		Query query = new Query(words, database);
+	public String executeQuery(String queryString, Database database) {		
+		Query query = new Query(getSQLPhrases(queryString), database);
 		List<String> outputLines = query.execute();
 		StringBuilder outputBuilder = new StringBuilder();
 		outputLines.forEach(line -> outputBuilder.append(System.lineSeparator() + line));
@@ -46,7 +46,7 @@ public class SQLInterpreter {
 		String[] parts0 = separateSingleQuotedStrings(query);
 		//capitalize non-quoted phrases
 		for(int i = 0; i < parts0.length; i += 2) {
-			parts0[i] = parts0[i].toUpperCase();			
+			parts0[i] = parts0[i].toUpperCase();
 		}
 		List<SQLPhrase> phrases = new ArrayList<>();
 		
@@ -62,24 +62,27 @@ public class SQLInterpreter {
 				int ik = part.indexOf(firstKeyword);
 				if (ik != 0) {
 					phrases.add(new SQLPhrase(part.substring(0, ik)));
-					firstKeyword = getFirstKeyword(part.substring(ik));
+					part = part.substring(ik);
+					//firstKeyword = getFirstKeyword(part);
 				}
 				else {
 					SQLPhrase phrase = new SQLPhrase(part.substring(0, firstKeyword.length()));
+					part = part.substring(firstKeyword.length());
 					phrase.setType(PhraseType.KEYWORD);
 					phrase.setKeywordType(getKeywordType(phrase.getString()));
 					phrases.add(phrase);
-					firstKeyword = getFirstKeyword(part.substring(firstKeyword.length()));
+					firstKeyword = getFirstKeyword(part);
 				}
 				if (firstKeyword == null) {
-					phrases.add(new SQLPhrase(firstKeyword));
+					phrases.add(new SQLPhrase(part));
 				}
 			}
 		}
 		
-		//categorize phrases which aren't values or keywords
+		//categorize phrases which aren't values or keywords and remove spaces
 		for(int i = 0; i < phrases.size(); i++) {
 			SQLPhrase phrase = phrases.get(i);
+			phrase.setString(phrase.getString().replace(" ", ""));
 			if (phrase.getType() == null && i > 0 && phrases.get(i - 1).getType() == PhraseType.KEYWORD) {
 				if (phrases.get(i - 1).getKeywordType() == KeywordType.INSTRUCTION) {
 					phrase.setType(PhraseType.COLUMN_NAME);
@@ -109,24 +112,6 @@ public class SQLInterpreter {
 			output.add(phrase.substring(0, keywordLength));
 			output.add(phrase.substring(keywordLength));
 		}
-		return output;
-	}
-	
-	private List<String> getWords(String query) {
-		List<String> output = new ArrayList<>();
-		String[] parts0 = separateSingleQuotedStrings(query);
-		for(int i = 0; i < parts0.length; i++) {
-			if (i % 2 == 0) {
-				String[] parts1 = parts0[i].split(" ");
-				for(String s : parts1) {
-					output.add(s.toUpperCase());
-				}
-			}
-			else {
-				output.add(parts0[i]);
-			}
-		}
-		output = separateSubstrings(output, "=");
 		return output;
 	}
 	

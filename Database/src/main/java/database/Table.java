@@ -366,11 +366,15 @@ public class Table {
     	}
 	}
 	
+	public String getValueString(Column column, byte[] row) {
+		return column.getDataType().getValueString(getValueBytes(column, row));
+	}
+	
 	public String getRowString(byte[] row) {
 		StringBuilder rowString = new StringBuilder();
 		int count = 0;
 		for(Column column : columns.values()) {
-			rowString.append(column.getDataType().getValueString(getValueBytes(column, row)));
+			rowString.append(getValueString(column, row));
 			count += 1;
 			if (count < columns.keySet().size()) {
 				rowString.append("\t");

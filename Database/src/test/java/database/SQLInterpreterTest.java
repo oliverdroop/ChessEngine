@@ -34,7 +34,7 @@ public class SQLInterpreterTest {
 	@Test
 	public void test1() {
 		
-		String query = "select * from Car where colour = 'Orange';";
+		String query = "select Registration, Manufacturer, Model from Car where colour = 'Orange';";
 		String path = rootDirectory;
 		path += File.separator;
 		path += "src" + File.separator;
