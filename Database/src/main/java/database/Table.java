@@ -247,10 +247,10 @@ public class Table {
 		}
 	}
 	
-	public void deleteRow(byte[] id) {
+	public int deleteRow(byte[] id) {
 		if (primaryKey == null) {
 			LOGGER.warn("Unable to delete row without primary key for table {}", name);
-			return;
+			return -1;
 		}
 		int start = getRowIndexById(id) * getRowLength();
 		int end = start + getRowLength();
@@ -264,21 +264,24 @@ public class Table {
 		}
 		data = newData;
 		LOGGER.info("Deleted row with id {} from table {}", columns.get(primaryKey).getDataType().getValueString(id), name);
+		return 1;
 	}
 	
-	public void deleteByteMatchedRows(Map<String,byte[]> propertyValueMap) {
+	public int deleteByteMatchedRows(Map<String,byte[]> propertyValueMap) {
 		if (primaryKey == null) {
 			LOGGER.warn("Unable to delete byte matched rows without primary key for table {}", name);
-			return;
+			return -1;
 		}
+		int count = 0;
 		for(byte[] row : getByteMatchedRows(propertyValueMap)) {
 			byte[] id = getValueBytes(primaryKey, row);
-			deleteRow(id);
+			count += deleteRow(id);
 		}
+		return count;
 	}
 	
-	public void deleteStringMatchedRows(Map<String,String> propertyStringMap) {
-		deleteByteMatchedRows(getPropertyValueMap(propertyStringMap));
+	public int deleteStringMatchedRows(Map<String,String> propertyStringMap) {
+		return deleteByteMatchedRows(getPropertyValueMap(propertyStringMap));
 	}
 	
 	public void updateRowValues(byte[] id, Map<String,byte[]> propertyValueMap) {

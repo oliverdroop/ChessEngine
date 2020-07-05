@@ -25,12 +25,8 @@ public class SQLInterpreter {
 	
 	private static final Set<String> EXPRESSION_KEYWORDS = new HashSet<>(Arrays.asList( "WHERE", "AND" ));
 	
-	public String executeQuery(String queryString, Database database) {		
-		Query query = new Query(getSQLPhrases(queryString), database);
-		List<String> outputLines = query.execute();
-		StringBuilder outputBuilder = new StringBuilder();
-		outputLines.forEach(line -> outputBuilder.append(System.lineSeparator() + line));
-		return outputBuilder.toString();
+	public Query buildQuery(String queryString, Database database) {
+		return new Query(getSQLPhrases(queryString), database);
 	}
 	
 	private String getCleanQuery(String query) {

@@ -119,28 +119,34 @@ public class Query {
 			if (instruction.getString().equals("INSERT")) {
 				
 			}
-			if (instruction.getString().equals("SELECT")) {
-				if (!conditions.isEmpty()) {
-					List<byte[]> rows = table.getStringMatchedRows(conditions);
-					if (!targets.isEmpty()) {
-						List<Column> columns = targets.stream().map(t -> getColumn(t)).collect(Collectors.toList());
-						for(byte[] row : rows) {
-							StringBuilder rowStringBuilder = new StringBuilder();
-							for(Column column : columns) {
-								rowStringBuilder.append(table.getValueString(column, row));
-								rowStringBuilder.append("\t");
-							}
-							output.add(rowStringBuilder.toString());
-						}
-					}
+			if (instruction.getString().equals("SELECT") && !conditions.isEmpty()) {
+				List<byte[]> rows = table.getStringMatchedRows(conditions);
+				if (!targets.isEmpty()) {
+					return getTargetColumnsFromRows(rows);
 				}
 			}
 			if (instruction.getString().equals("UPDATE")) {
 				
 			}
-			if (instruction.getString().equals("DELETE")) {
-				
+			if (instruction.getString().equals("DELETE") && !conditions.isEmpty()) {
+				int count = table.deleteStringMatchedRows(conditions);
+				String message = String.format("Deleted %d rows from table %s", count, table.getName());
+				output.add(message);
 			}
+		}
+		return output;
+	}
+	
+	public List<String> getTargetColumnsFromRows(List<byte[]> rows){
+		List<String> output = new ArrayList<>();
+		List<Column> columns = targets.stream().map(t -> getColumn(t)).collect(Collectors.toList());
+		for(byte[] row : rows) {
+			StringBuilder rowStringBuilder = new StringBuilder();
+			for(Column column : columns) {
+				rowStringBuilder.append(table.getValueString(column, row));
+				rowStringBuilder.append("\t");
+			}
+			output.add(rowStringBuilder.toString());
 		}
 		return output;
 	}
