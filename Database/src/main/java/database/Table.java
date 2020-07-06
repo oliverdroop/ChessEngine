@@ -386,6 +386,18 @@ public class Table {
 		return rowString.toString();
 	}
 	
+	public byte[] buildRow(Map<String,String> propertyStringMap) {
+		byte[] row = new byte[getRowLength()];
+		Map<String,byte[]> propertyValueMap = getPropertyValueMap(propertyStringMap);
+		for(String columnName : propertyValueMap.keySet()) {
+			Column column = columns.get(columnName);
+			int i = this.getIndexInRow(column);
+			int length = column.getLength();
+			System.arraycopy(propertyValueMap.get(columnName), 0, row, i, length);
+		}
+		return row;
+	}
+	
 	private Map<String,byte[]> getPropertyValueMap(Map<String, String> propertyStringMap){
 		Map<String, byte[]> propertyValueMap = new HashMap<>();
 		for(String fieldName : propertyStringMap.keySet()) {

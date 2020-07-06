@@ -17,6 +17,8 @@ public class Query {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(Query.class);
 	
+	private List<SQLPhrase> sqlStatement;
+	
 	private Database database;
 	
 	private Table table;
@@ -27,15 +29,19 @@ public class Query {
 	
 	private List<String> targets;
 	
+	private List<String> values;
+	
 	public Query(List<SQLPhrase> sqlStatement, Database database) {
+		this.sqlStatement = sqlStatement;
 		this.database = database;
-		instruction = extractInstruction(sqlStatement);
-		table = extractTable(sqlStatement);
-		conditions = extractConditions(sqlStatement);
-		targets = extractTargets(sqlStatement);
+		instruction = extractInstruction();
+		table = extractTable();
+		conditions = extractConditions();
+		targets = extractTargets();
+		values = extractValues();
 	}
 	
-	private SQLPhrase extractInstruction(List<SQLPhrase> sqlStatement) {
+	private SQLPhrase extractInstruction() {
 		for(int i = 0; i < sqlStatement.size(); i++) {
 			SQLPhrase phrase = sqlStatement.get(i);
 			if (phrase.getKeywordType() != null && phrase.getKeywordType() == KeywordType.INSTRUCTION) {
@@ -45,20 +51,25 @@ public class Query {
 		return null;
 	}
 	
-	private Table extractTable(List<SQLPhrase> sqlStatement) {
+	private Table extractTable() {
 		for(int i = 0; i < sqlStatement.size(); i++) {
 			SQLPhrase phrase0 = sqlStatement.get(i);
 			if (phrase0.getKeywordType() != null && phrase0.getKeywordType() == KeywordType.TABLE_IDENTIFIER && i + 1 < sqlStatement.size()) {
 				SQLPhrase phrase1 = sqlStatement.get(i + 1);
 				if (phrase1.getType() == PhraseType.TABLE_NAME) {
-					return database.getTables().get(phrase1.getString());
+					if (phrase1.getString().contains("(")) {
+						String[] parts = phrase1.getString().split("(");
+						sqlStatement.add(i + 2, new SQLPhrase(parts[1].replace(")", ""), PhraseType.COLUMN_NAME));
+						phrase1 = new SQLPhrase(parts[0], PhraseType.TABLE_NAME);
+					}
+					return database.getTables().get(phrase1.getString());									
 				}
 			}
-		}
+		}		
 		return null;
 	}
 	
-	private Map<String,String> extractConditions(List<SQLPhrase> sqlStatement){
+	private Map<String,String> extractConditions(){
 		Map<String, String> equalityConditions = new HashMap<>();
 		for(int i = 0; i < sqlStatement.size(); i++) {
 			SQLPhrase phrase0 = sqlStatement.get(i);
@@ -77,13 +88,13 @@ public class Query {
 		return equalityConditions;
 	}
 	
-	private List<String> extractTargets(List<SQLPhrase> sqlStatement){
+	private List<String> extractTargets(){
 		List<String> targets = new ArrayList<>();
 		for(int i = 0; i < sqlStatement.size(); i++) {
 			SQLPhrase phrase0 = sqlStatement.get(i);
 			if (phrase0.getType() == PhraseType.COLUMN_NAME && i > 0) {
 				SQLPhrase phrase1 = sqlStatement.get(i - 1);
-				if (phrase1.getKeywordType() != null && phrase1.getKeywordType() == KeywordType.INSTRUCTION) {
+				if ((phrase1.getKeywordType() != null && phrase1.getKeywordType() == KeywordType.INSTRUCTION) || phrase1.getType() == PhraseType.TABLE_NAME) {
 					for(String columnName : phrase0.getString().split(",")) {
 						if (columnName.equals("*")) {
 							table.getColumns().values().forEach(c -> targets.add(c.getName()));
@@ -99,6 +110,17 @@ public class Query {
 			}
 		}
 		return targets;
+	}
+	
+	private List<String> extractValues(){
+		List<String> values = new ArrayList<>();
+		for(int i = 0; i < sqlStatement.size(); i++) {
+			SQLPhrase phrase0 = sqlStatement.get(i);
+			if (phrase0.getType() == PhraseType.VALUE) {
+				values.add(phrase0.getString());
+			}
+		}
+		return values;
 	}
 	
 	private Column getColumn(String columnName) {
@@ -117,7 +139,13 @@ public class Query {
 		List<String> output = new ArrayList<>();
 		if (table != null && instruction != null) {
 			if (instruction.getString().equals("INSERT")) {
-				
+				if (!targets.isEmpty() && !values.isEmpty() && targets.size() == values.size()) {
+					Map<String,String> insertMap = new HashMap<>();
+					for(int i = 0; i < targets.size(); i++) {
+						insertMap.put(targets.get(i), values.get(i));
+					}
+					table.addRow(table.buildRow(insertMap));
+				}
 			}
 			if (instruction.getString().equals("SELECT") && !conditions.isEmpty()) {
 				List<byte[]> rows = table.getStringMatchedRows(conditions);
