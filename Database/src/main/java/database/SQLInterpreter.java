@@ -23,7 +23,7 @@ public class SQLInterpreter {
 	
 	private static final Set<String> TABLE_IDENTIFIER_KEYWORDS = new HashSet<>(Arrays.asList("FROM", "INTO"));
 	
-	private static final Set<String> EXPRESSION_KEYWORDS = new HashSet<>(Arrays.asList( "WHERE", "AND" ));
+	private static final Set<String> EXPRESSION_KEYWORDS = new HashSet<>(Arrays.asList( "WHERE", "AND", "VALUES"));
 	
 	public Query buildQuery(String queryString, Database database) {
 		return new Query(getSQLPhrases(queryString), database);

@@ -58,9 +58,10 @@ public class Query {
 				SQLPhrase phrase1 = sqlStatement.get(i + 1);
 				if (phrase1.getType() == PhraseType.TABLE_NAME) {
 					if (phrase1.getString().contains("(")) {
-						String[] parts = phrase1.getString().split("(");
+						String[] parts = phrase1.getString().split("\\(");
 						sqlStatement.add(i + 2, new SQLPhrase(parts[1].replace(")", ""), PhraseType.COLUMN_NAME));
 						phrase1 = new SQLPhrase(parts[0], PhraseType.TABLE_NAME);
+						sqlStatement.set(i + 1, phrase1);
 					}
 					return database.getTables().get(phrase1.getString());									
 				}
@@ -144,7 +145,8 @@ public class Query {
 					for(int i = 0; i < targets.size(); i++) {
 						insertMap.put(targets.get(i), values.get(i));
 					}
-					table.addRow(table.buildRow(insertMap));
+					int rowsAdded = table.addRow(table.buildRow(insertMap));
+					output.add(String.format("Inserted %d row into table %s", rowsAdded, table.getName()));
 				}
 			}
 			if (instruction.getString().equals("SELECT") && !conditions.isEmpty()) {

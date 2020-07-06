@@ -233,7 +233,7 @@ public class Table {
 		return true;
 	}
 	
-	public void addRow(byte[] row) {
+	public int addRow(byte[] row) {
 		if (data == null) {
 			data = new byte[0];
 		}
@@ -244,7 +244,9 @@ public class Table {
 			data = newData;
 			LOGGER.info("Added data row. New length: {}", data.length);
 			LOGGER.info(getRowString(row));
+			return 1;
 		}
+		return 0;
 	}
 	
 	public int deleteRow(byte[] id) {
@@ -391,9 +393,9 @@ public class Table {
 		Map<String,byte[]> propertyValueMap = getPropertyValueMap(propertyStringMap);
 		for(String columnName : propertyValueMap.keySet()) {
 			Column column = columns.get(columnName);
-			int i = this.getIndexInRow(column);
-			int length = column.getLength();
-			System.arraycopy(propertyValueMap.get(columnName), 0, row, i, length);
+			int i = getIndexInRow(column);
+			byte[] value = propertyValueMap.get(columnName);
+			System.arraycopy(value, 0, row, i, value.length);
 		}
 		return row;
 	}
