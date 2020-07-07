@@ -44,7 +44,7 @@ public class Query {
 	private SQLPhrase extractInstruction() {
 		for(int i = 0; i < sqlStatement.size(); i++) {
 			SQLPhrase phrase = sqlStatement.get(i);
-			if (phrase.getKeywordType() != null && phrase.getKeywordType() == KeywordType.INSTRUCTION) {
+			if (!phrase.getKeywordTypes().isEmpty() && phrase.getKeywordTypes().contains(KeywordType.INSTRUCTION)) {
 				return phrase;
 			}
 		}
@@ -54,7 +54,7 @@ public class Query {
 	private Table extractTable() {
 		for(int i = 0; i < sqlStatement.size(); i++) {
 			SQLPhrase phrase0 = sqlStatement.get(i);
-			if (phrase0.getKeywordType() != null && phrase0.getKeywordType() == KeywordType.TABLE_IDENTIFIER && i + 1 < sqlStatement.size()) {
+			if (!phrase0.getKeywordTypes().isEmpty() && phrase0.getKeywordTypes().contains(KeywordType.TABLE_IDENTIFIER) && i + 1 < sqlStatement.size()) {
 				SQLPhrase phrase1 = sqlStatement.get(i + 1);
 				if (phrase1.getType() == PhraseType.TABLE_NAME) {
 					if (phrase1.getString().contains("(")) {
@@ -74,7 +74,7 @@ public class Query {
 		Map<String, String> equalityConditions = new HashMap<>();
 		for(int i = 0; i < sqlStatement.size(); i++) {
 			SQLPhrase phrase0 = sqlStatement.get(i);
-			if (phrase0.getKeywordType() != null && phrase0.getKeywordType() == KeywordType.EXPRESSION && i + 2 < sqlStatement.size()) {
+			if (!phrase0.getKeywordTypes().isEmpty() && phrase0.getKeywordTypes().contains(KeywordType.EXPRESSION) && i + 2 < sqlStatement.size()) {
 				SQLPhrase phrase1 = sqlStatement.get(i + 1);
 				SQLPhrase phrase2 = sqlStatement.get(i + 2);
 				if (phrase1.getString().endsWith("=")) {
@@ -94,9 +94,10 @@ public class Query {
 		for(int i = 0; i < sqlStatement.size(); i++) {
 			SQLPhrase phrase0 = sqlStatement.get(i);
 			if (phrase0.getType() == PhraseType.COLUMN_NAME && i > 0) {
-				SQLPhrase phrase1 = sqlStatement.get(i - 1);
-				if ((phrase1.getKeywordType() != null && phrase1.getKeywordType() == KeywordType.INSTRUCTION) || phrase1.getType() == PhraseType.TABLE_NAME) {
-					for(String columnName : phrase0.getString().split(",")) {
+				SQLPhrase previousKeyword = SQLInterpreter.getPreviousKeyword(phrase0, sqlStatement);
+				SQLPhrase previousPhrase = sqlStatement.get(i - 1);
+				if ((!previousKeyword.getKeywordTypes().isEmpty() && previousKeyword.getKeywordTypes().contains(KeywordType.INSTRUCTION)) || previousPhrase.getType() == PhraseType.TABLE_NAME) {
+					for(String columnName : phrase0.getString().replace("=", "").split(",")) {
 						if (columnName.equals("*")) {
 							table.getColumns().values().forEach(c -> targets.add(c.getName()));
 						}
@@ -117,7 +118,7 @@ public class Query {
 		List<String> values = new ArrayList<>();
 		for(int i = 0; i < sqlStatement.size(); i++) {
 			SQLPhrase phrase0 = sqlStatement.get(i);
-			if (phrase0.getType() == PhraseType.VALUE) {
+			if (phrase0.getType() == PhraseType.VALUE && !conditions.values().contains(phrase0.getString())) {
 				values.add(phrase0.getString());
 			}
 		}
@@ -156,7 +157,22 @@ public class Query {
 				}
 			}
 			if (instruction.getString().equals("UPDATE")) {
-				
+				if (!targets.isEmpty() && !values.isEmpty() && targets.size() == values.size()) {
+					Map<String,String> updateMap = new HashMap<>();
+					for(int i = 0; i < targets.size(); i++) {
+						updateMap.put(targets.get(i), values.get(i));
+					}
+					int rowsUpdated = 0;
+					if (!conditions.isEmpty()) {
+						rowsUpdated = table.updateStringMatchedRows(conditions, updateMap);
+					}
+					else {
+						for(int i = 0; i < table.getAllRows().length; i++) {							
+							rowsUpdated += table.updateRowStrings(i, updateMap);
+						}
+					}
+					output.add(String.format("Updated %d rows in table %s", rowsUpdated, table.getName()));
+				}
 			}
 			if (instruction.getString().equals("DELETE") && !conditions.isEmpty()) {
 				int count = table.deleteStringMatchedRows(conditions);

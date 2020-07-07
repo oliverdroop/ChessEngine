@@ -71,6 +71,19 @@ public class SQLInterpreterTest {
 		softly.assertThat(database.getTables().get("CAR").getAllRows()).hasSize(1);
 	}
 	
+	@Test
+	public void testUpdate() {
+		loadData();
+		String queryString = "update Car set colour = 'Red', taxed = 'false' where colour = 'Orange' and year_of_registration = '2002';";
+		
+		Query query = interpreter.buildQuery(queryString, database);
+		List<String> result = query.execute();
+		result.forEach(line -> LOGGER.info(line));
+		
+		softly.assertThat(result).as("Only one line should be returned").hasSize(1);
+		softly.assertThat(result.get(0)).isEqualTo("Updated 5 rows in table CAR");
+	}
+	
 	private static String getDataDirectory() {
 		String directory = rootDirectory;
 		directory += File.separator;

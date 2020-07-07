@@ -19,9 +19,9 @@ public class SQLInterpreter {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(SQLInterpreter.class);
 	
-	private static final Set<String> INSTRUCTION_KEYWORDS = new HashSet<>(Arrays.asList("INSERT", "SELECT DISTINCT", "SELECT", "UPDATE", "DELETE"));
+	private static final Set<String> INSTRUCTION_KEYWORDS = new HashSet<>(Arrays.asList("INSERT", "SELECT DISTINCT", "SELECT", "UPDATE", "DELETE", "SET"));
 	
-	private static final Set<String> TABLE_IDENTIFIER_KEYWORDS = new HashSet<>(Arrays.asList("FROM", "INTO"));
+	private static final Set<String> TABLE_IDENTIFIER_KEYWORDS = new HashSet<>(Arrays.asList("FROM", "INTO", "UPDATE"));
 	
 	private static final Set<String> EXPRESSION_KEYWORDS = new HashSet<>(Arrays.asList( "WHERE", "AND", "VALUES"));
 	
@@ -59,19 +59,18 @@ public class SQLInterpreter {
 				if (ik != 0) {
 					phrases.add(new SQLPhrase(part.substring(0, ik)));
 					part = part.substring(ik);
-					//firstKeyword = getFirstKeyword(part);
 				}
 				else {
 					SQLPhrase phrase = new SQLPhrase(part.substring(0, firstKeyword.length()));
 					part = part.substring(firstKeyword.length());
 					phrase.setType(PhraseType.KEYWORD);
-					phrase.setKeywordType(getKeywordType(phrase.getString()));
+					phrase.setKeywordTypes(getKeywordTypes(phrase.getString()));
 					phrases.add(phrase);
 					firstKeyword = getFirstKeyword(part);
 				}
-				if (firstKeyword == null) {
-					phrases.add(new SQLPhrase(part));
-				}
+			}
+			if (firstKeyword == null) {
+				phrases.add(new SQLPhrase(part));
 			}
 		}
 		
@@ -79,14 +78,20 @@ public class SQLInterpreter {
 		for(int i = 0; i < phrases.size(); i++) {
 			SQLPhrase phrase = phrases.get(i);
 			phrase.setString(phrase.getString().replace(" ", ""));
-			if (phrase.getType() == null && i > 0 && phrases.get(i - 1).getType() == PhraseType.KEYWORD) {
-				if (phrases.get(i - 1).getKeywordType() == KeywordType.INSTRUCTION) {
-					phrase.setType(PhraseType.COLUMN_NAME);
+			SQLPhrase previousKeyword = getPreviousKeyword(phrase, phrases);
+			if (phrase.getType() == null && i > 0 && previousKeyword.getType() == PhraseType.KEYWORD) {				
+				if (previousKeyword.getKeywordTypes().contains(KeywordType.INSTRUCTION)) {
+					if (previousKeyword.getKeywordTypes().contains(KeywordType.TABLE_IDENTIFIER)) {
+						phrase.setType(PhraseType.TABLE_NAME);
+					}
+					else {
+						phrase.setType(PhraseType.COLUMN_NAME);
+					}
 				}
-				if (phrases.get(i - 1).getKeywordType() == KeywordType.TABLE_IDENTIFIER) {
+				if (previousKeyword.getKeywordTypes().contains(KeywordType.TABLE_IDENTIFIER)) {
 					phrase.setType(PhraseType.TABLE_NAME);
 				}
-				if (phrases.get(i - 1).getKeywordType() == KeywordType.EXPRESSION) {
+				if (previousKeyword.getKeywordTypes().contains(KeywordType.EXPRESSION)) {
 					phrase.setType(PhraseType.COLUMN_NAME);
 				}
 			}
@@ -130,6 +135,16 @@ public class SQLInterpreter {
 		return output;
 	}
 	
+	public static SQLPhrase getPreviousKeyword(SQLPhrase currentPhrase, List<SQLPhrase> allPhrases) {
+		for(int i = allPhrases.indexOf(currentPhrase) - 1; i >= 0 ; i--) {
+			SQLPhrase earlierPhrase = allPhrases.get(i);
+			if (earlierPhrase.getType() == PhraseType.KEYWORD) {
+				return earlierPhrase;
+			}
+		}
+		return null;
+	}
+	
 	private String getFirstKeyword(String phrase) {
 		List<String> containedKeywords = new ArrayList<>();
 		for(String keyword : getAllKeywords()) {
@@ -168,22 +183,17 @@ public class SQLInterpreter {
 		return allKeywords;
 	}
 	
-	private Set<String> getKeywordGroup(String phrase) {
-		List<Set<String>> keywordGroups = Arrays.asList(INSTRUCTION_KEYWORDS, TABLE_IDENTIFIER_KEYWORDS, EXPRESSION_KEYWORDS);
-		List<Set<String>> output = keywordGroups.stream().filter(g -> g.contains(phrase)).collect(Collectors.toList());
-		return output.size() == 1 ? output.get(0) : null;
-	}
-	
-	private KeywordType getKeywordType(String phrase) {
+	private List<KeywordType> getKeywordTypes(String phrase) {
 		Map<KeywordType, Set<String>> keywordGroupMap = new HashMap<>();
 		keywordGroupMap.put(KeywordType.INSTRUCTION, INSTRUCTION_KEYWORDS);
 		keywordGroupMap.put(KeywordType.TABLE_IDENTIFIER, TABLE_IDENTIFIER_KEYWORDS);
 		keywordGroupMap.put(KeywordType.EXPRESSION, EXPRESSION_KEYWORDS);
+		List<KeywordType> keywordTypes = new ArrayList<>();
 		for(KeywordType keywordType : keywordGroupMap.keySet()) {
 			if (keywordGroupMap.get(keywordType).contains(phrase)) {
-				return keywordType;
+				keywordTypes.add(keywordType);
 			}
-		}
-		return null;
+		}		
+		return keywordTypes;
 	}
 }

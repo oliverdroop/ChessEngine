@@ -1,5 +1,8 @@
 package database;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class SQLPhrase {
 	
 	public static enum PhraseType{
@@ -12,7 +15,7 @@ public class SQLPhrase {
 	
 	private PhraseType type;
 	
-	private KeywordType keywordType;
+	private List<KeywordType> keywordTypes = new ArrayList<>();
 	
 	private String string;
 	
@@ -38,13 +41,23 @@ public class SQLPhrase {
 		this.type = type;
 	}
 
-	public KeywordType getKeywordType() {
-		return keywordType;
+	public List<KeywordType> getKeywordTypes() {
+		return keywordTypes;
 	}
 
-	public void setKeywordType(KeywordType keywordType) {
-		this.keywordType = keywordType;
+	public void setKeywordTypes(List<KeywordType> keywordTypes) {
+		this.keywordTypes = keywordTypes;
 	}
 	
-	
+	@Override
+	public String toString() {
+		StringBuilder stringBuilder = new StringBuilder();
+		stringBuilder.append(string);
+		stringBuilder.append(", ");
+		stringBuilder.append(type);
+		stringBuilder.append(", [");
+		keywordTypes.forEach(t -> stringBuilder.append(t + ", "));
+		stringBuilder.append("]");
+		return stringBuilder.toString();
+	}
 }

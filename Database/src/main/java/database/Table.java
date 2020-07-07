@@ -252,7 +252,7 @@ public class Table {
 	public int deleteRow(byte[] id) {
 		if (primaryKey == null) {
 			LOGGER.warn("Unable to delete row without primary key for table {}", name);
-			return -1;
+			return 0;
 		}
 		int start = getRowIndexById(id) * getRowLength();
 		int end = start + getRowLength();
@@ -272,7 +272,7 @@ public class Table {
 	public int deleteByteMatchedRows(Map<String,byte[]> propertyValueMap) {
 		if (primaryKey == null) {
 			LOGGER.warn("Unable to delete byte matched rows without primary key for table {}", name);
-			return -1;
+			return 0;
 		}
 		int count = 0;
 		for(byte[] row : getByteMatchedRows(propertyValueMap)) {
@@ -286,42 +286,56 @@ public class Table {
 		return deleteByteMatchedRows(getPropertyValueMap(propertyStringMap));
 	}
 	
-	public void updateRowValues(byte[] id, Map<String,byte[]> propertyValueMap) {
+	public int updateRowValues(int index, Map<String,byte[]> propertyValueMap) {
 		if (primaryKey == null) {
 			LOGGER.warn("Unable to update rows without primary key for table {}", name);
-			return;
+			return 0;
 		}
-		int rowIndex = getRowIndexById(id) * getRowLength();
+		int idLength = columns.get(primaryKey).getLength();
+		byte[] id = new byte[idLength];
+		System.arraycopy(data, index + this.getIndexInRow(columns.get(primaryKey)), id, 0, idLength);
 		for(String key : propertyValueMap.keySet()) {
 			if (!columns.containsKey(key)) {
-				LOGGER.warn("Unable to set property {} of row {} in table {} : No matching column found", key, columns.get("id").getDataType().getValue(id), name);
+				LOGGER.warn("Unable to set property {} of row {} in table {} : No matching column found", key, columns.get(primaryKey).getDataType().getValue(id), name);
 			}
 			int propertyIndex = getIndexInRow(key);
 			int propertyLength = columns.get(key).getLength();
 			byte[] newProperty = new byte[propertyLength];
 			System.arraycopy(propertyValueMap.get(key), 0, newProperty, 0, propertyValueMap.get(key).length);
-			System.arraycopy(newProperty, 0, data, rowIndex + propertyIndex, propertyLength);
+			System.arraycopy(newProperty, 0, data, index + propertyIndex, propertyLength);
 			LOGGER.info("Successfully updated property {} of row {} in table {}", key, columns.get(primaryKey).getDataType().getValue(id), name);
 		}
+		return 1;
 	}
 	
-	public void updateRowStrings(byte[] id, Map<String,String> propertyStringMap) {
-		updateRowValues(id, getPropertyValueMap(propertyStringMap));
+	public int updateRowValues(byte[] id, Map<String,byte[]> propertyValueMap) {
+		int rowIndex = getRowIndexById(id) * getRowLength();
+		return updateRowValues(rowIndex, propertyValueMap);
 	}
 	
-	public void updateByteMatchedRows(Map<String,byte[]> searchMap, Map<String,byte[]> replacementMap){
+	public int updateRowStrings(byte[] id, Map<String,String> propertyStringMap) {
+		return updateRowValues(id, getPropertyValueMap(propertyStringMap));
+	}
+	
+	public int updateRowStrings(int index, Map<String,String> propertyStringMap) {
+		return updateRowValues(index, getPropertyValueMap(propertyStringMap));
+	}
+	
+	public int updateByteMatchedRows(Map<String,byte[]> searchMap, Map<String,byte[]> replacementMap){
 		if (primaryKey == null) {
 			LOGGER.warn("Unable to update rows without primary key for table {}", name);
-			return;
+			return 0;
 		}
+		int count = 0;
 		for(byte[] row : getByteMatchedRows(searchMap)) {
-			byte[] id = getValueBytes(primaryKey, row);
-			updateRowValues(id, replacementMap);
+			byte[] id = getValueBytes(primaryKey, row);			
+			count += updateRowValues(id, replacementMap);
 		}
+		return count;
 	}
 	
-	public void updateStringMatchedRows(Map<String,String> searchMap, Map<String,String> replacementMap){
-		updateByteMatchedRows(getPropertyValueMap(searchMap), getPropertyValueMap(replacementMap));
+	public int updateStringMatchedRows(Map<String,String> searchMap, Map<String,String> replacementMap){
+		return updateByteMatchedRows(getPropertyValueMap(searchMap), getPropertyValueMap(replacementMap));
 	}
 	
 	private byte[] generateKey() {
