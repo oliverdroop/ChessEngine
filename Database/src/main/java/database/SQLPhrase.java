@@ -49,6 +49,14 @@ public class SQLPhrase {
 		this.keywordTypes = keywordTypes;
 	}
 	
+	public boolean hasType(PhraseType type) {
+		return this.type == type;
+	}
+	
+	public boolean hasKeywordType(KeywordType keywordType) {
+		return this.keywordTypes.contains(keywordType);
+	}
+	
 	@Override
 	public String toString() {
 		StringBuilder stringBuilder = new StringBuilder();

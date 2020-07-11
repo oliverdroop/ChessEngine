@@ -43,6 +43,8 @@ public class SQLInterpreterTest {
 		
 		softly.assertThat(result).as("Only one car should be returned").hasSize(1);		
 		softly.assertThat(result.get(0)).contains("BK52VJC	Ford	Mondeo");
+		
+		List<SQLPhrase> phrases = interpreter.readQuery(queryString);
 	}
 	
 	@Test
@@ -56,6 +58,8 @@ public class SQLInterpreterTest {
 		
 		softly.assertThat(result).as("Only one line should be returned").hasSize(1);		
 		softly.assertThat(result.get(0)).isEqualTo("Deleted 5 rows from table CAR");
+		
+		List<SQLPhrase> phrases = interpreter.readQuery(queryString);
 	}
 	
 	@Test
@@ -69,6 +73,8 @@ public class SQLInterpreterTest {
 		softly.assertThat(result).as("Only one line should be returned").hasSize(1);
 		
 		softly.assertThat(database.getTables().get("CAR").getAllRows()).hasSize(1);
+		
+		List<SQLPhrase> phrases = interpreter.readQuery(queryString);
 	}
 	
 	@Test
@@ -82,6 +88,8 @@ public class SQLInterpreterTest {
 		
 		softly.assertThat(result).as("Only one line should be returned").hasSize(1);
 		softly.assertThat(result.get(0)).isEqualTo("Updated 5 rows in table CAR");
+		
+		List<SQLPhrase> phrases = interpreter.readQuery(queryString);
 	}
 	
 	private static String getDataDirectory() {

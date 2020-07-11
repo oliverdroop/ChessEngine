@@ -29,8 +29,85 @@ public class SQLInterpreter {
 		return new Query(getSQLPhrases(queryString), database);
 	}
 	
-	private String getCleanQuery(String query) {
-		return query;
+	public List<SQLPhrase> readQuery(String query){
+		List<SQLPhrase> output = new ArrayList<>();
+		String currentPhrase = "";
+		boolean openQuote = false;
+		boolean openBracket = false;
+		for(int i = 0; i < query.length(); i++) {
+			String currentCharacter = query.substring(i, i + 1);
+			if (!openQuote) {
+				currentCharacter = currentCharacter.toUpperCase();
+			}
+			SQLPhrase newPhrase = null;			
+			if (currentCharacter.equals(" ")) {
+				newPhrase = splitOffSQLPhrase(currentPhrase, i);				
+			}
+			if (currentCharacter.equals("'")) {
+				newPhrase = splitOffSQLPhrase(currentPhrase, i);
+				if (openQuote) {
+					newPhrase.setType(PhraseType.VALUE);
+				}
+				openQuote = !openQuote;
+			}
+			if (currentCharacter.equals("(")) {
+				newPhrase = splitOffSQLPhrase(currentPhrase, i);
+				openBracket = true;
+			}
+			if (currentCharacter.equals(")")) {
+				newPhrase = splitOffSQLPhrase(currentPhrase, i);
+				openBracket = false;
+			}
+			if (currentCharacter.equals(",")) {
+				newPhrase = splitOffSQLPhrase(currentPhrase, i);
+			}
+			if (currentCharacter.equals("=")) {
+				newPhrase = splitOffSQLPhrase(currentPhrase, i);
+			}
+			if (currentCharacter.equals(";")) {
+				newPhrase = splitOffSQLPhrase(currentPhrase, i);
+			}
+			if (newPhrase != null) {
+				if (newPhrase.getString().length() > 0) {
+					if (newPhrase.getType() == null) {
+						categorizePhrase(newPhrase, output);
+					}
+					output.add(newPhrase);
+				}
+				currentPhrase = "";
+			}
+			else {				
+				currentPhrase += currentCharacter;
+			}
+		}
+		return output;
+	}
+	
+	private void categorizePhrase(SQLPhrase newPhrase, List<SQLPhrase> previousPhrases) {
+		SQLPhrase previousPhrase = getLastPhrase(previousPhrases);
+		SQLPhrase previousKeyword = getPreviousKeyword(newPhrase, previousPhrases);
+		if (getAllKeywords().contains(newPhrase.getString())) {
+			newPhrase.setType(PhraseType.KEYWORD);
+			newPhrase.setKeywordTypes(getKeywordTypes(newPhrase.getString()));
+		}
+		else if(previousKeyword.hasKeywordType(KeywordType.TABLE_IDENTIFIER) && previousPhrase.hasType(PhraseType.KEYWORD)) {
+			newPhrase.setType(PhraseType.TABLE_NAME);
+		}
+		else if(previousKeyword.hasKeywordType(KeywordType.INSTRUCTION)) {
+			newPhrase.setType(PhraseType.COLUMN_NAME);
+		}
+		else if(previousKeyword.hasKeywordType(KeywordType.EXPRESSION)) {
+			newPhrase.setType(PhraseType.COLUMN_NAME);
+		}
+		else if(previousPhrase.hasType(PhraseType.TABLE_NAME) || previousPhrase.hasType(PhraseType.COLUMN_NAME)) {
+			newPhrase.setType(PhraseType.COLUMN_NAME);
+		}
+	}
+	
+	private SQLPhrase splitOffSQLPhrase(String currentPhrase, int index) {
+		SQLPhrase newPhrase = new SQLPhrase(currentPhrase);
+		index ++;
+		return newPhrase;
 	}
 	
 	private String[] separateSingleQuotedStrings(String query) {
@@ -135,8 +212,29 @@ public class SQLInterpreter {
 		return output;
 	}
 	
+	public static SQLPhrase getLastPhrase(List<SQLPhrase> phrases) {
+		return phrases.size() > 0 ? phrases.get(phrases.size() - 1) : null;
+	}
+	
+	public static PhraseType getLastPhraseType(List<SQLPhrase> phrases) {
+		SQLPhrase lastPhrase = getLastPhrase(phrases);
+		return lastPhrase != null ? lastPhrase.getType() : null;
+	}
+	
+	public static List<KeywordType> getPreviousKeywordTypes(SQLPhrase currentPhrase, List<SQLPhrase> allPhrases) {
+		SQLPhrase previousKeyword = getPreviousKeyword(currentPhrase, allPhrases);
+		return previousKeyword != null ? previousKeyword.getKeywordTypes() : null;
+	}
+	
 	public static SQLPhrase getPreviousKeyword(SQLPhrase currentPhrase, List<SQLPhrase> allPhrases) {
-		for(int i = allPhrases.indexOf(currentPhrase) - 1; i >= 0 ; i--) {
+		if (allPhrases.size() == 0) {
+			return null;
+		}
+		int upTo = allPhrases.size() - 1;
+		if (allPhrases.contains(currentPhrase)) {
+			upTo = allPhrases.indexOf(currentPhrase) - 1;
+		}
+		for(int i = upTo; i >= 0 ; i--) {
 			SQLPhrase earlierPhrase = allPhrases.get(i);
 			if (earlierPhrase.getType() == PhraseType.KEYWORD) {
 				return earlierPhrase;
