@@ -25,10 +25,6 @@ public class SQLInterpreter {
 	
 	private static final Set<String> EXPRESSION_KEYWORDS = new HashSet<>(Arrays.asList( "WHERE", "AND", "VALUES"));
 	
-	public Query buildQuery(String queryString, Database database) {
-		return new Query(getSQLPhrases(queryString), database);
-	}
-	
 	public List<SQLPhrase> readQuery(String query){
 		List<SQLPhrase> output = new ArrayList<>();
 		String currentPhrase = "";
@@ -63,6 +59,7 @@ public class SQLInterpreter {
 				newPhrase = splitOffSQLPhrase(currentPhrase, i);
 			}
 			if (currentCharacter.equals("=")) {
+				newPhrase = splitOffSQLPhrase(currentPhrase, i);
 				equality = true;
 			}
 			if (currentCharacter.equals(";")) {
@@ -74,7 +71,6 @@ public class SQLInterpreter {
 						categorizePhrase(newPhrase, output);
 					}
 					if(equality) {
-						newPhrase = splitOffSQLPhrase(currentPhrase, i);
 						newPhrase.setLinkedPhrase(getLastPhrase(output));
 						getLastPhrase(output).setLinkedPhrase(newPhrase);						
 						equality = false;
@@ -121,67 +117,7 @@ public class SQLInterpreter {
 		return query.split("'", 0);
 	}
 	
-	private List<SQLPhrase> getSQLPhrases(String query){
-		//identify single-quoted phrases
-		String[] parts0 = separateSingleQuotedStrings(query);
-		//capitalize non-quoted phrases
-		for(int i = 0; i < parts0.length; i += 2) {
-			parts0[i] = parts0[i].toUpperCase();
-		}
-		List<SQLPhrase> phrases = new ArrayList<>();
-		
-		//categorize values and keywords
-		for(int i = 0; i < parts0.length; i++) {
-			String part = parts0[i];
-			if (i % 2 == 1) {
-				phrases.add(new SQLPhrase(part, PhraseType.VALUE));
-				continue;
-			}
-			String firstKeyword = getFirstKeyword(part);
-			while(firstKeyword != null) {
-				int ik = part.indexOf(firstKeyword);
-				if (ik != 0) {
-					phrases.add(new SQLPhrase(part.substring(0, ik)));
-					part = part.substring(ik);
-				}
-				else {
-					SQLPhrase phrase = new SQLPhrase(part.substring(0, firstKeyword.length()));
-					part = part.substring(firstKeyword.length());
-					phrase.setType(PhraseType.KEYWORD);
-					phrase.setKeywordTypes(getKeywordTypes(phrase.getString()));
-					phrases.add(phrase);
-					firstKeyword = getFirstKeyword(part);
-				}
-			}
-			if (firstKeyword == null) {
-				phrases.add(new SQLPhrase(part));
-			}
-		}
-		
-		//categorize phrases which aren't values or keywords and remove spaces
-		for(int i = 0; i < phrases.size(); i++) {
-			SQLPhrase phrase = phrases.get(i);
-			phrase.setString(phrase.getString().replace(" ", ""));
-			SQLPhrase previousKeyword = getPreviousKeyword(phrase, phrases);
-			if (phrase.getType() == null && i > 0 && previousKeyword.getType() == PhraseType.KEYWORD) {				
-				if (previousKeyword.getKeywordTypes().contains(KeywordType.INSTRUCTION)) {
-					if (previousKeyword.getKeywordTypes().contains(KeywordType.TABLE_IDENTIFIER)) {
-						phrase.setType(PhraseType.TABLE_NAME);
-					}
-					else {
-						phrase.setType(PhraseType.COLUMN_NAME);
-					}
-				}
-				if (previousKeyword.getKeywordTypes().contains(KeywordType.TABLE_IDENTIFIER)) {
-					phrase.setType(PhraseType.TABLE_NAME);
-				}
-				if (previousKeyword.getKeywordTypes().contains(KeywordType.EXPRESSION)) {
-					phrase.setType(PhraseType.COLUMN_NAME);
-				}
-			}
-		}
-		return phrases;
-	}
+	
 	
 	private List<String> separateStartingKeyword(String phrase){
 		int keywordLength = 0;
@@ -200,37 +136,8 @@ public class SQLInterpreter {
 		return output;
 	}
 	
-	private List<String> separateSubstrings(List<String> strings, String pattern){
-		List<String> output = new ArrayList<>();
-		for(String s : strings) {
-			if (!s.equals(pattern) && s.contains(pattern)) {
-				String[] parts = s.split(pattern, 0);
-				for(int i = 0; i < parts.length; i++) {
-					output.add(parts[i]);
-					if (i < parts.length - 1) {
-						output.add(pattern);
-					}
-				}
-			}
-			else {
-				output.add(s);
-			}
-		}
-		return output;
-	}
-	
 	public static SQLPhrase getLastPhrase(List<SQLPhrase> phrases) {
 		return phrases.size() > 0 ? phrases.get(phrases.size() - 1) : null;
-	}
-	
-	public static PhraseType getLastPhraseType(List<SQLPhrase> phrases) {
-		SQLPhrase lastPhrase = getLastPhrase(phrases);
-		return lastPhrase != null ? lastPhrase.getType() : null;
-	}
-	
-	public static List<KeywordType> getPreviousKeywordTypes(SQLPhrase currentPhrase, List<SQLPhrase> allPhrases) {
-		SQLPhrase previousKeyword = getPreviousKeyword(currentPhrase, allPhrases);
-		return previousKeyword != null ? previousKeyword.getKeywordTypes() : null;
 	}
 	
 	public static SQLPhrase getPreviousKeyword(SQLPhrase currentPhrase, List<SQLPhrase> allPhrases) {
@@ -248,27 +155,6 @@ public class SQLInterpreter {
 			}
 		}
 		return null;
-	}
-	
-	private String getFirstKeyword(String phrase) {
-		List<String> containedKeywords = new ArrayList<>();
-		for(String keyword : getAllKeywords()) {
-			if (phrase.contains(keyword)) {
-				containedKeywords.add(keyword);
-			}
-		}
-		if (containedKeywords.isEmpty()) {
-			return null;
-		}
-		else {
-			String firstKeyword = containedKeywords.get(0);
-			for(String keyword : containedKeywords) {
-				if (phrase.indexOf(keyword) < phrase.indexOf(firstKeyword)) {
-					firstKeyword = keyword;
-				}
-			}
-			return firstKeyword;
-		}
 	}
 	
 	private String getStartingKeyword(String phrase) {

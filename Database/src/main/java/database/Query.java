@@ -30,6 +30,8 @@ public class Query {
 	
 	private Map<String, String> assignments;
 	
+	private List<String> targets;
+	
 	public Query(List<SQLPhrase> sqlStatement, Database database) {
 		this.sqlStatement = sqlStatement;
 		this.database = database;
@@ -47,7 +49,7 @@ public class Query {
 		for(int i = 0; i < sqlStatement.size(); i++) {
 			SQLPhrase phrase = sqlStatement.get(i);
 			if (phrase.getType() == PhraseType.TABLE_NAME) {
-				return database.getTables().get(phrase);
+				return database.getTables().get(phrase.getString());
 			}
 		}
 		return null;
@@ -77,8 +79,11 @@ public class Query {
 		for (int i = 0; i < sqlStatement.size(); i++) {
 			SQLPhrase phrase = sqlStatement.get(i);
 			SQLPhrase previousKeyword = SQLInterpreter.getPreviousKeyword(phrase, sqlStatement);
-			if (previousKeyword.hasKeywordType(KeywordType.INSTRUCTION) && phrase.getLinkedPhrase() != null 
-					&& phrase.hasType(PhraseType.COLUMN_NAME) && phrase.getLinkedPhrase().hasType(PhraseType.VALUE)) {
+			if (previousKeyword != null 
+					&& previousKeyword.hasKeywordType(KeywordType.INSTRUCTION) 
+					&& phrase.getLinkedPhrase() != null 
+					&& phrase.hasType(PhraseType.COLUMN_NAME) 
+					&& phrase.getLinkedPhrase().hasType(PhraseType.VALUE)) {
 				output.put(phrase.getString(), phrase.getLinkedPhrase().getString());
 			}
 		}
@@ -95,9 +100,16 @@ public class Query {
 				}
 			}
 		}
-		if (unlinkedColumns.size() > 0 && unlinkedColumns.size() == unlinkedValues.size()) {
-			for(int i = 0; i < unlinkedColumns.size(); i++) {
-				output.put(unlinkedColumns.get(i).getString(), unlinkedValues.get(i).getString());
+		if (unlinkedColumns.size() > 0) {
+			if (unlinkedColumns.size() == unlinkedValues.size()) {
+				for(int i = 0; i < unlinkedColumns.size(); i++) {
+					output.put(unlinkedColumns.get(i).getString(), unlinkedValues.get(i).getString());
+				}
+			}
+			else {
+				if (unlinkedValues.size() == 0) {
+					targets = unlinkedColumns.stream().map(p -> p.getString()).collect(Collectors.toList());
+				}
 			}
 		}
 		return output;
@@ -119,34 +131,24 @@ public class Query {
 		List<String> output = new ArrayList<>();
 		if (table != null && instruction != null) {
 			if (instruction.getString().equals("INSERT")) {
-				if (!targets.isEmpty() && !values.isEmpty() && targets.size() == values.size()) {
-					Map<String,String> insertMap = new HashMap<>();
-					for(int i = 0; i < targets.size(); i++) {
-						insertMap.put(targets.get(i), values.get(i));
-					}
-					int rowsAdded = table.addRow(table.buildRow(insertMap));
-					output.add(String.format("Inserted %d row into table %s", rowsAdded, table.getName()));
-				}
+				int rowsAdded = table.addRow(table.buildRow(assignments));
+				output.add(String.format("Inserted %d row into table %s", rowsAdded, table.getName()));
 			}
 			if (instruction.getString().equals("SELECT") && !conditions.isEmpty()) {
 				List<byte[]> rows = table.getStringMatchedRows(conditions);
 				if (!targets.isEmpty()) {
-					return getTargetColumnsFromRows(rows);
+					return getColumnsFromRows(targets, rows);
 				}
 			}
 			if (instruction.getString().equals("UPDATE")) {
-				if (!targets.isEmpty() && !values.isEmpty() && targets.size() == values.size()) {
-					Map<String,String> updateMap = new HashMap<>();
-					for(int i = 0; i < targets.size(); i++) {
-						updateMap.put(targets.get(i), values.get(i));
-					}
+				if (!assignments.isEmpty() && !conditions.isEmpty()) {
 					int rowsUpdated = 0;
 					if (!conditions.isEmpty()) {
-						rowsUpdated = table.updateStringMatchedRows(conditions, updateMap);
+						rowsUpdated = table.updateStringMatchedRows(conditions, assignments);
 					}
 					else {
 						for(int i = 0; i < table.getAllRows().length; i++) {							
-							rowsUpdated += table.updateRowStrings(i, updateMap);
+							rowsUpdated += table.updateRowStrings(i, assignments);
 						}
 					}
 					output.add(String.format("Updated %d rows in table %s", rowsUpdated, table.getName()));
