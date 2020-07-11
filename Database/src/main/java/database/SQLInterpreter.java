@@ -34,6 +34,7 @@ public class SQLInterpreter {
 		String currentPhrase = "";
 		boolean openQuote = false;
 		boolean openBracket = false;
+		boolean equality = false;
 		for(int i = 0; i < query.length(); i++) {
 			String currentCharacter = query.substring(i, i + 1);
 			if (!openQuote) {
@@ -62,7 +63,7 @@ public class SQLInterpreter {
 				newPhrase = splitOffSQLPhrase(currentPhrase, i);
 			}
 			if (currentCharacter.equals("=")) {
-				newPhrase = splitOffSQLPhrase(currentPhrase, i);
+				equality = true;
 			}
 			if (currentCharacter.equals(";")) {
 				newPhrase = splitOffSQLPhrase(currentPhrase, i);
@@ -71,6 +72,12 @@ public class SQLInterpreter {
 				if (newPhrase.getString().length() > 0) {
 					if (newPhrase.getType() == null) {
 						categorizePhrase(newPhrase, output);
+					}
+					if(equality) {
+						newPhrase = splitOffSQLPhrase(currentPhrase, i);
+						newPhrase.setLinkedPhrase(getLastPhrase(output));
+						getLastPhrase(output).setLinkedPhrase(newPhrase);						
+						equality = false;
 					}
 					output.add(newPhrase);
 				}

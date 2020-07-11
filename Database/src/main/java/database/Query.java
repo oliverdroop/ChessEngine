@@ -3,6 +3,7 @@ package database;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -27,9 +28,7 @@ public class Query {
 	
 	private Map<String, String> conditions;
 	
-	private List<String> targets;
-	
-	private List<String> values;
+	private Map<String, String> assignments;
 	
 	public Query(List<SQLPhrase> sqlStatement, Database database) {
 		this.sqlStatement = sqlStatement;
@@ -37,92 +36,71 @@ public class Query {
 		instruction = extractInstruction();
 		table = extractTable();
 		conditions = extractConditions();
-		targets = extractTargets();
-		values = extractValues();
+		assignments = extractAssignments();
 	}
 	
 	private SQLPhrase extractInstruction() {
-		for(int i = 0; i < sqlStatement.size(); i++) {
-			SQLPhrase phrase = sqlStatement.get(i);
-			if (!phrase.getKeywordTypes().isEmpty() && phrase.getKeywordTypes().contains(KeywordType.INSTRUCTION)) {
-				return phrase;
-			}
-		}
-		return null;
+		return sqlStatement.get(0).hasKeywordType(KeywordType.INSTRUCTION) ? sqlStatement.get(0) : null;
 	}
 	
 	private Table extractTable() {
 		for(int i = 0; i < sqlStatement.size(); i++) {
-			SQLPhrase phrase0 = sqlStatement.get(i);
-			if (!phrase0.getKeywordTypes().isEmpty() && phrase0.getKeywordTypes().contains(KeywordType.TABLE_IDENTIFIER) && i + 1 < sqlStatement.size()) {
-				SQLPhrase phrase1 = sqlStatement.get(i + 1);
-				if (phrase1.getType() == PhraseType.TABLE_NAME) {
-					if (phrase1.getString().contains("(")) {
-						String[] parts = phrase1.getString().split("\\(");
-						sqlStatement.add(i + 2, new SQLPhrase(parts[1].replace(")", ""), PhraseType.COLUMN_NAME));
-						phrase1 = new SQLPhrase(parts[0], PhraseType.TABLE_NAME);
-						sqlStatement.set(i + 1, phrase1);
-					}
-					return database.getTables().get(phrase1.getString());									
-				}
+			SQLPhrase phrase = sqlStatement.get(i);
+			if (phrase.getType() == PhraseType.TABLE_NAME) {
+				return database.getTables().get(phrase);
 			}
-		}		
+		}
 		return null;
 	}
 	
 	private Map<String,String> extractConditions(){
-		Map<String, String> equalityConditions = new HashMap<>();
-		for(int i = 0; i < sqlStatement.size(); i++) {
-			SQLPhrase phrase0 = sqlStatement.get(i);
-			if (!phrase0.getKeywordTypes().isEmpty() && phrase0.getKeywordTypes().contains(KeywordType.EXPRESSION) && i + 2 < sqlStatement.size()) {
-				SQLPhrase phrase1 = sqlStatement.get(i + 1);
-				SQLPhrase phrase2 = sqlStatement.get(i + 2);
-				if (phrase1.getString().endsWith("=")) {
-					phrase1.setString(phrase1.getString().substring(0, phrase1.getString().length() - 1));
-					Column column = getColumn(phrase1.getString());
-					if (phrase1.getType() == PhraseType.COLUMN_NAME && phrase2.getType() == PhraseType.VALUE && column != null) {
-						equalityConditions.put(column.getName(), phrase2.getString());
-					}
-				}				
+		int startIndex = 0;
+		for (int i = 0; i < sqlStatement.size(); i++) {
+			if (sqlStatement.get(i).hasKeywordType(KeywordType.EXPRESSION)) {
+				startIndex = i;
+				break;
 			}
 		}
-		return equalityConditions;
+		Map<String, String> output = new LinkedHashMap<>();
+		for(int i = startIndex; i < sqlStatement.size(); i++) {
+			SQLPhrase phrase = sqlStatement.get(i);
+			SQLPhrase linkedPhrase = phrase.getLinkedPhrase();
+			if (linkedPhrase != null && linkedPhrase.hasType(PhraseType.COLUMN_NAME) && phrase.hasType(PhraseType.VALUE)) {
+				output.put(linkedPhrase.getString(), phrase.getString());
+			}
+		}
+		return output;
 	}
 	
-	private List<String> extractTargets(){
-		List<String> targets = new ArrayList<>();
-		for(int i = 0; i < sqlStatement.size(); i++) {
-			SQLPhrase phrase0 = sqlStatement.get(i);
-			if (phrase0.getType() == PhraseType.COLUMN_NAME && i > 0) {
-				SQLPhrase previousKeyword = SQLInterpreter.getPreviousKeyword(phrase0, sqlStatement);
-				SQLPhrase previousPhrase = sqlStatement.get(i - 1);
-				if ((!previousKeyword.getKeywordTypes().isEmpty() && previousKeyword.getKeywordTypes().contains(KeywordType.INSTRUCTION)) || previousPhrase.getType() == PhraseType.TABLE_NAME) {
-					for(String columnName : phrase0.getString().replace("=", "").split(",")) {
-						if (columnName.equals("*")) {
-							table.getColumns().values().forEach(c -> targets.add(c.getName()));
-						}
-						else {
-							Column column = getColumn(columnName);
-							if (column != null) {
-								targets.add(column.getName());
-							}
-						}
-					}
+	private Map<String, String> extractAssignments(){
+		Map<String, String> output = new LinkedHashMap<>();
+		for (int i = 0; i < sqlStatement.size(); i++) {
+			SQLPhrase phrase = sqlStatement.get(i);
+			SQLPhrase previousKeyword = SQLInterpreter.getPreviousKeyword(phrase, sqlStatement);
+			if (previousKeyword.hasKeywordType(KeywordType.INSTRUCTION) && phrase.getLinkedPhrase() != null 
+					&& phrase.hasType(PhraseType.COLUMN_NAME) && phrase.getLinkedPhrase().hasType(PhraseType.VALUE)) {
+				output.put(phrase.getString(), phrase.getLinkedPhrase().getString());
+			}
+		}
+		List<SQLPhrase> unlinkedColumns = new ArrayList<>();
+		List<SQLPhrase> unlinkedValues = new ArrayList<>();
+		for (int i = 0; i < sqlStatement.size(); i++) {
+			SQLPhrase phrase = sqlStatement.get(i);
+			if (phrase.getLinkedPhrase() == null) {
+				if (phrase.hasType(PhraseType.COLUMN_NAME)) {
+					unlinkedColumns.add(phrase);
+				}
+				else if (phrase.hasType(PhraseType.VALUE)) {
+					unlinkedValues.add(phrase);
 				}
 			}
 		}
-		return targets;
-	}
-	
-	private List<String> extractValues(){
-		List<String> values = new ArrayList<>();
-		for(int i = 0; i < sqlStatement.size(); i++) {
-			SQLPhrase phrase0 = sqlStatement.get(i);
-			if (phrase0.getType() == PhraseType.VALUE && !conditions.values().contains(phrase0.getString())) {
-				values.add(phrase0.getString());
+		if (unlinkedColumns.size() > 0 && unlinkedColumns.size() == unlinkedValues.size()) {
+			for(int i = 0; i < unlinkedColumns.size(); i++) {
+				output.put(unlinkedColumns.get(i).getString(), unlinkedValues.get(i).getString());
 			}
 		}
-		return values;
+		return output;
 	}
 	
 	private Column getColumn(String columnName) {
@@ -183,9 +161,9 @@ public class Query {
 		return output;
 	}
 	
-	public List<String> getTargetColumnsFromRows(List<byte[]> rows){
+	public List<String> getColumnsFromRows(List<String> columnNames, List<byte[]> rows){
 		List<String> output = new ArrayList<>();
-		List<Column> columns = targets.stream().map(t -> getColumn(t)).collect(Collectors.toList());
+		List<Column> columns = columnNames.stream().map(t -> getColumn(t)).collect(Collectors.toList());
 		for(byte[] row : rows) {
 			StringBuilder rowStringBuilder = new StringBuilder();
 			for(Column column : columns) {

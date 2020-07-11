@@ -19,6 +19,8 @@ public class SQLPhrase {
 	
 	private String string;
 	
+	private SQLPhrase linkedPhrase;
+	
 	public SQLPhrase(String string) {
 		this.string = string;
 	}
@@ -57,6 +59,14 @@ public class SQLPhrase {
 		return this.keywordTypes.contains(keywordType);
 	}
 	
+	public SQLPhrase getLinkedPhrase() {
+		return linkedPhrase;
+	}
+
+	public void setLinkedPhrase(SQLPhrase linkedPhrase) {
+		this.linkedPhrase = linkedPhrase;
+	}
+
 	@Override
 	public String toString() {
 		StringBuilder stringBuilder = new StringBuilder();
