@@ -117,6 +117,12 @@ public class Query {
 				}
 			}
 		}
+		else if(unlinkedValues.size() == table.getColumns().size()){
+			List<String> keyList = table.getColumns().keySet().stream().collect(Collectors.toList());
+			for(int i = 0; i < unlinkedValues.size(); i++) {
+				output.put(keyList.get(i), unlinkedValues.get(i).getString());
+			}
+		}
 		return output;
 	}
 	

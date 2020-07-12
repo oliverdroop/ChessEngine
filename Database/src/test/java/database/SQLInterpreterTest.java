@@ -85,15 +85,26 @@ public class SQLInterpreterTest {
 	
 	@Test
 	public void testInsert() {
-		String queryString = "insert into Car (Registration, Manufacturer, Model, Colour, year_of_registration, seats, taxed) values ('BK52VJC', 'Ford', 'Mondeo', 'Orange', '2002', '5', 'true');";
+		String queryString = "insert into Car (Registration, Manufacturer, Model, Colour, year_of_registration, seats, engine_size, taxed) values ('BK52VJC', 'Ford', 'Mondeo', 'Orange', '2002', '5', '1.8', 'true');";
 		
 		Query query = new Query(interpreter.readQuery(queryString), database);
 		List<String> result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
 		softly.assertThat(result).as("Only one line should be returned").hasSize(1);
+		Table table = database.getTables().get("CAR");
+		softly.assertThat(table.getAllRows()).hasSize(1);
+		softly.assertThat(table.getRowString(table.getRowByIndex(0))).isEqualTo("0	BK52VJC	Ford	Mondeo	Orange	2002	5	1.8	true");
 		
-		softly.assertThat(database.getTables().get("CAR").getAllRows()).hasSize(1);
+		queryString = "insert into Car values ('1', 'DF17HJB', 'Ford', 'Transit', 'Pink', '2017', '3', '2.4', 'true');";
+		
+		query = new Query(interpreter.readQuery(queryString), database);
+		result = query.execute();
+		result.forEach(line -> LOGGER.info(line));
+		
+		softly.assertThat(result).as("Only one line should be returned").hasSize(1);
+		softly.assertThat(table.getAllRows()).hasSize(2);
+		softly.assertThat(table.getRowString(table.getRowByIndex(1))).isEqualTo("1	DF17HJB	Ford	Transit	Pink	2017	3	2.4	true");
 	}
 	
 	@Test
