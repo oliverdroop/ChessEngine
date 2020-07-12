@@ -113,29 +113,6 @@ public class SQLInterpreter {
 		return newPhrase;
 	}
 	
-	private String[] separateSingleQuotedStrings(String query) {
-		return query.split("'", 0);
-	}
-	
-	
-	
-	private List<String> separateStartingKeyword(String phrase){
-		int keywordLength = 0;
-		String startingKeyword = getStartingKeyword(phrase);
-		if (startingKeyword != null && startingKeyword.length() < phrase.length()) {
-			keywordLength = startingKeyword.length();
-		}
-		List<String> output = new ArrayList<String>();
-		if (keywordLength == 0) {
-			output.add(phrase);
-		}
-		else {
-			output.add(phrase.substring(0, keywordLength));
-			output.add(phrase.substring(keywordLength));
-		}
-		return output;
-	}
-	
 	public static SQLPhrase getLastPhrase(List<SQLPhrase> phrases) {
 		return phrases.size() > 0 ? phrases.get(phrases.size() - 1) : null;
 	}
@@ -152,15 +129,6 @@ public class SQLInterpreter {
 			SQLPhrase earlierPhrase = allPhrases.get(i);
 			if (earlierPhrase.getType() == PhraseType.KEYWORD) {
 				return earlierPhrase;
-			}
-		}
-		return null;
-	}
-	
-	private String getStartingKeyword(String phrase) {
-		for(String keyword : getAllKeywords()) {
-			if (phrase.startsWith(keyword)) {
-				return keyword;
 			}
 		}
 		return null;

@@ -286,6 +286,12 @@ public class Table {
 		return deleteByteMatchedRows(getPropertyValueMap(propertyStringMap));
 	}
 	
+	public int deleteAllRows() {
+		int rowCount = countRows();
+		data = new byte[0];
+		return rowCount;
+	}
+	
 	public int updateRowValues(int index, Map<String,byte[]> propertyValueMap) {
 		if (primaryKey == null) {
 			LOGGER.warn("Unable to update rows without primary key for table {}", name);
@@ -293,23 +299,23 @@ public class Table {
 		}
 		int idLength = columns.get(primaryKey).getLength();
 		byte[] id = new byte[idLength];
-		System.arraycopy(data, index + this.getIndexInRow(columns.get(primaryKey)), id, 0, idLength);
+		System.arraycopy(data, (index * getRowLength()) + getIndexInRow(columns.get(primaryKey)), id, 0, idLength);
 		for(String key : propertyValueMap.keySet()) {
 			if (!columns.containsKey(key)) {
-				LOGGER.warn("Unable to set property {} of row {} in table {} : No matching column found", key, columns.get(primaryKey).getDataType().getValue(id), name);
+				LOGGER.warn("Unable to set property {} of row {} in table {} : No matching column found", key, columns.get(primaryKey).getDataType().getValueString(id), name);
 			}
 			int propertyIndex = getIndexInRow(key);
 			int propertyLength = columns.get(key).getLength();
 			byte[] newProperty = new byte[propertyLength];
 			System.arraycopy(propertyValueMap.get(key), 0, newProperty, 0, propertyValueMap.get(key).length);
-			System.arraycopy(newProperty, 0, data, index + propertyIndex, propertyLength);
-			LOGGER.info("Successfully updated property {} of row {} in table {}", key, columns.get(primaryKey).getDataType().getValue(id), name);
+			System.arraycopy(newProperty, 0, data, (index * getRowLength()) + propertyIndex, propertyLength);
+			LOGGER.info("Successfully updated property {} of row {} in table {}", key, columns.get(primaryKey).getDataType().getValueString(id), name);
 		}
 		return 1;
 	}
 	
 	public int updateRowValues(byte[] id, Map<String,byte[]> propertyValueMap) {
-		int rowIndex = getRowIndexById(id) * getRowLength();
+		int rowIndex = getRowIndexById(id);
 		return updateRowValues(rowIndex, propertyValueMap);
 	}
 	
@@ -336,6 +342,14 @@ public class Table {
 	
 	public int updateStringMatchedRows(Map<String,String> searchMap, Map<String,String> replacementMap){
 		return updateByteMatchedRows(getPropertyValueMap(searchMap), getPropertyValueMap(replacementMap));
+	}
+	
+	public int updateAllRows(Map<String,String> replacementMap) {
+		int count = 0;
+		for(int i = 0; i < countRows(); i++) {
+			count += updateRowStrings(i, replacementMap);
+		}
+		return count;
 	}
 	
 	private byte[] generateKey() {

@@ -56,7 +56,7 @@ public class Query {
 	}
 	
 	private Map<String,String> extractConditions(){
-		int startIndex = 0;
+		int startIndex = sqlStatement.size();
 		for (int i = 0; i < sqlStatement.size(); i++) {
 			if (sqlStatement.get(i).hasKeywordType(KeywordType.EXPRESSION)) {
 				startIndex = i;
@@ -108,7 +108,12 @@ public class Query {
 			}
 			else {
 				if (unlinkedValues.size() == 0) {
-					targets = unlinkedColumns.stream().map(p -> p.getString()).collect(Collectors.toList());
+					if (unlinkedColumns.size() == 1 && unlinkedColumns.get(0).getString().equals("*") && table != null) {
+						targets = table.getColumns().keySet().stream().collect(Collectors.toList());
+					}
+					else {
+						targets = unlinkedColumns.stream().map(p -> p.getString()).collect(Collectors.toList());
+					}
 				}
 			}
 		}
@@ -130,35 +135,51 @@ public class Query {
 	public List<String> execute() {
 		List<String> output = new ArrayList<>();
 		if (table != null && instruction != null) {
+			
 			if (instruction.getString().equals("INSERT")) {
 				int rowsAdded = table.addRow(table.buildRow(assignments));
 				output.add(String.format("Inserted %d row into table %s", rowsAdded, table.getName()));
 			}
-			if (instruction.getString().equals("SELECT") && !conditions.isEmpty()) {
-				List<byte[]> rows = table.getStringMatchedRows(conditions);
+			
+			if (instruction.getString().equals("SELECT")) {
+				List<byte[]> rows = null;
+				if (conditions.isEmpty()) {
+					rows = Arrays.asList(table.getAllRows());
+				}
+				else {
+					rows = table.getStringMatchedRows(conditions);
+				}
 				if (!targets.isEmpty()) {
 					return getColumnsFromRows(targets, rows);
 				}
 			}
+			
 			if (instruction.getString().equals("UPDATE")) {
-				if (!assignments.isEmpty() && !conditions.isEmpty()) {
+				if (!assignments.isEmpty()) {
 					int rowsUpdated = 0;
 					if (!conditions.isEmpty()) {
 						rowsUpdated = table.updateStringMatchedRows(conditions, assignments);
 					}
 					else {
-						for(int i = 0; i < table.getAllRows().length; i++) {							
-							rowsUpdated += table.updateRowStrings(i, assignments);
-						}
+						
+						rowsUpdated = table.updateAllRows(assignments);
 					}
 					output.add(String.format("Updated %d rows in table %s", rowsUpdated, table.getName()));
 				}
 			}
-			if (instruction.getString().equals("DELETE") && !conditions.isEmpty()) {
-				int count = table.deleteStringMatchedRows(conditions);
+			
+			if (instruction.getString().equals("DELETE")) {
+				int count = 0;
+				if (conditions.isEmpty()) {
+					count = table.deleteAllRows();
+				}
+				else {
+					count = table.deleteStringMatchedRows(conditions);
+				}
 				String message = String.format("Deleted %d rows from table %s", count, table.getName());
 				output.add(message);
 			}
+			
 		}
 		return output;
 	}

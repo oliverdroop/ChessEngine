@@ -43,6 +43,23 @@ public class SQLInterpreterTest {
 		
 		softly.assertThat(result).as("Only one car should be returned").hasSize(1);		
 		softly.assertThat(result.get(0)).contains("BK52VJC	Ford	Mondeo");
+		
+		queryString = "select * from Car where colour = 'Orange' and year_of_registration = '2002' and model = 'Mondeo';";
+		
+		query = new Query(interpreter.readQuery(queryString), database);
+		result = query.execute();
+		result.forEach(line -> LOGGER.info(line));
+		
+		softly.assertThat(result).as("Only one car should be returned").hasSize(1);
+		int columnCount = database.getTables().get("CAR").getColumns().size();
+		softly.assertThat(result.get(0).split("\t", 0)).hasSize(columnCount);
+		
+		queryString = "select * from car;";
+		query = new Query(interpreter.readQuery(queryString), database);
+		result = query.execute();
+		result.forEach(line -> LOGGER.info(line));
+		
+		softly.assertThat(result).as("All 1000 cars should be returned").hasSize(1000);
 	}
 	
 	@Test
@@ -56,6 +73,14 @@ public class SQLInterpreterTest {
 		
 		softly.assertThat(result).as("Only one line should be returned").hasSize(1);		
 		softly.assertThat(result.get(0)).isEqualTo("Deleted 5 rows from table CAR");
+		
+		queryString = "delete from Car;";
+		query = new Query(interpreter.readQuery(queryString), database);
+		result = query.execute();
+		result.forEach(line -> LOGGER.info(line));
+		
+		softly.assertThat(result).as("Only one line should be returned").hasSize(1);		
+		softly.assertThat(result.get(0)).isEqualTo("Deleted 995 rows from table CAR");
 	}
 	
 	@Test
@@ -82,6 +107,22 @@ public class SQLInterpreterTest {
 		
 		softly.assertThat(result).as("Only one line should be returned").hasSize(1);
 		softly.assertThat(result.get(0)).isEqualTo("Updated 5 rows in table CAR");
+		
+		queryString = "update Car set colour = 'Red';";
+		
+		query = new Query(interpreter.readQuery(queryString), database);
+		result = query.execute();
+		result.forEach(line -> LOGGER.info(line));
+		
+		softly.assertThat(result).as("Only one line should be returned").hasSize(1);
+		softly.assertThat(result.get(0)).isEqualTo("Updated 1000 rows in table CAR");
+		
+		queryString = "select * from Car where colour = 'Red';";
+		
+		query = new Query(interpreter.readQuery(queryString), database);
+		result = query.execute();
+		
+		softly.assertThat(result).as("All 1000 cars should have been turned red").hasSize(1000);
 	}
 	
 	private static String getDataDirectory() {
