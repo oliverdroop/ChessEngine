@@ -118,6 +118,7 @@ public class Query {
 						targets = unlinkedColumns
 								.stream()
 								.filter(p -> p.getLinkedTable() == null || database.getTables().get(p.getLinkedTable().getString()).equals(table))
+								.filter(p -> SQLInterpreter.getPreviousKeyword(p, sqlStatement).hasKeywordType(KeywordType.INSTRUCTION))
 								.map(p -> p.getString())
 								.collect(Collectors.toList());
 					}
@@ -195,7 +196,8 @@ public class Query {
 					rows = table.getStringMatchedRows(conditions);
 				}
 				if (!targets.isEmpty()) {
-					return getColumnsFromRows(targets, rows);
+					return rows.stream().map(row -> getValuesString(table, getTargetColumns(targets, table), row)).collect(Collectors.toList());
+					//return getColumnsFromRows(targets, rows);
 				}
 			}
 			
@@ -239,12 +241,19 @@ public class Query {
 		Table tableRight = database.getTables().get(tableRightString);
 		Column columnRight = tableRight.getColumns().get(columnRightString);
 		
+		List<Column> targetColumnsLeft = null;
+		List<Column> targetColumnsRight = null;
+		if (targets != null) {
+			targetColumnsLeft = this.getTargetColumns(targets, tableLeft);
+			targetColumnsRight = this.getTargetColumns(targets, tableRight);
+		}
+		
 		List<String> output = new ArrayList<>();
 		
 		if (joinType.equals("LEFT JOIN")) {
+			Map<String, String> propertyStringMap = new HashMap<>();
 			for(byte[] rowLeft : tableLeft.getAllRows()) {
 				String joinValueString = tableLeft.getValueString(columnLeft, rowLeft);
-				Map<String, String> propertyStringMap = new HashMap<>();
 				propertyStringMap.put(columnRightString, joinValueString);
 				List<byte[]> rowsRight = tableRight.getStringMatchedRows(propertyStringMap);
 				
@@ -252,17 +261,41 @@ public class Query {
 					rowsRight.add(new byte[tableRight.getRowLength()]);
 				}
 				
-				String rowStringLeft = tableLeft.getRowString(rowLeft);
+				String rowStringLeft = getValuesString(tableLeft, targetColumnsLeft, rowLeft);
 				
 				for(byte[] rowRight : rowsRight) {
-					output.add(rowStringLeft + "\t" + tableRight.getRowString(rowRight));
+					String rowStringRight = getValuesString(tableRight, targetColumnsRight, rowRight);
+					output.add(rowStringLeft + "\t" + rowStringRight);
 				}
 			}
 		}
 		return output;
 	}
 	
-	public List<String> getColumnsFromRows(List<String> columnNames, List<byte[]> rows){
+	private List<Column> getTargetColumns(List<String> targets, Table table){
+		List<Column> targetColumns = null;
+		for(String target : targets) {
+			if (table.getColumns().keySet().contains(target)) {
+				if (targetColumns == null) {
+					targetColumns = new ArrayList<>();
+				}
+				targetColumns.add(table.getColumns().get(target));
+			}
+		}
+		return targetColumns;
+	}
+	
+	private String getValuesString(Table table, List<Column> columns, byte[] row) {
+		String rowString = null;
+		if (columns != null && columns.size() > 0) {
+			rowString = table.getValuesString(columns, row);
+		} else {
+			rowString = table.getRowString(row);
+		}
+		return rowString;
+	}
+	
+	public List<String> getaColumnsFromRows(List<String> columnNames, List<byte[]> rows){
 		List<String> output = new ArrayList<>();
 		List<Column> columns = columnNames.stream().map(t -> getColumn(t)).collect(Collectors.toList());
 		for(byte[] row : rows) {

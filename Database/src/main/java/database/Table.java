@@ -406,17 +406,21 @@ public class Table {
 		return column.getDataType().getValueString(getValueBytes(column, row));
 	}
 	
-	public String getRowString(byte[] row) {
+	public String getValuesString(List<Column> columns, byte[] row) {
 		StringBuilder rowString = new StringBuilder();
 		int count = 0;
-		for(Column column : columns.values()) {
+		for(Column column : columns) {
 			rowString.append(getValueString(column, row));
 			count += 1;
-			if (count < columns.keySet().size()) {
+			if (count < columns.size()) {
 				rowString.append("\t");
 			}
 		}
 		return rowString.toString();
+	}
+	
+	public String getRowString(byte[] row) {		
+		return getValuesString(new ArrayList<>(columns.values()), row);
 	}
 	
 	public byte[] buildRow(Map<String,String> propertyStringMap) {

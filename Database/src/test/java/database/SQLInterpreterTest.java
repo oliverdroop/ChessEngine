@@ -1,5 +1,7 @@
 package database;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -141,17 +143,18 @@ public class SQLInterpreterTest {
 	@Test
 	public void testJoin() {		
 		loadData();
-		String queryString = "select forename, surname from owner left join on owner.car_id = car.id; ";
+		String queryString = "select forename, surname, registration, manufacturer, model from owner left join on owner.car_id = car.id; ";
 		
 		Query query = new Query(interpreter.readQuery(queryString), database);
 		List<String> result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
-		softly.assertThat(result).as("4 results should be returned").hasSize(4);
-		softly.assertThat(result.get(0)).isEqualTo("0	Joe	Bloggs	249	249	LE65RGD	Ford	Focus	Red	2015	5	2.7	true");
-		softly.assertThat(result.get(1)).isEqualTo("1	John	Smith	499	499	RX06SYB	Ford	Fiesta	Red	2006	5	2.6	false");
-		softly.assertThat(result.get(2)).isEqualTo("2	John	Doe	749	749	US54LJR	Ford	Transit	Blue	2004	5	2.3	true");
-		softly.assertThat(result.get(3)).isEqualTo("3	Jane	Doe	999	999	TN68LUX	Ford	Ka	Green	2018	5	1.6	false");
+		assertTrue("4 results should be returned", result.size() == 4);
+		
+		softly.assertThat(result.get(0)).isEqualTo("Joe	Bloggs	LE65RGD	Ford	Focus");
+		softly.assertThat(result.get(1)).isEqualTo("John	Smith	RX06SYB	Ford	Fiesta");
+		softly.assertThat(result.get(2)).isEqualTo("John	Doe	US54LJR	Ford	Transit");
+		softly.assertThat(result.get(3)).isEqualTo("Jane	Doe	TN68LUX	Ford	Ka");
 	}
 	
 	private static String getDataDirectory() {
