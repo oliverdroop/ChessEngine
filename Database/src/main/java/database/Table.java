@@ -400,6 +400,9 @@ public class Table {
 	}
 	
 	public String getValueString(Column column, byte[] row) {
+		if (column == null) {
+			return null;
+		}
 		return column.getDataType().getValueString(getValueBytes(column, row));
 	}
 	

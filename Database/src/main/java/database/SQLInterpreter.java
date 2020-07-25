@@ -21,9 +21,11 @@ public class SQLInterpreter {
 	
 	private static final Set<String> INSTRUCTION_KEYWORDS = new HashSet<>(Arrays.asList("INSERT", "SELECT DISTINCT", "SELECT", "UPDATE", "DELETE", "SET"));
 	
-	private static final Set<String> TABLE_IDENTIFIER_KEYWORDS = new HashSet<>(Arrays.asList("FROM", "INTO", "UPDATE"));
+	private static final Set<String> TABLE_IDENTIFIER_KEYWORDS = new HashSet<>(Arrays.asList("FROM", "INTO", "UPDATE", "ON"));
 	
 	private static final Set<String> EXPRESSION_KEYWORDS = new HashSet<>(Arrays.asList( "WHERE", "AND", "VALUES"));
+	
+	private static final Set<String> JOIN_KEYWORDS = new HashSet<>(Arrays.asList("LEFT JOIN"));
 	
 	public List<SQLPhrase> readQuery(String query){
 		List<SQLPhrase> output = new ArrayList<>();
@@ -31,6 +33,7 @@ public class SQLInterpreter {
 		boolean openQuote = false;
 		boolean openBracket = false;
 		boolean equality = false;
+		boolean dot = false;
 		for(int i = 0; i < query.length(); i++) {
 			String currentCharacter = query.substring(i, i + 1);
 			if (!openQuote) {
@@ -58,6 +61,11 @@ public class SQLInterpreter {
 			if (currentCharacter.equals(",")) {
 				newPhrase = splitOffSQLPhrase(currentPhrase, i);
 			}
+			if (currentCharacter.equals(".") && !openQuote) {
+				newPhrase = splitOffSQLPhrase(currentPhrase, i);
+				newPhrase.setType(PhraseType.TABLE_NAME);
+				dot = true;
+			}
 			if (currentCharacter.equals("=")) {
 				newPhrase = splitOffSQLPhrase(currentPhrase, i);
 				equality = true;
@@ -70,10 +78,19 @@ public class SQLInterpreter {
 					if (newPhrase.getType() == null) {
 						categorizePhrase(newPhrase, output);
 					}
-					if(equality) {
-						newPhrase.setLinkedPhrase(getLastPhrase(output));
-						getLastPhrase(output).setLinkedPhrase(newPhrase);						
+					if (equality) {
+						if (newPhrase.hasType(PhraseType.VALUE)) {
+							newPhrase.setLinkedColumn(getLastPhrase(output));
+							getLastPhrase(output).setLinkedValue(newPhrase);
+						}
 						equality = false;
+					}
+					if (dot) {
+						if (!newPhrase.hasType(PhraseType.TABLE_NAME)) {
+							newPhrase.setLinkedTable(getLastPhrase(output));
+							getLastPhrase(output).setLinkedColumn(newPhrase);
+							dot = false;
+						}
 					}
 					output.add(newPhrase);
 				}
@@ -93,6 +110,13 @@ public class SQLInterpreter {
 			newPhrase.setType(PhraseType.KEYWORD);
 			newPhrase.setKeywordTypes(getKeywordTypes(newPhrase.getString()));
 		}
+		else if (getAllKeywords().contains(previousPhrase.getString() + " " + newPhrase.getString())) {
+			String bothPhraseStrings = previousPhrase.getString() + " " + newPhrase.getString();
+			previousPhrases.remove(previousPhrase);
+			newPhrase.setString(bothPhraseStrings);
+			newPhrase.setType(PhraseType.KEYWORD);
+			newPhrase.setKeywordTypes(getKeywordTypes(bothPhraseStrings));
+		}
 		else if(previousKeyword.hasKeywordType(KeywordType.TABLE_IDENTIFIER) && previousPhrase.hasType(PhraseType.KEYWORD)) {
 			newPhrase.setType(PhraseType.TABLE_NAME);
 		}
@@ -102,7 +126,10 @@ public class SQLInterpreter {
 		else if(previousKeyword.hasKeywordType(KeywordType.EXPRESSION)) {
 			newPhrase.setType(PhraseType.COLUMN_NAME);
 		}
-		else if(previousPhrase.hasType(PhraseType.TABLE_NAME) || previousPhrase.hasType(PhraseType.COLUMN_NAME)) {
+		else if(previousPhrase.hasType(PhraseType.TABLE_NAME)) {
+			newPhrase.setType(PhraseType.COLUMN_NAME);
+		}
+		else if(previousPhrase.hasType(PhraseType.COLUMN_NAME)) {
 			newPhrase.setType(PhraseType.COLUMN_NAME);
 		}
 	}
@@ -139,6 +166,7 @@ public class SQLInterpreter {
 		allKeywords.addAll(INSTRUCTION_KEYWORDS);
 		allKeywords.addAll(TABLE_IDENTIFIER_KEYWORDS);
 		allKeywords.addAll(EXPRESSION_KEYWORDS);
+		allKeywords.addAll(JOIN_KEYWORDS);
 		return allKeywords;
 	}
 	
@@ -147,6 +175,7 @@ public class SQLInterpreter {
 		keywordGroupMap.put(KeywordType.INSTRUCTION, INSTRUCTION_KEYWORDS);
 		keywordGroupMap.put(KeywordType.TABLE_IDENTIFIER, TABLE_IDENTIFIER_KEYWORDS);
 		keywordGroupMap.put(KeywordType.EXPRESSION, EXPRESSION_KEYWORDS);
+		keywordGroupMap.put(KeywordType.JOIN, JOIN_KEYWORDS);
 		List<KeywordType> keywordTypes = new ArrayList<>();
 		for(KeywordType keywordType : keywordGroupMap.keySet()) {
 			if (keywordGroupMap.get(keywordType).contains(phrase)) {

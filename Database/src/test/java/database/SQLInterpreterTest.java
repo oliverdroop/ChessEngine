@@ -1,7 +1,9 @@
 package database;
 
 import java.io.File;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.Before;
@@ -134,6 +136,22 @@ public class SQLInterpreterTest {
 		result = query.execute();
 		
 		softly.assertThat(result).as("All 1000 cars should have been turned red").hasSize(1000);
+	}
+	
+	@Test
+	public void testJoin() {		
+		loadData();
+		String queryString = "select forename, surname from owner left join on owner.car_id = car.id; ";
+		
+		Query query = new Query(interpreter.readQuery(queryString), database);
+		List<String> result = query.execute();
+		result.forEach(line -> LOGGER.info(line));
+		
+		softly.assertThat(result).as("4 results should be returned").hasSize(4);
+		softly.assertThat(result.get(0)).isEqualTo("0	Joe	Bloggs	249	249	LE65RGD	Ford	Focus	Red	2015	5	2.7	true");
+		softly.assertThat(result.get(1)).isEqualTo("1	John	Smith	499	499	RX06SYB	Ford	Fiesta	Red	2006	5	2.6	false");
+		softly.assertThat(result.get(2)).isEqualTo("2	John	Doe	749	749	US54LJR	Ford	Transit	Blue	2004	5	2.3	true");
+		softly.assertThat(result.get(3)).isEqualTo("3	Jane	Doe	999	999	TN68LUX	Ford	Ka	Green	2018	5	1.6	false");
 	}
 	
 	private static String getDataDirectory() {

@@ -32,6 +32,10 @@ public class Query {
 	
 	private List<String> targets;
 	
+	private String joinType;
+	
+	private List<SQLPhrase> joinCondition;
+	
 	public Query(List<SQLPhrase> sqlStatement, Database database) {
 		this.sqlStatement = sqlStatement;
 		this.database = database;
@@ -39,6 +43,8 @@ public class Query {
 		table = extractTable();
 		conditions = extractConditions();
 		assignments = extractAssignments();
+		joinType = extractJoinType();
+		joinCondition = extractJoinCondition();
 	}
 	
 	private SQLPhrase extractInstruction() {
@@ -66,7 +72,7 @@ public class Query {
 		Map<String, String> output = new LinkedHashMap<>();
 		for(int i = startIndex; i < sqlStatement.size(); i++) {
 			SQLPhrase phrase = sqlStatement.get(i);
-			SQLPhrase linkedPhrase = phrase.getLinkedPhrase();
+			SQLPhrase linkedPhrase = phrase.getLinkedColumn();
 			if (linkedPhrase != null && linkedPhrase.hasType(PhraseType.COLUMN_NAME) && phrase.hasType(PhraseType.VALUE)) {
 				output.put(linkedPhrase.getString(), phrase.getString());
 			}
@@ -81,23 +87,20 @@ public class Query {
 			SQLPhrase previousKeyword = SQLInterpreter.getPreviousKeyword(phrase, sqlStatement);
 			if (previousKeyword != null 
 					&& previousKeyword.hasKeywordType(KeywordType.INSTRUCTION) 
-					&& phrase.getLinkedPhrase() != null 
+					&& phrase.getLinkedValue() != null 
 					&& phrase.hasType(PhraseType.COLUMN_NAME) 
-					&& phrase.getLinkedPhrase().hasType(PhraseType.VALUE)) {
-				output.put(phrase.getString(), phrase.getLinkedPhrase().getString());
+					&& phrase.getLinkedValue().hasType(PhraseType.VALUE)) {
+				output.put(phrase.getString(), phrase.getLinkedValue().getString());
 			}
 		}
 		List<SQLPhrase> unlinkedColumns = new ArrayList<>();
 		List<SQLPhrase> unlinkedValues = new ArrayList<>();
 		for (int i = 0; i < sqlStatement.size(); i++) {
 			SQLPhrase phrase = sqlStatement.get(i);
-			if (phrase.getLinkedPhrase() == null) {
-				if (phrase.hasType(PhraseType.COLUMN_NAME)) {
-					unlinkedColumns.add(phrase);
-				}
-				else if (phrase.hasType(PhraseType.VALUE)) {
-					unlinkedValues.add(phrase);
-				}
+			if (phrase.getLinkedValue() == null && phrase.hasType(PhraseType.COLUMN_NAME)) {
+				unlinkedColumns.add(phrase);
+			} else if (phrase.getLinkedColumn() == null && phrase.hasType(PhraseType.VALUE)) {
+				unlinkedValues.add(phrase);
 			}
 		}
 		if (unlinkedColumns.size() > 0) {
@@ -112,7 +115,11 @@ public class Query {
 						targets = table.getColumns().keySet().stream().collect(Collectors.toList());
 					}
 					else {
-						targets = unlinkedColumns.stream().map(p -> p.getString()).collect(Collectors.toList());
+						targets = unlinkedColumns
+								.stream()
+								.filter(p -> p.getLinkedTable() == null || database.getTables().get(p.getLinkedTable().getString()).equals(table))
+								.map(p -> p.getString())
+								.collect(Collectors.toList());
 					}
 				}
 			}
@@ -121,6 +128,33 @@ public class Query {
 			List<String> keyList = table.getColumns().keySet().stream().collect(Collectors.toList());
 			for(int i = 0; i < unlinkedValues.size(); i++) {
 				output.put(keyList.get(i), unlinkedValues.get(i).getString());
+			}
+		}
+		return output;
+	}
+	
+	private String extractJoinType() {
+		for(SQLPhrase phrase : sqlStatement) {
+			if (phrase.hasKeywordType(KeywordType.JOIN)) {
+				return phrase.getString();
+			}
+		}
+		return null;
+	}
+	
+	private List<SQLPhrase> extractJoinCondition(){
+		List<SQLPhrase> output = new ArrayList<>();
+		for(int i = 0; i < sqlStatement.size(); i++) {
+			SQLPhrase phrase = sqlStatement.get(i);
+			if (phrase.hasKeywordType(KeywordType.JOIN)) {
+				if (sqlStatement.get(i + 1).hasKeywordType(KeywordType.TABLE_IDENTIFIER)
+						&& sqlStatement.get(i + 2).hasType(PhraseType.TABLE_NAME)
+						&& sqlStatement.get(i + 3).hasType(PhraseType.COLUMN_NAME)
+						&& sqlStatement.get(i + 4).hasType(PhraseType.TABLE_NAME)
+						&& sqlStatement.get(i + 5).hasType(PhraseType.COLUMN_NAME)) {
+					output.add(sqlStatement.get(i + 3));
+					output.add(sqlStatement.get(i + 5));
+				}
 			}
 		}
 		return output;
@@ -140,6 +174,11 @@ public class Query {
 	
 	public List<String> execute() {
 		List<String> output = new ArrayList<>();
+		
+		if (joinType != null && joinCondition.size() == 2) {
+			return executeJoin();
+		}
+		
 		if (table != null && instruction != null) {
 			
 			if (instruction.getString().equals("INSERT")) {
@@ -186,6 +225,39 @@ public class Query {
 				output.add(message);
 			}
 			
+		}
+		return output;
+	}
+	
+	private List<String> executeJoin() {
+		String columnLeftString = joinCondition.get(0).getString();
+		String tableLeftString = joinCondition.get(0).getLinkedTable().getString();
+		String columnRightString = joinCondition.get(1).getString();
+		String tableRightString = joinCondition.get(1).getLinkedTable().getString();
+		Table tableLeft = database.getTables().get(tableLeftString);
+		Column columnLeft = tableLeft.getColumns().get(columnLeftString);
+		Table tableRight = database.getTables().get(tableRightString);
+		Column columnRight = tableRight.getColumns().get(columnRightString);
+		
+		List<String> output = new ArrayList<>();
+		
+		if (joinType.equals("LEFT JOIN")) {
+			for(byte[] rowLeft : tableLeft.getAllRows()) {
+				String joinValueString = tableLeft.getValueString(columnLeft, rowLeft);
+				Map<String, String> propertyStringMap = new HashMap<>();
+				propertyStringMap.put(columnRightString, joinValueString);
+				List<byte[]> rowsRight = tableRight.getStringMatchedRows(propertyStringMap);
+				
+				if (rowsRight.size() == 0) {
+					rowsRight.add(new byte[tableRight.getRowLength()]);
+				}
+				
+				String rowStringLeft = tableLeft.getRowString(rowLeft);
+				
+				for(byte[] rowRight : rowsRight) {
+					output.add(rowStringLeft + "\t" + tableRight.getRowString(rowRight));
+				}
+			}
 		}
 		return output;
 	}

@@ -10,7 +10,7 @@ public class SQLPhrase {
 	}
 	
 	public static enum KeywordType{
-		INSTRUCTION, TABLE_IDENTIFIER, EXPRESSION
+		INSTRUCTION, TABLE_IDENTIFIER, EXPRESSION, JOIN
 	}
 	
 	private PhraseType type;
@@ -19,7 +19,11 @@ public class SQLPhrase {
 	
 	private String string;
 	
-	private SQLPhrase linkedPhrase;
+	private SQLPhrase linkedValue;
+	
+	private SQLPhrase linkedColumn;
+	
+	private SQLPhrase linkedTable;
 	
 	public SQLPhrase(String string) {
 		this.string = string;
@@ -58,13 +62,29 @@ public class SQLPhrase {
 	public boolean hasKeywordType(KeywordType keywordType) {
 		return this.keywordTypes.contains(keywordType);
 	}
-	
-	public SQLPhrase getLinkedPhrase() {
-		return linkedPhrase;
+
+	public SQLPhrase getLinkedValue() {
+		return linkedValue;
 	}
 
-	public void setLinkedPhrase(SQLPhrase linkedPhrase) {
-		this.linkedPhrase = linkedPhrase;
+	public void setLinkedValue(SQLPhrase linkedValue) {
+		this.linkedValue = linkedValue;
+	}
+
+	public SQLPhrase getLinkedColumn() {
+		return linkedColumn;
+	}
+
+	public void setLinkedColumn(SQLPhrase linkedColumn) {
+		this.linkedColumn = linkedColumn;
+	}
+
+	public SQLPhrase getLinkedTable() {
+		return linkedTable;
+	}
+
+	public void setLinkedTable(SQLPhrase linkedTable) {
+		this.linkedTable = linkedTable;
 	}
 
 	@Override
