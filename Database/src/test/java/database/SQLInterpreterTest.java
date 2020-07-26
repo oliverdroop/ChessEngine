@@ -3,6 +3,7 @@ package database;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -143,10 +144,38 @@ public class SQLInterpreterTest {
 	@Test
 	public void testJoin() {		
 		loadData();
+		
 		String queryString = "select forename, surname, registration, manufacturer, model from owner left join car on owner.car_id = car.id; ";
 		
 		Query query = new Query(interpreter.readQuery(queryString), database);
 		List<String> result = query.execute();
+		result.forEach(line -> LOGGER.info(line));
+		
+		assertTrue("5 results should be returned", result.size() == 5);
+		
+		softly.assertThat(result.get(0)).isEqualTo("Joe	Bloggs	LE65RGD	Ford	Focus");
+		softly.assertThat(result.get(1)).isEqualTo("John	Smith	RX06SYB	Ford	Fiesta");
+		softly.assertThat(result.get(2)).isEqualTo("John	Doe	US54LJR	Ford	Transit");
+		softly.assertThat(result.get(3)).isEqualTo("Jane	Doe	TN68LUX	Ford	Ka");
+		softly.assertThat(result.get(4)).isEqualTo("Elvis	Presley			");
+		
+		queryString = "select forename, surname, registration, manufacturer, model from owner right join car on car.id = owner.car_id; ";
+		
+		query = new Query(interpreter.readQuery(queryString), database);
+		result = query.execute();
+		result.forEach(line -> LOGGER.info(line));
+		
+		assertTrue("1000 results should be returned", result.size() == 1000);
+		
+		softly.assertThat(result.get(249)).isEqualTo("Joe	Bloggs	LE65RGD	Ford	Focus");
+		softly.assertThat(result.get(499)).isEqualTo("John	Smith	RX06SYB	Ford	Fiesta");
+		softly.assertThat(result.get(749)).isEqualTo("John	Doe	US54LJR	Ford	Transit");
+		softly.assertThat(result.get(999)).isEqualTo("Jane	Doe	TN68LUX	Ford	Ka");
+		
+		queryString = "select forename, surname, registration, manufacturer, model from owner inner join car on car.id = owner.car_id; ";
+		
+		query = new Query(interpreter.readQuery(queryString), database);
+		result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
 		assertTrue("4 results should be returned", result.size() == 4);
@@ -155,6 +184,21 @@ public class SQLInterpreterTest {
 		softly.assertThat(result.get(1)).isEqualTo("John	Smith	RX06SYB	Ford	Fiesta");
 		softly.assertThat(result.get(2)).isEqualTo("John	Doe	US54LJR	Ford	Transit");
 		softly.assertThat(result.get(3)).isEqualTo("Jane	Doe	TN68LUX	Ford	Ka");
+		
+		queryString = "select forename, surname, registration, manufacturer, model from owner full join car on car.id = owner.car_id; ";
+		
+		query = new Query(interpreter.readQuery(queryString), database);
+		result = query.execute();
+		result.forEach(line -> LOGGER.info(line));
+		
+		assertTrue("1001 results should be returned", result.size() == 1001);
+		
+		softly.assertThat(result.get(0)).isEqualTo("Joe	Bloggs	LE65RGD	Ford	Focus");
+		softly.assertThat(result.get(1)).isEqualTo("John	Smith	RX06SYB	Ford	Fiesta");
+		softly.assertThat(result.get(2)).isEqualTo("John	Doe	US54LJR	Ford	Transit");
+		softly.assertThat(result.get(3)).isEqualTo("Jane	Doe	TN68LUX	Ford	Ka");
+		softly.assertThat(result.get(4)).isEqualTo("Elvis	Presley			");
+		softly.assertThat(result.get(5)).isEqualTo("		XG63PJS	Ford	Focus");
 	}
 	
 	private static String getDataDirectory() {
