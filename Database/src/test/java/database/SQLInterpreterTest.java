@@ -143,7 +143,7 @@ public class SQLInterpreterTest {
 	@Test
 	public void testJoin() {		
 		loadData();
-		String queryString = "select forename, surname, registration, manufacturer, model from owner left join on owner.car_id = car.id; ";
+		String queryString = "select forename, surname, registration, manufacturer, model from owner left join car on owner.car_id = car.id; ";
 		
 		Query query = new Query(interpreter.readQuery(queryString), database);
 		List<String> result = query.execute();

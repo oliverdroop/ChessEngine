@@ -32,7 +32,7 @@ public class Query {
 	
 	private List<String> targets;
 	
-	private String joinType;
+	private SQLPhrase joinType;
 	
 	private List<SQLPhrase> joinCondition;
 	
@@ -134,10 +134,10 @@ public class Query {
 		return output;
 	}
 	
-	private String extractJoinType() {
+	private SQLPhrase extractJoinType() {
 		for(SQLPhrase phrase : sqlStatement) {
 			if (phrase.hasKeywordType(KeywordType.JOIN)) {
-				return phrase.getString();
+				return phrase;
 			}
 		}
 		return null;
@@ -145,16 +145,23 @@ public class Query {
 	
 	private List<SQLPhrase> extractJoinCondition(){
 		List<SQLPhrase> output = new ArrayList<>();
-		for(int i = 0; i < sqlStatement.size(); i++) {
-			SQLPhrase phrase = sqlStatement.get(i);
-			if (phrase.hasKeywordType(KeywordType.JOIN)) {
-				if (sqlStatement.get(i + 1).hasKeywordType(KeywordType.TABLE_IDENTIFIER)
-						&& sqlStatement.get(i + 2).hasType(PhraseType.TABLE_NAME)
-						&& sqlStatement.get(i + 3).hasType(PhraseType.COLUMN_NAME)
-						&& sqlStatement.get(i + 4).hasType(PhraseType.TABLE_NAME)
-						&& sqlStatement.get(i + 5).hasType(PhraseType.COLUMN_NAME)) {
-					output.add(sqlStatement.get(i + 3));
-					output.add(sqlStatement.get(i + 5));
+		int i = 0;
+		SQLPhrase joinType = extractJoinType();
+		if (joinType != null) {
+			i = sqlStatement.indexOf(joinType);
+			if (sqlStatement.get(i - 1).hasType(PhraseType.TABLE_NAME)
+					&& sqlStatement.get(i + 1).hasType(PhraseType.TABLE_NAME)
+					&& sqlStatement.get(i + 2).hasKeywordType(KeywordType.TABLE_IDENTIFIER)
+					&& sqlStatement.get(i + 3).hasType(PhraseType.TABLE_NAME)
+					&& sqlStatement.get(i + 4).hasType(PhraseType.COLUMN_NAME)
+					&& sqlStatement.get(i + 5).hasType(PhraseType.TABLE_NAME)
+					&& sqlStatement.get(i + 6).hasType(PhraseType.COLUMN_NAME)) {
+				if (sqlStatement.get(i - 1).getString().equals(sqlStatement.get(i + 3).getString())) {
+					output.add(sqlStatement.get(i + 4));
+					output.add(sqlStatement.get(i + 6));
+				} else if (sqlStatement.get(i - 1).getString().equals(sqlStatement.get(i + 5).getString())) {
+					output.add(sqlStatement.get(i + 6));
+					output.add(sqlStatement.get(i + 4));
 				}
 			}
 		}
@@ -196,8 +203,9 @@ public class Query {
 					rows = table.getStringMatchedRows(conditions);
 				}
 				if (!targets.isEmpty()) {
-					return rows.stream().map(row -> getValuesString(table, getTargetColumns(targets, table), row)).collect(Collectors.toList());
-					//return getColumnsFromRows(targets, rows);
+					return rows.stream()
+							.map(row -> getValuesString(table, getTargetColumns(targets, table), row))
+							.collect(Collectors.toList());
 				}
 			}
 			
@@ -250,7 +258,7 @@ public class Query {
 		
 		List<String> output = new ArrayList<>();
 		
-		if (joinType.equals("LEFT JOIN")) {
+		if (joinType.getString().equals("LEFT JOIN")) {
 			Map<String, String> propertyStringMap = new HashMap<>();
 			for(byte[] rowLeft : tableLeft.getAllRows()) {
 				String joinValueString = tableLeft.getValueString(columnLeft, rowLeft);
