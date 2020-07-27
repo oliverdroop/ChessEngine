@@ -213,6 +213,21 @@ public class SQLInterpreterTest {
 		softly.assertThat(result.get(5)).isEqualTo("		XG63PJS	Ford	Focus");
 	}
 	
+	@Test
+	public void testLeftJoinWithConditions() {
+		loadData();
+		String queryString = "select forename, surname, registration, manufacturer, model from owner left join car on owner.car_id = car.id where forename = 'John' and manufacturer = 'Ford';";
+		
+		Query query = new Query(interpreter.readQuery(queryString), database);
+		List<String> result = query.execute();
+		result.forEach(line -> LOGGER.info(line));
+		
+		assertEquals("2 results should be returned", 2, result.size());
+
+		softly.assertThat(result.get(0)).isEqualTo("John	Smith	RX06SYB	Ford	Fiesta");
+		softly.assertThat(result.get(1)).isEqualTo("John	Doe	US54LJR	Ford	Transit");
+	}
+	
 	private static String getDataDirectory() {
 		String directory = rootDirectory;
 		directory += File.separator;

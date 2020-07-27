@@ -257,6 +257,27 @@ public class Query {
 		Column columnPrimary = tablePrimary.getColumns().get(columnPrimaryString);
 		Table tableSecondary = database.getTables().get(tableSecondaryString);
 		
+		Table tableLeft;
+		Table tableRight;
+		if (joinType.getString().equals("RIGHT JOIN")) {
+			tableLeft = tableSecondary;
+			tableRight = tablePrimary;
+		} else {
+			tableLeft = tablePrimary;
+			tableRight = tableSecondary;
+		}
+		String joinTableName = tableLeft.getName() + "_" + tableRight.getName();
+		Map<String,Column> columns = getColumnsFromMultipleTables(tableLeft, tableRight);
+		
+		Collection<Column> columnSet = columns.values();
+		Table joinTable = new Table(joinTableName, columnSet);
+		joinTable.getRowLength();
+		joinTable.setData(getJoinTableData(tablePrimary, tableSecondary, columnPrimary, columnSecondaryString));
+		
+		return joinTable;
+	}
+	
+	private byte[] getJoinTableData(Table tablePrimary, Table tableSecondary, Column columnPrimary, String columnSecondaryName) {
 		List<byte[]> rowsSecondaryJoined = null;
 		if (joinType.getString().equals("FULL JOIN")) {
 			rowsSecondaryJoined = new ArrayList<>();
@@ -269,7 +290,7 @@ public class Query {
 		for(int i = 0; i < tablePrimary.getData().length; i += tablePrimary.getRowLength()) {
 			byte[] rowPrimary = Arrays.copyOfRange(tablePrimary.getData(), i, i + tablePrimary.getRowLength());
 			String joinValueString = tablePrimary.getValueString(columnPrimary, rowPrimary);
-			propertyStringMap.put(columnSecondaryString, joinValueString);
+			propertyStringMap.put(columnSecondaryName, joinValueString);
 			List<byte[]> rowsSecondary = tableSecondary.getStringMatchedRows(propertyStringMap);
 			
 			if (rowsSecondary.size() == 0) {
@@ -315,31 +336,20 @@ public class Query {
 		}
 		byte[] tableData = new byte[dataIndex];
 		System.arraycopy(data, 0, tableData, 0, dataIndex);
-		data = tableData;
+		return tableData;
+	}
+	
+	private Map<String,Column> getColumnsFromMultipleTables(Table tableLeft, Table tableRight) {
+		Map<String, Column> columns = new LinkedHashMap<>();
+		Map<String, Column> columnsLeft = getUniqueAndRenamedColumns(tableLeft, tableRight);
+		Map<String, Column> columnsRight = getUniqueAndRenamedColumns(tableRight, tableLeft);
+		for(String columnName : columnsLeft.keySet()) {
+			columns.put(columnName, columnsLeft.get(columnName));
+		}
+		for(String columnName : columnsRight.keySet()) {
+			columns.put(columnName, columnsRight.get(columnName));
+		}
 		
-		Table tableLeft;
-		Table tableRight;
-		if (joinType.getString().equals("RIGHT JOIN")) {
-			tableLeft = tableSecondary;
-			tableRight = tablePrimary;
-		} else {
-			tableLeft = tablePrimary;
-			tableRight = tableSecondary;
-		}
-		String joinTableName = tableLeft.getName() + "_" + tableRight.getName();
-		Map<String,Column> columns = new LinkedHashMap<>();
-		tableLeft.getColumns().keySet().forEach(c -> columns.put(c, tableLeft.getColumns().get(c)));
-		for(String columnName : tableRight.getColumns().keySet()) {
-			if (columns.get(columnName) != null) {
-				String columnNameWithPrimaryTable = tableLeft.getName() + "." + columnName;
-				columns.put(columnNameWithPrimaryTable, columns.get(columnName));
-				columns.remove(columnName);
-				String columnNameWithSecondaryTable = tableRight.getName() + "." + columnName;
-				columns.put(columnNameWithSecondaryTable, tableRight.getColumns().get(columnName));
-			} else {
-				columns.put(columnName, tableRight.getColumns().get(columnName));
-			}
-		}
 		for(String columnName : columns.keySet()) {
 			Column originalColumn = columns.get(columnName);
 			DataType dataType = originalColumn.getDataType();
@@ -347,12 +357,19 @@ public class Query {
 			Column newColumn = new Column(columnName, columns.get(columnName).getDataType(), dataCount);
 			columns.put(columnName, newColumn);
 		}
-		Collection<Column> columnSet = columns.values();
-		Table joinTable = new Table(joinTableName, columnSet);
-		joinTable.getRowLength();
-		joinTable.setData(data);
-		
-		return joinTable;
+		return columns;
+	}
+	
+	private Map<String,Column> getUniqueAndRenamedColumns(Table tableSource, Table tableReference) {
+		Map<String, Column> output = new LinkedHashMap<>();
+		for(String columnName : tableSource.getColumns().keySet()) {
+			String finalColumnName = columnName;
+			if (tableReference.getColumns().keySet().contains(columnName)) {
+				finalColumnName = tableSource.getName() + "." + columnName;
+			}
+			output.put(finalColumnName, tableSource.getColumns().get(columnName));
+		}
+		return output;
 	}
 	
 	private List<Column> getTargetColumns(List<String> targets, Table table){
