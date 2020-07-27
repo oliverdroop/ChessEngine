@@ -10,10 +10,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,8 +77,7 @@ public class Table {
 		}
 	}
 	
-	public Table(String databaseName, String name, Column... columns) {
-		this.databaseName = databaseName;
+	public Table(String name, Collection<Column> columns) {
 		this.name = name;
 		this.columns = new LinkedHashMap<>();
 		for(Column c : columns) {

@@ -2,10 +2,12 @@ package database;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -184,7 +186,8 @@ public class Query {
 		List<String> output = new ArrayList<>();
 		
 		if (joinType != null && joinCondition.size() == 2) {
-			return executeJoin();
+			table = getJoinTable();
+			targets = getTargetColumns(targets, table).stream().map(c -> c.getName()).collect(Collectors.toList());
 		}
 		
 		if (table != null && instruction != null) {
@@ -239,7 +242,7 @@ public class Query {
 		return output;
 	}
 	
-	private List<String> executeJoin() {
+	private Table getJoinTable() {
 		int indexPrimary = 0;
 		int indexSecondary = 1;
 		if (joinType.getString().equals("RIGHT JOIN")) {
@@ -253,24 +256,18 @@ public class Query {
 		Table tablePrimary = database.getTables().get(tablePrimaryString);
 		Column columnPrimary = tablePrimary.getColumns().get(columnPrimaryString);
 		Table tableSecondary = database.getTables().get(tableSecondaryString);
-		Column columnSecondary = tableSecondary.getColumns().get(columnSecondaryString);
-		
-		List<Column> targetColumnsPrimary = null;
-		List<Column> targetColumnsSecondary = null;
-		if (targets != null) {
-			targetColumnsPrimary = getTargetColumns(targets, tablePrimary);
-			targetColumnsSecondary = getTargetColumns(targets, tableSecondary);
-		}
-		
-		List<String> output = new ArrayList<>();
 		
 		List<byte[]> rowsSecondaryJoined = null;
 		if (joinType.getString().equals("FULL JOIN")) {
 			rowsSecondaryJoined = new ArrayList<>();
 		}
 		
+		byte[] data = new byte[(tablePrimary.getRowLength() + tableSecondary.getRowLength()) * (tablePrimary.countRows() + tableSecondary.countRows())];
+		
 		Map<String, String> propertyStringMap = new HashMap<>();
-		for(byte[] rowPrimary : tablePrimary.getAllRows()) {
+		int dataIndex = 0;
+		for(int i = 0; i < tablePrimary.getData().length; i += tablePrimary.getRowLength()) {
+			byte[] rowPrimary = Arrays.copyOfRange(tablePrimary.getData(), i, i + tablePrimary.getRowLength());
 			String joinValueString = tablePrimary.getValueString(columnPrimary, rowPrimary);
 			propertyStringMap.put(columnSecondaryString, joinValueString);
 			List<byte[]> rowsSecondary = tableSecondary.getStringMatchedRows(propertyStringMap);
@@ -283,39 +280,79 @@ public class Query {
 				}
 			}
 			
-			String rowStringPrimary = getValuesString(tablePrimary, targetColumnsPrimary, rowPrimary);
-			
 			for(byte[] rowSecondary : rowsSecondary) {
 				if (rowsSecondaryJoined != null) {
 					rowsSecondaryJoined.add(rowSecondary);
 				}
-				
-				String rowStringSecondary = getValuesString(tableSecondary, targetColumnsSecondary, rowSecondary);
+
 				if (joinType.getString().equals("RIGHT JOIN")) {
-					output.add(rowStringSecondary + "\t" + rowStringPrimary);
+					System.arraycopy(rowSecondary, 0, data, dataIndex, tableSecondary.getRowLength());
+					System.arraycopy(rowPrimary, 0, data, dataIndex + tableSecondary.getRowLength(), tablePrimary.getRowLength());
 				} else {
-					output.add(rowStringPrimary + "\t" + rowStringSecondary);
+					System.arraycopy(rowPrimary, 0, data, dataIndex, tablePrimary.getRowLength());
+					System.arraycopy(rowSecondary, 0, data, dataIndex + tablePrimary.getRowLength(), tableSecondary.getRowLength());
 				}
+				dataIndex += tablePrimary.getRowLength() + tableSecondary.getRowLength();
 			}
 		}
 		
 		if (rowsSecondaryJoined != null) {
-			String rowStringPrimary = getValuesString(tablePrimary, targetColumnsPrimary, new byte[tablePrimary.getRowLength()]);
+			byte[] rowPrimary = new byte[tablePrimary.getRowLength()];
 			for(byte[] rowSecondary : tableSecondary.getAllRows()) {
 				boolean rowJoined = false;
 				for(byte[] rowSecondaryJoined : rowsSecondaryJoined) {
 					if (Arrays.equals(rowSecondary, rowSecondaryJoined)) {
 						rowJoined = true;
+						break;
 					}
 				}
 				if (!rowJoined) {
-					String rowStringSecondary = getValuesString(tableSecondary, targetColumnsSecondary, rowSecondary);
-					output.add(rowStringPrimary + "\t" + rowStringSecondary);
+					System.arraycopy(rowPrimary, 0, data, dataIndex, tablePrimary.getRowLength());
+					System.arraycopy(rowSecondary, 0, data, dataIndex + tablePrimary.getRowLength(), tableSecondary.getRowLength());
+					dataIndex += tablePrimary.getRowLength() + tableSecondary.getRowLength();
 				}
 			}
 		}
+		byte[] tableData = new byte[dataIndex];
+		System.arraycopy(data, 0, tableData, 0, dataIndex);
+		data = tableData;
 		
-		return output;
+		Table tableLeft;
+		Table tableRight;
+		if (joinType.getString().equals("RIGHT JOIN")) {
+			tableLeft = tableSecondary;
+			tableRight = tablePrimary;
+		} else {
+			tableLeft = tablePrimary;
+			tableRight = tableSecondary;
+		}
+		String joinTableName = tableLeft.getName() + "_" + tableRight.getName();
+		Map<String,Column> columns = new LinkedHashMap<>();
+		tableLeft.getColumns().keySet().forEach(c -> columns.put(c, tableLeft.getColumns().get(c)));
+		for(String columnName : tableRight.getColumns().keySet()) {
+			if (columns.get(columnName) != null) {
+				String columnNameWithPrimaryTable = tableLeft.getName() + "." + columnName;
+				columns.put(columnNameWithPrimaryTable, columns.get(columnName));
+				columns.remove(columnName);
+				String columnNameWithSecondaryTable = tableRight.getName() + "." + columnName;
+				columns.put(columnNameWithSecondaryTable, tableRight.getColumns().get(columnName));
+			} else {
+				columns.put(columnName, tableRight.getColumns().get(columnName));
+			}
+		}
+		for(String columnName : columns.keySet()) {
+			Column originalColumn = columns.get(columnName);
+			DataType dataType = originalColumn.getDataType();
+			int dataCount = originalColumn.getLength() / dataType.getLength();
+			Column newColumn = new Column(columnName, columns.get(columnName).getDataType(), dataCount);
+			columns.put(columnName, newColumn);
+		}
+		Collection<Column> columnSet = columns.values();
+		Table joinTable = new Table(joinTableName, columnSet);
+		joinTable.getRowLength();
+		joinTable.setData(data);
+		
+		return joinTable;
 	}
 	
 	private List<Column> getTargetColumns(List<String> targets, Table table){

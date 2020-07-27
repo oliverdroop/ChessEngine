@@ -1,5 +1,6 @@
 package database;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -150,7 +151,7 @@ public class SQLInterpreterTest {
 		List<String> result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
-		assertTrue("5 results should be returned", result.size() == 5);
+		assertEquals("5 results should be returned", 5, result.size());
 		
 		softly.assertThat(result.get(0)).isEqualTo("Joe	Bloggs	LE65RGD	Ford	Focus");
 		softly.assertThat(result.get(1)).isEqualTo("John	Smith	RX06SYB	Ford	Fiesta");
@@ -167,8 +168,8 @@ public class SQLInterpreterTest {
 		Query query = new Query(interpreter.readQuery(queryString), database);
 		List<String> result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
-		
-		assertTrue("1000 results should be returned", result.size() == 1000);
+
+		assertEquals("1000 results should be returned", 1000, result.size());
 		
 		softly.assertThat(result.get(249)).isEqualTo("Joe	Bloggs	LE65RGD	Ford	Focus");
 		softly.assertThat(result.get(499)).isEqualTo("John	Smith	RX06SYB	Ford	Fiesta");
@@ -185,7 +186,7 @@ public class SQLInterpreterTest {
 		List<String> result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
-		assertTrue("4 results should be returned", result.size() == 4);
+		assertEquals("4 results should be returned", 4, result.size());
 		
 		softly.assertThat(result.get(0)).isEqualTo("Joe	Bloggs	LE65RGD	Ford	Focus");
 		softly.assertThat(result.get(1)).isEqualTo("John	Smith	RX06SYB	Ford	Fiesta");
@@ -202,7 +203,7 @@ public class SQLInterpreterTest {
 		List<String> result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
-		assertTrue("1001 results should be returned", result.size() == 1001);
+		assertEquals("1001 results should be returned", 1001, result.size());
 		
 		softly.assertThat(result.get(0)).isEqualTo("Joe	Bloggs	LE65RGD	Ford	Focus");
 		softly.assertThat(result.get(1)).isEqualTo("John	Smith	RX06SYB	Ford	Fiesta");
