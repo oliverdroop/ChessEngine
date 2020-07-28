@@ -24,10 +24,6 @@ public class SQLInterpreterTest {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(SQLInterpreterTest.class);
 	
-	private static SQLLexer lexer = new SQLLexer();
-	
-	private static SQLInterpreter interpreter = new SQLInterpreter();
-	
 	private static String rootDirectory = System.getProperty("user.dir");
 	
 	private static Database database;
@@ -45,7 +41,7 @@ public class SQLInterpreterTest {
 		loadData();
 		String queryString = "select Registration, Manufacturer, Model from Car where colour = 'Orange' and year_of_registration = '2002' and model = 'Mondeo';";
 		
-		Query query = new Query(interpreter.interpret(lexer.readQuery(queryString), database));
+		Query query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
 		List<String> result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
@@ -54,7 +50,7 @@ public class SQLInterpreterTest {
 		
 		queryString = "select * from Car where colour = 'Orange' and year_of_registration = '2002' and model = 'Mondeo';";
 		
-		query = new Query(interpreter.interpret(lexer.readQuery(queryString), database));
+		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
 		result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
@@ -63,7 +59,7 @@ public class SQLInterpreterTest {
 		softly.assertThat(result.get(0).split("\t", 0)).hasSize(columnCount);
 		
 		queryString = "select * from car;";
-		query = new Query(interpreter.interpret(lexer.readQuery(queryString), database));
+		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
 		result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
@@ -75,7 +71,7 @@ public class SQLInterpreterTest {
 		loadData();
 		String queryString = "delete from Car where colour = 'Orange' and year_of_registration = '2002';";
 		
-		Query query = new Query(interpreter.interpret(lexer.readQuery(queryString), database));
+		Query query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
 		List<String> result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
@@ -83,7 +79,7 @@ public class SQLInterpreterTest {
 		softly.assertThat(result.get(0)).isEqualTo("Deleted 5 rows from table CAR");
 		
 		queryString = "delete from Car;";
-		query = new Query(interpreter.interpret(lexer.readQuery(queryString), database));
+		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
 		result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
@@ -95,7 +91,7 @@ public class SQLInterpreterTest {
 	public void testInsert() {
 		String queryString = "insert into Car (Registration, Manufacturer, Model, Colour, year_of_registration, seats, engine_size, taxed) values ('BK52VJC', 'Ford', 'Mondeo', 'Orange', '2002', '5', '1.8', 'true');";
 		
-		Query query = new Query(interpreter.interpret(lexer.readQuery(queryString), database));
+		Query query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
 		List<String> result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
@@ -106,7 +102,7 @@ public class SQLInterpreterTest {
 		
 		queryString = "insert into Car values ('1', 'DF17HJB', 'Ford', 'Transit', 'Pink', '2017', '3', '2.4', 'true');";
 		
-		query = new Query(interpreter.interpret(lexer.readQuery(queryString), database));
+		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
 		result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
@@ -120,7 +116,7 @@ public class SQLInterpreterTest {
 		loadData();
 		String queryString = "update Car set colour = 'Red', taxed = 'false' where colour = 'Orange' and year_of_registration = '2002';";
 		
-		Query query = new Query(interpreter.interpret(lexer.readQuery(queryString), database));
+		Query query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
 		List<String> result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
@@ -129,7 +125,7 @@ public class SQLInterpreterTest {
 		
 		queryString = "update Car set colour = 'Red';";
 		
-		query = new Query(interpreter.interpret(lexer.readQuery(queryString), database));
+		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
 		result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
@@ -138,7 +134,7 @@ public class SQLInterpreterTest {
 		
 		queryString = "select * from Car where colour = 'Red';";
 		
-		query = new Query(interpreter.interpret(lexer.readQuery(queryString), database));
+		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
 		result = query.execute();
 		
 		softly.assertThat(result).as("All 1000 cars should have been turned red").hasSize(1000);
@@ -149,7 +145,7 @@ public class SQLInterpreterTest {
 		loadData();
 		String queryString = "select forename, surname, registration, manufacturer, model from owner left join car on owner.car_id = car.id; ";
 		
-		Query query = new Query(interpreter.interpret(lexer.readQuery(queryString), database));
+		Query query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
 		List<String> result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
@@ -167,7 +163,7 @@ public class SQLInterpreterTest {
 		loadData();
 		String queryString = "select forename, surname, registration, manufacturer, model from owner right join car on car.id = owner.car_id; ";
 		
-		Query query = new Query(interpreter.interpret(lexer.readQuery(queryString), database));
+		Query query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
 		List<String> result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 
@@ -184,7 +180,7 @@ public class SQLInterpreterTest {
 		loadData();
 		String queryString = "select forename, surname, registration, manufacturer, model from owner inner join car on car.id = owner.car_id; ";
 		
-		Query query = new Query(interpreter.interpret(lexer.readQuery(queryString), database));
+		Query query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
 		List<String> result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
@@ -201,7 +197,7 @@ public class SQLInterpreterTest {
 		loadData();
 		String queryString = "select forename, surname, registration, manufacturer, model from owner full join car on car.id = owner.car_id; ";
 		
-		Query query = new Query(interpreter.interpret(lexer.readQuery(queryString), database));
+		Query query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
 		List<String> result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
@@ -220,7 +216,7 @@ public class SQLInterpreterTest {
 		loadData();
 		String queryString = "select forename, surname, registration, manufacturer, model from owner left join car on owner.car_id = car.id where forename = 'John' and manufacturer = 'Ford';";
 		
-		Query query = new Query(interpreter.interpret(lexer.readQuery(queryString), database));
+		Query query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
 		List<String> result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		

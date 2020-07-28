@@ -27,7 +27,7 @@ public class SQLLexer {
 	
 	private static final Set<String> JOIN_KEYWORDS = new HashSet<>(Arrays.asList("LEFT JOIN", "RIGHT JOIN", "FULL JOIN", "INNER JOIN"));
 	
-	public List<SQLPhrase> readQuery(String query){
+	public static List<SQLPhrase> readQuery(String query){
 		List<SQLPhrase> output = new ArrayList<>();
 		String currentPhrase = "";
 		boolean openQuote = false;
@@ -103,7 +103,7 @@ public class SQLLexer {
 		return output;
 	}
 	
-	private void categorizePhrase(SQLPhrase newPhrase, List<SQLPhrase> previousPhrases) {
+	private static void categorizePhrase(SQLPhrase newPhrase, List<SQLPhrase> previousPhrases) {
 		SQLPhrase previousPhrase = getLastPhrase(previousPhrases);
 		SQLPhrase previousKeyword = getPreviousKeyword(newPhrase, previousPhrases);
 		if (getAllKeywords().contains(newPhrase.getString())) {
@@ -134,7 +134,7 @@ public class SQLLexer {
 		}
 	}
 	
-	private SQLPhrase splitOffSQLPhrase(String currentPhrase, int index) {
+	private static SQLPhrase splitOffSQLPhrase(String currentPhrase, int index) {
 		SQLPhrase newPhrase = new SQLPhrase(currentPhrase);
 		index ++;
 		return newPhrase;
@@ -161,7 +161,7 @@ public class SQLLexer {
 		return null;
 	}
 	
-	private List<String> getAllKeywords(){
+	private static final List<String> getAllKeywords(){
 		List<String> allKeywords = new ArrayList<>();
 		allKeywords.addAll(INSTRUCTION_KEYWORDS);
 		allKeywords.addAll(TABLE_IDENTIFIER_KEYWORDS);
@@ -170,7 +170,7 @@ public class SQLLexer {
 		return allKeywords;
 	}
 	
-	private List<KeywordType> getKeywordTypes(String phrase) {
+	private static List<KeywordType> getKeywordTypes(String phrase) {
 		Map<KeywordType, Set<String>> keywordGroupMap = new HashMap<>();
 		keywordGroupMap.put(KeywordType.INSTRUCTION, INSTRUCTION_KEYWORDS);
 		keywordGroupMap.put(KeywordType.TABLE_IDENTIFIER, TABLE_IDENTIFIER_KEYWORDS);

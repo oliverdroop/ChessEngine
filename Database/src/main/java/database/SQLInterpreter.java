@@ -1,6 +1,7 @@
 package database;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -9,42 +10,31 @@ import java.util.stream.Collectors;
 import database.SQLPhrase.KeywordType;
 import database.SQLPhrase.PhraseType;
 
-public class SQLInterpreter {
+public final class SQLInterpreter {
 	
-	private List<SQLPhrase> sqlStatement;
-	
-	private Database database;
-	
-	private Table table;
-	
-	private List<String> targets;
-	
-	public QueryParameters interpret(List<SQLPhrase> sqlStatement, Database database) {
-		this.sqlStatement = sqlStatement;
-		this.database = database;
+	public static QueryParameters interpret(List<SQLPhrase> sqlStatement, Database database) {
 		QueryParameters parameters = new QueryParameters();
 		
 		parameters.setDatabase(database);
-		parameters.setInstruction(extractInstruction());
-		table = extractTable();
+		parameters.setInstruction(extractInstruction(sqlStatement));
+		Table table = extractTable(sqlStatement, database);
 		parameters.setTable(table);
-		parameters.setConditions(extractConditions());
-		parameters.setAssignments(extractAssignments());
-		parameters.setTargets(targets);
-		parameters.setJoinType(extractJoinType());
-		parameters.setJoinCondition(extractJoinCondition());
-		
-		this.sqlStatement = null;
-		this.database = null;
+		parameters.setConditions(extractConditions(sqlStatement));
+		Map<String, Object> assignmentsAndTargets = extractAssignmentsAndTargets(sqlStatement, database, table);		
+		parameters.setAssignments((Map<String,String>) assignmentsAndTargets.get("assignments"));
+		parameters.setTargets((List<String>) assignmentsAndTargets.get("targets"));
+		SQLPhrase joinType = extractJoinType(sqlStatement);
+		parameters.setJoinType(joinType);
+		parameters.setJoinCondition(extractJoinCondition(sqlStatement, joinType));
 		
 		return parameters;
 	}
 	
-	private SQLPhrase extractInstruction() {
+	private static SQLPhrase extractInstruction(List<SQLPhrase> sqlStatement) {
 		return sqlStatement.get(0).hasKeywordType(KeywordType.INSTRUCTION) ? sqlStatement.get(0) : null;
 	}
 	
-	private Table extractTable() {
+	private static Table extractTable(List<SQLPhrase> sqlStatement, Database database) {
 		for(int i = 0; i < sqlStatement.size(); i++) {
 			SQLPhrase phrase = sqlStatement.get(i);
 			if (phrase.getType() == PhraseType.TABLE_NAME) {
@@ -54,7 +44,7 @@ public class SQLInterpreter {
 		return null;
 	}
 	
-	private Map<String,String> extractConditions(){
+	private static Map<String,String> extractConditions(List<SQLPhrase> sqlStatement){
 		int startIndex = sqlStatement.size();
 		for (int i = 0; i < sqlStatement.size(); i++) {
 			if (sqlStatement.get(i).hasKeywordType(KeywordType.EXPRESSION)) {
@@ -73,8 +63,9 @@ public class SQLInterpreter {
 		return output;
 	}
 	
-	private Map<String, String> extractAssignments(){
-		Map<String, String> output = new LinkedHashMap<>();
+	private static Map<String, Object> extractAssignmentsAndTargets(List<SQLPhrase> sqlStatement, Database database, Table table){
+		Map<String, String> assignments = new LinkedHashMap<>();
+		List<String> targets = null;
 		for (int i = 0; i < sqlStatement.size(); i++) {
 			SQLPhrase phrase = sqlStatement.get(i);
 			SQLPhrase previousKeyword = SQLLexer.getPreviousKeyword(phrase, sqlStatement);
@@ -83,7 +74,7 @@ public class SQLInterpreter {
 					&& phrase.getLinkedValue() != null 
 					&& phrase.hasType(PhraseType.COLUMN_NAME) 
 					&& phrase.getLinkedValue().hasType(PhraseType.VALUE)) {
-				output.put(phrase.getString(), phrase.getLinkedValue().getString());
+				assignments.put(phrase.getString(), phrase.getLinkedValue().getString());
 			}
 		}
 		List<SQLPhrase> unlinkedColumns = new ArrayList<>();
@@ -99,7 +90,7 @@ public class SQLInterpreter {
 		if (unlinkedColumns.size() > 0) {
 			if (unlinkedColumns.size() == unlinkedValues.size()) {
 				for(int i = 0; i < unlinkedColumns.size(); i++) {
-					output.put(unlinkedColumns.get(i).getString(), unlinkedValues.get(i).getString());
+					assignments.put(unlinkedColumns.get(i).getString(), unlinkedValues.get(i).getString());
 				}
 			}
 			else {
@@ -121,13 +112,16 @@ public class SQLInterpreter {
 		else if(unlinkedValues.size() == table.getColumns().size()){
 			List<String> keyList = table.getColumns().keySet().stream().collect(Collectors.toList());
 			for(int i = 0; i < unlinkedValues.size(); i++) {
-				output.put(keyList.get(i), unlinkedValues.get(i).getString());
+				assignments.put(keyList.get(i), unlinkedValues.get(i).getString());
 			}
 		}
+		Map<String, Object> output = new HashMap<>();
+		output.put("assignments", assignments);
+		output.put("targets", targets);
 		return output;
 	}
 	
-	private SQLPhrase extractJoinType() {
+	private static SQLPhrase extractJoinType(List<SQLPhrase> sqlStatement) {
 		for(SQLPhrase phrase : sqlStatement) {
 			if (phrase.hasKeywordType(KeywordType.JOIN)) {
 				return phrase;
@@ -136,10 +130,9 @@ public class SQLInterpreter {
 		return null;
 	}
 	
-	private List<SQLPhrase> extractJoinCondition(){
+	private static List<SQLPhrase> extractJoinCondition(List<SQLPhrase> sqlStatement, SQLPhrase joinType){
 		List<SQLPhrase> output = new ArrayList<>();
 		int i = 0;
-		SQLPhrase joinType = extractJoinType();
 		if (joinType != null) {
 			i = sqlStatement.indexOf(joinType);
 			if (sqlStatement.get(i - 1).hasType(PhraseType.TABLE_NAME)
