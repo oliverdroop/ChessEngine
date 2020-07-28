@@ -24,7 +24,7 @@ public class SQLInterpreterTest {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(SQLInterpreterTest.class);
 	
-	private static SQLInterpreter interpreter = new SQLInterpreter();
+	private static SQLLexer interpreter = new SQLLexer();
 	
 	private static String rootDirectory = System.getProperty("user.dir");
 	

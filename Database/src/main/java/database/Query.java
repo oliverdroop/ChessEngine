@@ -86,7 +86,7 @@ public class Query {
 		Map<String, String> output = new LinkedHashMap<>();
 		for (int i = 0; i < sqlStatement.size(); i++) {
 			SQLPhrase phrase = sqlStatement.get(i);
-			SQLPhrase previousKeyword = SQLInterpreter.getPreviousKeyword(phrase, sqlStatement);
+			SQLPhrase previousKeyword = SQLLexer.getPreviousKeyword(phrase, sqlStatement);
 			if (previousKeyword != null 
 					&& previousKeyword.hasKeywordType(KeywordType.INSTRUCTION) 
 					&& phrase.getLinkedValue() != null 
@@ -120,7 +120,7 @@ public class Query {
 						targets = unlinkedColumns
 								.stream()
 								.filter(p -> p.getLinkedTable() == null || database.getTables().get(p.getLinkedTable().getString()).equals(table))
-								.filter(p -> SQLInterpreter.getPreviousKeyword(p, sqlStatement).hasKeywordType(KeywordType.INSTRUCTION))
+								.filter(p -> SQLLexer.getPreviousKeyword(p, sqlStatement).hasKeywordType(KeywordType.INSTRUCTION))
 								.map(p -> p.getString())
 								.collect(Collectors.toList());
 					}

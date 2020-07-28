@@ -15,9 +15,9 @@ import org.slf4j.LoggerFactory;
 import database.SQLPhrase.KeywordType;
 import database.SQLPhrase.PhraseType;
 
-public class SQLInterpreter {
+public class SQLLexer {
 	
-	private static final Logger LOGGER = LoggerFactory.getLogger(SQLInterpreter.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(SQLLexer.class);
 	
 	private static final Set<String> INSTRUCTION_KEYWORDS = new HashSet<>(Arrays.asList("INSERT", "SELECT DISTINCT", "SELECT", "UPDATE", "DELETE", "SET"));
 	
