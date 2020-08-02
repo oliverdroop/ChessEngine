@@ -20,6 +20,8 @@ public class QueryParameters {
 	private SQLPhrase joinType;
 	
 	private List<SQLPhrase> joinCondition;
+	
+	private Map<String, Boolean> orderBy;
 
 	public Database getDatabase() {
 		return database;
@@ -83,6 +85,14 @@ public class QueryParameters {
 
 	public void setJoinCondition(List<SQLPhrase> joinCondition) {
 		this.joinCondition = joinCondition;
+	}
+
+	public Map<String, Boolean> getOrderBy() {
+		return orderBy;
+	}
+
+	public void setOrderBy(Map<String, Boolean> orderBy) {
+		this.orderBy = orderBy;
 	}
 	
 	

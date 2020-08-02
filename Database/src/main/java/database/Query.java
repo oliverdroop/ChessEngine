@@ -36,6 +36,8 @@ public class Query {
 	
 	private List<SQLPhrase> joinCondition;
 	
+	private Map<String, Boolean> orderBy;
+	
 	public Query(QueryParameters parameters) {
 		database = parameters.getDatabase();
 		instruction = parameters.getInstruction();
@@ -45,6 +47,7 @@ public class Query {
 		targets = parameters.getTargets();
 		joinType = parameters.getJoinType();
 		joinCondition = parameters.getJoinCondition();
+		orderBy = parameters.getOrderBy();
 	}
 	
 	private Column getColumn(String columnName) {
@@ -81,6 +84,16 @@ public class Query {
 				}
 				else {
 					rows = table.getStringMatchedRows(conditions);
+				}
+				if (orderBy != null && !orderBy.isEmpty()) {
+					for(String columnName : orderBy.keySet()) {
+						Column column = table.getColumns().get(columnName);
+						if (column == null) {
+							LOGGER.warn("Could not sort result set by {} : Column doesn't exist in table {}",columnName , table.getName());
+							continue;
+						}
+						rows = table.sortRows(column, orderBy.get(columnName), rows);
+					}
 				}
 				if (!targets.isEmpty()) {
 					return rows.stream()

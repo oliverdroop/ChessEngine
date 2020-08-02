@@ -19,13 +19,15 @@ public class SQLLexer {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(SQLLexer.class);
 	
-	private static final Set<String> INSTRUCTION_KEYWORDS = new HashSet<>(Arrays.asList("INSERT", "SELECT DISTINCT", "SELECT", "UPDATE", "DELETE", "SET"));
+	private static final Set<String> INSTRUCTION_KEYWORDS = new HashSet<>(Arrays.asList("INSERT", "SELECT DISTINCT", "SELECT", "UPDATE", "DELETE", "SET", "ORDER BY"));
 	
 	private static final Set<String> TABLE_IDENTIFIER_KEYWORDS = new HashSet<>(Arrays.asList("FROM", "INTO", "UPDATE", "ON", "LEFT JOIN", "RIGHT JOIN", "FULL JOIN", "INNER JOIN"));
 	
 	private static final Set<String> EXPRESSION_KEYWORDS = new HashSet<>(Arrays.asList( "WHERE", "AND", "VALUES"));
 	
 	private static final Set<String> JOIN_KEYWORDS = new HashSet<>(Arrays.asList("LEFT JOIN", "RIGHT JOIN", "FULL JOIN", "INNER JOIN"));
+	
+	private static final Set<String> ORDER_KEYWORDS = new HashSet<>(Arrays.asList("ASC", "DESC"));
 	
 	public static List<SQLPhrase> readQuery(String query){
 		List<SQLPhrase> output = new ArrayList<>();
@@ -126,6 +128,9 @@ public class SQLLexer {
 		else if(previousKeyword.hasKeywordType(KeywordType.EXPRESSION)) {
 			newPhrase.setType(PhraseType.COLUMN_NAME);
 		}
+		else if(previousKeyword.hasKeywordType(KeywordType.ORDER)) {
+			newPhrase.setType(PhraseType.COLUMN_NAME);
+		}
 		else if(previousPhrase.hasType(PhraseType.TABLE_NAME)) {
 			newPhrase.setType(PhraseType.COLUMN_NAME);
 		}
@@ -142,6 +147,10 @@ public class SQLLexer {
 	
 	public static SQLPhrase getLastPhrase(List<SQLPhrase> phrases) {
 		return phrases.size() > 0 ? phrases.get(phrases.size() - 1) : null;
+	}
+	
+	public static SQLPhrase getPreviousPhrase(SQLPhrase currentPhrase, List<SQLPhrase> allPhrases) {
+		return allPhrases.get(allPhrases.indexOf(currentPhrase) - 1);
 	}
 	
 	public static SQLPhrase getPreviousKeyword(SQLPhrase currentPhrase, List<SQLPhrase> allPhrases) {
@@ -167,6 +176,7 @@ public class SQLLexer {
 		allKeywords.addAll(TABLE_IDENTIFIER_KEYWORDS);
 		allKeywords.addAll(EXPRESSION_KEYWORDS);
 		allKeywords.addAll(JOIN_KEYWORDS);
+		allKeywords.addAll(ORDER_KEYWORDS);
 		return allKeywords;
 	}
 	
@@ -176,6 +186,7 @@ public class SQLLexer {
 		keywordGroupMap.put(KeywordType.TABLE_IDENTIFIER, TABLE_IDENTIFIER_KEYWORDS);
 		keywordGroupMap.put(KeywordType.EXPRESSION, EXPRESSION_KEYWORDS);
 		keywordGroupMap.put(KeywordType.JOIN, JOIN_KEYWORDS);
+		keywordGroupMap.put(KeywordType.ORDER, ORDER_KEYWORDS);
 		List<KeywordType> keywordTypes = new ArrayList<>();
 		for(KeywordType keywordType : keywordGroupMap.keySet()) {
 			if (keywordGroupMap.get(keywordType).contains(phrase)) {

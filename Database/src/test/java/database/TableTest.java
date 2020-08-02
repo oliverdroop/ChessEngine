@@ -231,17 +231,14 @@ public class TableTest {
 		
 		assertEquals(5, rows.size());
 		softly.assertThat(table.getValueString(columnReg, rows.get(0))).as("Test sort by registration").isEqualTo("AF20BGD");
-		rows.forEach(row -> LOGGER.info(table.getRowString(row)));
 		
 		Column columnColour = table.getColumns().get("COLOUR");
 		
 		rows = table.sortRows(columnColour, true, rows);
 		softly.assertThat(table.getValueString(columnReg, rows.get(3))).as("Test sort by colour").isEqualTo("AF20BGD");
-		rows.forEach(row -> LOGGER.info(table.getRowString(row)));
 		
 		rows = table.sortRows(columnColour, true, Arrays.asList(table.getAllRows()));
 		softly.assertThat(table.getValueString(columnReg, rows.get(0))).as("Test sort by colour").isEqualTo("LR20PNM");
-		rows.forEach(row -> LOGGER.info(table.getRowString(row)));
 	}
 	
 	private Table setUpMatchedRowsTestTable() {

@@ -20,6 +20,7 @@ public final class SQLInterpreter {
 		Table table = extractTable(sqlStatement, database);
 		parameters.setTable(table);
 		parameters.setConditions(extractConditions(sqlStatement));
+		parameters.setOrderBy(extractOrderBy(sqlStatement));
 		Map<String, Object> assignmentsAndTargets = extractAssignmentsAndTargets(sqlStatement, database, table);		
 		parameters.setAssignments((Map<String,String>) assignmentsAndTargets.get("assignments"));
 		parameters.setTargets((List<String>) assignmentsAndTargets.get("targets"));
@@ -103,6 +104,8 @@ public final class SQLInterpreter {
 								.stream()
 								.filter(p -> p.getLinkedTable() == null || database.getTables().get(p.getLinkedTable().getString()).equals(table))
 								.filter(p -> SQLLexer.getPreviousKeyword(p, sqlStatement).hasKeywordType(KeywordType.INSTRUCTION))
+								.filter(p -> !SQLLexer.getPreviousKeyword(p, sqlStatement).hasKeywordType(KeywordType.ORDER))
+								.filter(p -> !SQLLexer.getPreviousKeyword(p, sqlStatement).getString().equals("ORDER BY"))
 								.map(p -> p.getString())
 								.collect(Collectors.toList());
 					}
@@ -148,6 +151,32 @@ public final class SQLInterpreter {
 				} else if (sqlStatement.get(i - 1).getString().equals(sqlStatement.get(i + 5).getString())) {
 					output.add(sqlStatement.get(i + 6));
 					output.add(sqlStatement.get(i + 4));
+				}
+			}
+		}
+		return output;
+	}
+	
+	private static Map<String, Boolean> extractOrderBy(List<SQLPhrase> sqlStatement){
+		int startIndex = 0;
+		for(int i = 0; i < sqlStatement.size(); i++) {
+			SQLPhrase phrase = sqlStatement.get(i);
+			if (phrase.hasKeywordType(KeywordType.INSTRUCTION) && phrase.getString().equals("ORDER BY") && i < sqlStatement.size() - 1) {
+				startIndex = i + 1;
+			}
+		}
+		if (startIndex == 0) {
+			return null;
+		}
+		Map<String, Boolean> output = new LinkedHashMap<>();
+		for(int i = startIndex; i < sqlStatement.size(); i++) {
+			SQLPhrase phrase = sqlStatement.get(i);
+			if (phrase.hasType(PhraseType.COLUMN_NAME)) {
+				output.put(phrase.getString(), true);
+			} else if (phrase.hasKeywordType(KeywordType.ORDER)){
+				SQLPhrase previousPhrase = SQLLexer.getPreviousPhrase(phrase, sqlStatement);
+				if (previousPhrase.hasType(PhraseType.COLUMN_NAME)) {
+					output.put(previousPhrase.getString(), phrase.getString().equals("ASC"));
 				}
 			}
 		}

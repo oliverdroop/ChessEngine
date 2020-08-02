@@ -19,11 +19,8 @@ public class RowComparator implements Comparator<byte[]>{
 
 	@Override
 	public int compare(byte[] row1, byte[] row2) {
-		
-		Object value1 = column.getDataType().getValue(table.getValueBytes(column, row1));
-		Object value2 = column.getDataType().getValue(table.getValueBytes(column, row2));
-		Comparable comp1 = (Comparable) value1;
-		Comparable comp2 = (Comparable) value2;
+		Comparable<Object> comp1 = (Comparable<Object>) column.getDataType().getValue(table.getValueBytes(column, row1));
+		Comparable<Object> comp2 = (Comparable<Object>) column.getDataType().getValue(table.getValueBytes(column, row2));
 		if (ascending) {
 			return comp1.compareTo(comp2);
 		} else {

@@ -226,6 +226,20 @@ public class SQLInterpreterTest {
 		softly.assertThat(result.get(1)).isEqualTo("John	Doe	US54LJR	Ford	Transit");
 	}
 	
+	@Test
+	public void testSelectWithOrderBy() {
+		loadData();
+		String queryString = "select registration, manufacturer, model from car order by registration;";
+		
+		Query query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
+		List<String> result = query.execute();
+		result.forEach(line -> LOGGER.info(line));
+		
+		assertEquals("1000 results should be returned", 1000, result.size());
+		softly.assertThat(result.get(0)).isEqualTo("AB04WBF	Ford	Focus");
+		softly.assertThat(result.get(999)).isEqualTo("ZZ69VYE	Ford	Fusion");
+	}
+	
 	private static String getDataDirectory() {
 		String directory = rootDirectory;
 		directory += File.separator;
