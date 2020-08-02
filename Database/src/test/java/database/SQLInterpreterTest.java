@@ -238,6 +238,16 @@ public class SQLInterpreterTest {
 		assertEquals("1000 results should be returned", 1000, result.size());
 		softly.assertThat(result.get(0)).isEqualTo("AB04WBF	Ford	Focus");
 		softly.assertThat(result.get(999)).isEqualTo("ZZ69VYE	Ford	Fusion");
+		
+		queryString = "select registration, manufacturer, model from car order by model, registration;";
+		
+		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
+		result = query.execute();
+		result.forEach(line -> LOGGER.info(line));
+		
+		assertEquals("1000 results should be returned", 1000, result.size());
+		softly.assertThat(result.get(0)).isEqualTo("AC04ZCS	Ford	Fiesta");
+		softly.assertThat(result.get(999)).isEqualTo("ZY57CKF	Ford	Transit");
 	}
 	
 	private static String getDataDirectory() {

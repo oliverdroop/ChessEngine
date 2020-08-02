@@ -157,7 +157,7 @@ public final class SQLInterpreter {
 		return output;
 	}
 	
-	private static Map<String, Boolean> extractOrderBy(List<SQLPhrase> sqlStatement){
+	private static LinkedHashMap<String, Boolean> extractOrderBy(List<SQLPhrase> sqlStatement){
 		int startIndex = 0;
 		for(int i = 0; i < sqlStatement.size(); i++) {
 			SQLPhrase phrase = sqlStatement.get(i);
@@ -168,7 +168,7 @@ public final class SQLInterpreter {
 		if (startIndex == 0) {
 			return null;
 		}
-		Map<String, Boolean> output = new LinkedHashMap<>();
+		LinkedHashMap<String, Boolean> output = new LinkedHashMap<>();
 		for(int i = startIndex; i < sqlStatement.size(); i++) {
 			SQLPhrase phrase = sqlStatement.get(i);
 			if (phrase.hasType(PhraseType.COLUMN_NAME)) {

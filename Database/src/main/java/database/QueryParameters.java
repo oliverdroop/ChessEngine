@@ -1,5 +1,6 @@
 package database;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -21,7 +22,7 @@ public class QueryParameters {
 	
 	private List<SQLPhrase> joinCondition;
 	
-	private Map<String, Boolean> orderBy;
+	private LinkedHashMap<String, Boolean> orderBy;
 
 	public Database getDatabase() {
 		return database;
@@ -87,11 +88,11 @@ public class QueryParameters {
 		this.joinCondition = joinCondition;
 	}
 
-	public Map<String, Boolean> getOrderBy() {
+	public LinkedHashMap<String, Boolean> getOrderBy() {
 		return orderBy;
 	}
 
-	public void setOrderBy(Map<String, Boolean> orderBy) {
+	public void setOrderBy(LinkedHashMap<String, Boolean> orderBy) {
 		this.orderBy = orderBy;
 	}
 	

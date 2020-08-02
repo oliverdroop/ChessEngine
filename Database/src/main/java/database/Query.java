@@ -36,7 +36,7 @@ public class Query {
 	
 	private List<SQLPhrase> joinCondition;
 	
-	private Map<String, Boolean> orderBy;
+	private LinkedHashMap<String, Boolean> orderBy;
 	
 	public Query(QueryParameters parameters) {
 		database = parameters.getDatabase();
@@ -86,7 +86,8 @@ public class Query {
 					rows = table.getStringMatchedRows(conditions);
 				}
 				if (orderBy != null && !orderBy.isEmpty()) {
-					for(String columnName : orderBy.keySet()) {
+					for (int i = orderBy.size() - 1; i >= 0; i--) {
+						String columnName = (String)orderBy.keySet().toArray()[i];
 						Column column = table.getColumns().get(columnName);
 						if (column == null) {
 							LOGGER.warn("Could not sort result set by {} : Column doesn't exist in table {}",columnName , table.getName());
