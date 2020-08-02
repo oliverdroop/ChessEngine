@@ -170,7 +170,7 @@ public class Table {
 		return output;
 	}
 	
-	private byte[] getValueBytes(Column column, byte[] row) {
+	public byte[] getValueBytes(Column column, byte[] row) {
 		byte[] value = new byte[column.getLength()];
 		System.arraycopy(row, getIndexInRow(column), value, 0, column.getLength());
 		return value;
