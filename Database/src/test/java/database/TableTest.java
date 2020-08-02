@@ -1,11 +1,14 @@
 package database;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -220,22 +223,33 @@ public class TableTest {
 		softly.assertThat(table.getStringMatchedRows(updateMap)).as("Two updated cars should exist with the specified properties").hasSize(2);
 	}
 	
+	@Test
+	public void testSortRows() {
+		Table table = setUpMatchedRowsTestTable();
+		Column column = table.getColumns().get("REGISTRATION");
+		List<byte[]> rows = table.sortRows(column, true, Arrays.asList(table.getAllRows()));
+		
+		assertEquals(5, rows.size());
+		softly.assertThat(table.getValueString(column, rows.get(0))).as("Test registration").isEqualTo("AF20BGD");
+		rows.forEach(row -> LOGGER.info(table.getRowString(row)));
+	}
+	
 	private Table setUpMatchedRowsTestTable() {
 		int year = 2020;
 		ObjectParser parser = new ObjectParser(database);
-		Car car1 = createCar(createRandomRegistration(year), "Ford", "Fiesta", "Black", year, (byte)5, 1.4, true);
+		Car car1 = createCar("LR20PNM", "Ford", "Fiesta", "Black", year, (byte)5, 1.4, true);
 		Table table = parser.getApplicableTable(car1);
 		table.setLastGeneratedKey(null);
 		table.setData(null);
 		table.setClassName("database.Car");
 		table.addRow(parser.parse(car1));
-		Car car2 = createCar(createRandomRegistration(year), "Ford", "Fiesta", "Black", year, (byte)5, 1.25, true);
+		Car car2 = createCar("EN20TFU", "Ford", "Fiesta", "Black", year, (byte)5, 1.25, true);
 		table.addRow(parser.parse(car2));
-		Car car3 = createCar(createRandomRegistration(year), "Ford", "Focus", "Blue", year, (byte)5, 1.6, true);
+		Car car3 = createCar("RB20XFW", "Ford", "Focus", "Blue", year, (byte)5, 1.6, true);
 		table.addRow(parser.parse(car3));
-		Car car4 = createCar(createRandomRegistration(year), "Ford", "Fiesta", "Blue", year, (byte)5, 1.6, true);
+		Car car4 = createCar("AF20BGD", "Ford", "Fiesta", "Blue", year, (byte)5, 1.6, true);
 		table.addRow(parser.parse(car4));
-		Car car5 = createCar(createRandomRegistration(year), "Ford", "Fiesta", "Black", year, (byte)5, 1.25, false);
+		Car car5 = createCar("BG20BNQ", "Ford", "Fiesta", "Black", year, (byte)5, 1.25, false);
 		table.addRow(parser.parse(car5));
 		return table;
 	}

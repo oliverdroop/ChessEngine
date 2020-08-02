@@ -148,7 +148,6 @@ public class Query {
 		
 		Collection<Column> columnSet = columns.values();
 		Table joinTable = new Table(joinTableName, columnSet);
-		joinTable.getRowLength();
 		joinTable.setData(getJoinTableData(tablePrimary, tableSecondary, columnPrimary, columnSecondaryString));
 		
 		return joinTable;
@@ -220,12 +219,8 @@ public class Query {
 		Map<String, Column> columns = new LinkedHashMap<>();
 		Map<String, Column> columnsLeft = getUniqueAndRenamedColumns(tableLeft, tableRight);
 		Map<String, Column> columnsRight = getUniqueAndRenamedColumns(tableRight, tableLeft);
-		for(String columnName : columnsLeft.keySet()) {
-			columns.put(columnName, columnsLeft.get(columnName));
-		}
-		for(String columnName : columnsRight.keySet()) {
-			columns.put(columnName, columnsRight.get(columnName));
-		}
+		columnsLeft.keySet().forEach(key -> columns.put(key, columnsLeft.get(key)));
+		columnsRight.keySet().forEach(key -> columns.put(key, columnsRight.get(key)));
 		
 		for(String columnName : columns.keySet()) {
 			Column originalColumn = columns.get(columnName);

@@ -446,6 +446,12 @@ public class Table {
 		return propertyValueMap;
 	}
 	
+	public List<byte[]> sortRows(Column column, boolean ascending, List<byte[]> rows){
+		RowComparator comparator = new RowComparator(this, column, ascending);
+		rows.sort(comparator);
+		return rows;
+	}
+	
 	public void setLastGeneratedKey(byte[] lastGeneratedKey) {
 		this.lastGeneratedKey = lastGeneratedKey;
 	}
