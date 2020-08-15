@@ -113,9 +113,15 @@ public class Table {
 				if (!match) {
 					continue;
 				}
-				if (!Arrays.equals(getValueBytes(columnName, row), propertyValueMap.get(columnName).getValue())) {
+				Operator operator = propertyValueMap.get(columnName).getKey();
+				byte[] testValue = getValueBytes(columnName, row);
+				byte[] conditionValue = propertyValueMap.get(columnName).getValue();
+				if (!operator.evaluate(testValue, conditionValue, columns.get(columnName).getDataType())) {
 					match = false;
 				}
+//				if (!Arrays.equals(getValueBytes(columnName, row), propertyValueMap.get(columnName).getValue())) {
+//					match = false;
+//				}
 			}
 			if (match) {
 				matches.add(row);

@@ -124,8 +124,7 @@ public enum DataType {
 		if (this == DataType.BOOLEAN) {
 			return ((boolean) (fieldBytes[0] != 0) ? "true" : "false");
 		}
-		if (this == DataType.BYTE || this == DataType.INT
-				|| this == DataType.LONG || this == DataType.DOUBLE) {
+		if (this.isNumeric()) {
 			return String.valueOf(getValue(fieldBytes));
 		}
 		if (this == DataType.VARCHAR) {
@@ -137,5 +136,10 @@ public enum DataType {
 	public static byte[] increment(byte[] bytes) {
 		long outputLong = ByteBuffer.wrap(bytes).getLong() + 1;
 		return ByteBuffer.allocate(bytes.length).putLong(outputLong).array();
+	}
+	
+	public boolean isNumeric() {
+		return this == DataType.BYTE || this == DataType.INT
+				|| this == DataType.LONG || this == DataType.DOUBLE;
 	}
 }

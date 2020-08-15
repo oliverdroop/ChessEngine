@@ -248,6 +248,39 @@ public class TableTest {
 		softly.assertThat(table.getValueString(columnReg, rows.get(0))).as("Test sort by colour").isEqualTo("LR20PNM");
 	}
 	
+	@Test
+	public void testOperators() {
+		Table table = setUpMatchedRowsTestTable();
+		Map<String, Pair<Operator, String>> propertyStringMap = new HashMap<>();
+
+		propertyStringMap.put("ENGINE_SIZE", new Pair<>(Operator.GREATER, "0.9"));
+		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Test engine size greater than 0.9").hasSize(5);
+		
+		propertyStringMap = new HashMap<>();
+		propertyStringMap.put("ENGINE_SIZE", new Pair<>(Operator.GREATER, "1.25"));
+		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Test engine size greater than 1.25").hasSize(3);
+		
+		propertyStringMap = new HashMap<>();
+		propertyStringMap.put("ENGINE_SIZE", new Pair<>(Operator.GREATER_EQUAL, "1.40"));
+		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Test engine size greater than or equal to 1.4").hasSize(3);
+		
+		propertyStringMap = new HashMap<>();
+		propertyStringMap.put("ENGINE_SIZE", new Pair<>(Operator.LESS, "1.40"));
+		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Test engine size less than 1.4").hasSize(2);
+		
+		propertyStringMap = new HashMap<>();
+		propertyStringMap.put("ENGINE_SIZE", new Pair<>(Operator.LESS_EQUAL, "1.40"));
+		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Test engine size less than or equal to 1.4").hasSize(3);
+		
+		propertyStringMap = new HashMap<>();
+		propertyStringMap.put("ENGINE_SIZE", new Pair<>(Operator.NOT_EQUAL, "1.40"));
+		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Test engine size not 1.4").hasSize(4);
+		
+		propertyStringMap = new HashMap<>();
+		propertyStringMap.put("ENGINE_SIZE", new Pair<>(Operator.EQUAL, "1.40"));
+		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Test engine size equals 1.4").hasSize(1);
+	}
+	
 	private Table setUpMatchedRowsTestTable() {
 		int year = 2020;
 		ObjectParser parser = new ObjectParser(database);
