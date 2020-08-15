@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 
 import database.SQLPhrase.KeywordType;
 import database.SQLPhrase.PhraseType;
+import javafx.util.Pair;
 
 public final class SQLInterpreter {
 	
@@ -45,7 +46,7 @@ public final class SQLInterpreter {
 		return null;
 	}
 	
-	private static Map<String,String> extractConditions(List<SQLPhrase> sqlStatement){
+	private static Map<String, Pair<Operator, String>> extractConditions(List<SQLPhrase> sqlStatement){
 		int startIndex = sqlStatement.size();
 		for (int i = 0; i < sqlStatement.size(); i++) {
 			if (sqlStatement.get(i).hasKeywordType(KeywordType.EXPRESSION)) {
@@ -53,12 +54,12 @@ public final class SQLInterpreter {
 				break;
 			}
 		}
-		Map<String, String> output = new LinkedHashMap<>();
+		Map<String, Pair<Operator, String>> output = new LinkedHashMap<>();
 		for(int i = startIndex; i < sqlStatement.size(); i++) {
 			SQLPhrase phrase = sqlStatement.get(i);
 			SQLPhrase linkedPhrase = phrase.getLinkedColumn();
 			if (linkedPhrase != null && linkedPhrase.hasType(PhraseType.COLUMN_NAME) && phrase.hasType(PhraseType.VALUE)) {
-				output.put(linkedPhrase.getString(), phrase.getString());
+				output.put(linkedPhrase.getString(), new Pair<Operator, String>(phrase.getLinkedOperator(), phrase.getString()));
 			}
 		}
 		return output;

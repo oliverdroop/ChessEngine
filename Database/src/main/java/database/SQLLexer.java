@@ -29,7 +29,7 @@ public class SQLLexer {
 	
 	private static final Set<String> ORDER_KEYWORDS = new HashSet<>(Arrays.asList("ASC", "DESC"));
 	
-	private static final Set<String> OPERATORS = new HashSet<>(Arrays.asList("=", ">", "<", ">=", "<=", "!=", "LIKE", "BETWEEN", "IN"));
+	//private static final Set<String> OPERATORS = new HashSet<>(Arrays.asList("=", ">", "<", ">=", "<=", "!="));
 	
 	private static List<String> allKeywords;
 	
@@ -39,7 +39,7 @@ public class SQLLexer {
 		boolean openQuote = false;
 		boolean openBracket = false;
 		boolean dot = false;
-		String operator = null;
+		Operator operator = null;
 		for(int i = 0; i < query.length(); i++) {
 			String currentCharacter = query.substring(i, i + 1);
 			if (!openQuote) {
@@ -72,9 +72,9 @@ public class SQLLexer {
 				newPhrase.setType(PhraseType.TABLE_NAME);
 				dot = true;
 			}
-			if (OPERATORS.contains(currentCharacter)) {
+			if (getOperatorFromString(currentCharacter) != null) {
 				newPhrase = splitOffSQLPhrase(currentPhrase, i);
-				operator = currentCharacter;
+				operator = getOperatorFromString(currentCharacter);
 			}
 			if (currentCharacter.equals(";")) {
 				newPhrase = splitOffSQLPhrase(currentPhrase, i);
@@ -125,13 +125,6 @@ public class SQLLexer {
 			newPhrase.setType(PhraseType.KEYWORD);
 			newPhrase.setKeywordTypes(getKeywordTypes(bothPhraseStrings));
 		}
-		else if (getAllKeywords().contains(previousPhrase.getString() + newPhrase.getString())) {
-			String bothPhraseStrings = previousPhrase.getString() + newPhrase.getString();
-			previousPhrases.remove(previousPhrase);
-			newPhrase.setString(bothPhraseStrings);
-			newPhrase.setType(PhraseType.KEYWORD);
-			newPhrase.setKeywordTypes(getKeywordTypes(bothPhraseStrings));
-		}
 		else if(previousKeyword.hasKeywordType(KeywordType.TABLE_IDENTIFIER) && previousPhrase.hasType(PhraseType.KEYWORD)) {
 			newPhrase.setType(PhraseType.TABLE_NAME);
 		}
@@ -156,6 +149,15 @@ public class SQLLexer {
 		SQLPhrase newPhrase = new SQLPhrase(currentPhrase);
 		index ++;
 		return newPhrase;
+	}
+	
+	private static Operator getOperatorFromString(String input) {
+		for(Operator operator : Operator.values()) {
+			if (operator.getString().equals(input)) {
+				return operator;
+			}
+		}
+		return null;
 	}
 	
 	public static SQLPhrase getLastPhrase(List<SQLPhrase> phrases) {

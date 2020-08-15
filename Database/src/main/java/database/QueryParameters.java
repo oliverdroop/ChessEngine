@@ -4,6 +4,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import javafx.util.Pair;
+
 public class QueryParameters {
 	
 	private Database database;
@@ -12,7 +14,7 @@ public class QueryParameters {
 	
 	private SQLPhrase instruction;
 	
-	private Map<String, String> conditions;
+	private Map<String, Pair<Operator, String>> conditions;
 	
 	private Map<String, String> assignments;
 	
@@ -48,11 +50,11 @@ public class QueryParameters {
 		this.instruction = instruction;
 	}
 
-	public Map<String, String> getConditions() {
+	public Map<String, Pair<Operator, String>> getConditions() {
 		return conditions;
 	}
 
-	public void setConditions(Map<String, String> conditions) {
+	public void setConditions(Map<String, Pair<Operator, String>> conditions) {
 		this.conditions = conditions;
 	}
 

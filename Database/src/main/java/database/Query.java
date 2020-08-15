@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import database.SQLPhrase.KeywordType;
 import database.SQLPhrase.PhraseType;
+import javafx.util.Pair;
 
 public class Query {
 	
@@ -26,7 +27,7 @@ public class Query {
 	
 	private SQLPhrase instruction;
 	
-	private Map<String, String> conditions;
+	private Map<String, Pair<Operator, String>> conditions;
 	
 	private Map<String, String> assignments;
 	
@@ -175,12 +176,12 @@ public class Query {
 		
 		byte[] data = new byte[(tablePrimary.getRowLength() + tableSecondary.getRowLength()) * (tablePrimary.countRows() + tableSecondary.countRows())];
 		
-		Map<String, String> propertyStringMap = new HashMap<>();
+		Map<String, Pair<Operator, String>> propertyStringMap = new HashMap<>();
 		int dataIndex = 0;
 		for(int i = 0; i < tablePrimary.getData().length; i += tablePrimary.getRowLength()) {
 			byte[] rowPrimary = Arrays.copyOfRange(tablePrimary.getData(), i, i + tablePrimary.getRowLength());
 			String joinValueString = tablePrimary.getValueString(columnPrimary, rowPrimary);
-			propertyStringMap.put(columnSecondaryName, joinValueString);
+			propertyStringMap.put(columnSecondaryName, new Pair<Operator, String>(Operator.EQUAL,joinValueString));
 			List<byte[]> rowsSecondary = tableSecondary.getStringMatchedRows(propertyStringMap);
 			
 			if (rowsSecondary.size() == 0) {

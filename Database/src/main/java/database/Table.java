@@ -94,14 +94,15 @@ public class Table {
 		return rowLength;
 	}
 	
-	public List<byte[]> getByteMatchedRows(Map<String, byte[]> propertyValueMap) {
+	public List<byte[]> getByteMatchedRows(Map<String, Pair<Operator,byte[]>> propertyValueMap) {
 		for(String fieldName : propertyValueMap.keySet()) {
 			Column column = columns.get(fieldName);
-			byte[] value = propertyValueMap.get(fieldName);
+			Operator operator = propertyValueMap.get(fieldName).getKey();
+			byte[] value = propertyValueMap.get(fieldName).getValue();
 			if (value.length < column.getLength() && column.getDataType() == DataType.VARCHAR) {
 				byte[] valueWithWhitespace = new byte[column.getLength()];
 				System.arraycopy(value, 0, valueWithWhitespace, 0, value.length);
-				propertyValueMap.put(fieldName, valueWithWhitespace);
+				propertyValueMap.put(fieldName, new Pair<Operator, byte[]>(operator, valueWithWhitespace));
 			}
 		}
 		
@@ -112,7 +113,7 @@ public class Table {
 				if (!match) {
 					continue;
 				}
-				if (!Arrays.equals(getValueBytes(columnName, row), propertyValueMap.get(columnName))) {
+				if (!Arrays.equals(getValueBytes(columnName, row), propertyValueMap.get(columnName).getValue())) {
 					match = false;
 				}
 			}
@@ -123,8 +124,8 @@ public class Table {
 		return matches;
 	}
 	
-	public List<byte[]> getStringMatchedRows(Map<String, String> propertyStringMap) {
-		return getByteMatchedRows(getPropertyValueMap(propertyStringMap));
+	public List<byte[]> getStringMatchedRows(Map<String, Pair<Operator, String>> propertyStringMap) {
+		return getByteMatchedRows(getPropertyValuePairMap(propertyStringMap));
 	}
 	
 	public int getRowIndexById(Object id) {
@@ -272,7 +273,7 @@ public class Table {
 		return 1;
 	}
 	
-	public int deleteByteMatchedRows(Map<String,byte[]> propertyValueMap) {
+	public int deleteByteMatchedRows(Map<String,Pair<Operator, byte[]>> propertyValueMap) {
 		if (primaryKey == null) {
 			LOGGER.warn("Unable to delete byte matched rows without primary key for table {}", name);
 			return 0;
@@ -285,8 +286,8 @@ public class Table {
 		return count;
 	}
 	
-	public int deleteStringMatchedRows(Map<String,String> propertyStringMap) {
-		return deleteByteMatchedRows(getPropertyValueMap(propertyStringMap));
+	public int deleteStringMatchedRows(Map<String, Pair<Operator, String>> propertyStringMap) {
+		return deleteByteMatchedRows(getPropertyValuePairMap(propertyStringMap));
 	}
 	
 	public int deleteAllRows() {
@@ -330,7 +331,7 @@ public class Table {
 		return updateRowValues(index, getPropertyValueMap(propertyStringMap));
 	}
 	
-	public int updateByteMatchedRows(Map<String,byte[]> searchMap, Map<String,byte[]> replacementMap){
+	public int updateByteMatchedRows(Map<String, Pair<Operator, byte[]>> searchMap, Map<String, byte[]> replacementMap){
 		if (primaryKey == null) {
 			LOGGER.warn("Unable to update rows without primary key for table {}", name);
 			return 0;
@@ -343,8 +344,8 @@ public class Table {
 		return count;
 	}
 	
-	public int updateStringMatchedRows(Map<String,String> searchMap, Map<String,String> replacementMap){
-		return updateByteMatchedRows(getPropertyValueMap(searchMap), getPropertyValueMap(replacementMap));
+	public int updateStringMatchedRows(Map<String,Pair<Operator, String>> searchMap, Map<String,String> replacementMap){
+		return updateByteMatchedRows(getPropertyValuePairMap(searchMap), getPropertyValueMap(replacementMap));
 	}
 	
 	public int updateAllRows(Map<String,String> replacementMap) {
@@ -448,13 +449,13 @@ public class Table {
 		return propertyValueMap;
 	}
 	
-	private Map<String, Pair<String,byte[]>> getPropertyValuePairMap(Map<String, Pair<String, String>> propertyStringMap){
-		Map<String, Pair<String, byte[]>> propertyValueMap = new HashMap<>();
+	private Map<String, Pair<Operator,byte[]>> getPropertyValuePairMap(Map<String, Pair<Operator, String>> propertyStringMap){
+		Map<String, Pair<Operator, byte[]>> propertyValueMap = new HashMap<>();
 		for(String fieldName : propertyStringMap.keySet()) {
 			Column column = columns.get(fieldName);
-			String operator = propertyStringMap.get(fieldName).getKey();
+			Operator operator = propertyStringMap.get(fieldName).getKey();
 			byte[] bytes = column.getDataType().getBytes(propertyStringMap.get(fieldName).getValue());
-			propertyValueMap.put(fieldName, new Pair<String, byte[]>(operator, bytes));
+			propertyValueMap.put(fieldName, new Pair<Operator, byte[]>(operator, bytes));
 		}
 		return propertyValueMap;
 	}

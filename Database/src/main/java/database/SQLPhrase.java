@@ -25,7 +25,7 @@ public class SQLPhrase {
 	
 	private SQLPhrase linkedTable;
 	
-	private String linkedOperator;
+	private Operator linkedOperator;
 	
 	public SQLPhrase(String string) {
 		this.string = string;
@@ -89,11 +89,11 @@ public class SQLPhrase {
 		this.linkedTable = linkedTable;
 	}	
 	
-	public String getLinkedOperator() {
+	public Operator getLinkedOperator() {
 		return linkedOperator;
 	}
 
-	public void setLinkedOperator(String operator) {
+	public void setLinkedOperator(Operator operator) {
 		this.linkedOperator = operator;
 	}
 
