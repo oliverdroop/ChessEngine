@@ -20,6 +20,8 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javafx.util.Pair;
+
 public class Table {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(Table.class);
@@ -424,7 +426,7 @@ public class Table {
 		return getValuesString(new ArrayList<>(columns.values()), row);
 	}
 	
-	public byte[] buildRow(Map<String,String> propertyStringMap) {
+	public byte[] buildRow(Map<String, String> propertyStringMap) {
 		byte[] row = new byte[getRowLength()];
 		Map<String,byte[]> propertyValueMap = getPropertyValueMap(propertyStringMap);
 		for(String columnName : propertyValueMap.keySet()) {
@@ -436,12 +438,23 @@ public class Table {
 		return row;
 	}
 	
-	private Map<String,byte[]> getPropertyValueMap(Map<String, String> propertyStringMap){
+	private Map<String, byte[]> getPropertyValueMap(Map<String, String> propertyStringMap){
 		Map<String, byte[]> propertyValueMap = new HashMap<>();
 		for(String fieldName : propertyStringMap.keySet()) {
 			Column column = columns.get(fieldName);
 			byte[] bytes = column.getDataType().getBytes(propertyStringMap.get(fieldName));
 			propertyValueMap.put(fieldName, bytes);
+		}
+		return propertyValueMap;
+	}
+	
+	private Map<String, Pair<String,byte[]>> getPropertyValuePairMap(Map<String, Pair<String, String>> propertyStringMap){
+		Map<String, Pair<String, byte[]>> propertyValueMap = new HashMap<>();
+		for(String fieldName : propertyStringMap.keySet()) {
+			Column column = columns.get(fieldName);
+			String operator = propertyStringMap.get(fieldName).getKey();
+			byte[] bytes = column.getDataType().getBytes(propertyStringMap.get(fieldName).getValue());
+			propertyValueMap.put(fieldName, new Pair<String, byte[]>(operator, bytes));
 		}
 		return propertyValueMap;
 	}

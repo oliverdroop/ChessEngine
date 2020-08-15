@@ -25,6 +25,8 @@ public class SQLPhrase {
 	
 	private SQLPhrase linkedTable;
 	
+	private String linkedOperator;
+	
 	public SQLPhrase(String string) {
 		this.string = string;
 	}
@@ -85,6 +87,14 @@ public class SQLPhrase {
 
 	public void setLinkedTable(SQLPhrase linkedTable) {
 		this.linkedTable = linkedTable;
+	}	
+	
+	public String getLinkedOperator() {
+		return linkedOperator;
+	}
+
+	public void setLinkedOperator(String operator) {
+		this.linkedOperator = operator;
 	}
 
 	@Override
@@ -94,7 +104,12 @@ public class SQLPhrase {
 		stringBuilder.append(", ");
 		stringBuilder.append(type);
 		stringBuilder.append(", [");
-		keywordTypes.forEach(t -> stringBuilder.append(t + ", "));
+		for(KeywordType keywordType : keywordTypes) {
+			stringBuilder.append(keywordType);
+			if (keywordTypes.indexOf(keywordType) < keywordTypes.size() - 1) {
+				stringBuilder.append(", ");
+			}
+		}
 		stringBuilder.append("]");
 		return stringBuilder.toString();
 	}

@@ -29,13 +29,17 @@ public class SQLLexer {
 	
 	private static final Set<String> ORDER_KEYWORDS = new HashSet<>(Arrays.asList("ASC", "DESC"));
 	
+	private static final Set<String> OPERATORS = new HashSet<>(Arrays.asList("=", ">", "<", ">=", "<=", "!=", "LIKE", "BETWEEN", "IN"));
+	
+	private static List<String> allKeywords;
+	
 	public static List<SQLPhrase> readQuery(String query){
 		List<SQLPhrase> output = new ArrayList<>();
 		String currentPhrase = "";
 		boolean openQuote = false;
 		boolean openBracket = false;
-		boolean equality = false;
 		boolean dot = false;
+		String operator = null;
 		for(int i = 0; i < query.length(); i++) {
 			String currentCharacter = query.substring(i, i + 1);
 			if (!openQuote) {
@@ -68,9 +72,9 @@ public class SQLLexer {
 				newPhrase.setType(PhraseType.TABLE_NAME);
 				dot = true;
 			}
-			if (currentCharacter.equals("=")) {
+			if (OPERATORS.contains(currentCharacter)) {
 				newPhrase = splitOffSQLPhrase(currentPhrase, i);
-				equality = true;
+				operator = currentCharacter;
 			}
 			if (currentCharacter.equals(";")) {
 				newPhrase = splitOffSQLPhrase(currentPhrase, i);
@@ -80,12 +84,14 @@ public class SQLLexer {
 					if (newPhrase.getType() == null) {
 						categorizePhrase(newPhrase, output);
 					}
-					if (equality) {
+					if (operator != null) {
 						if (newPhrase.hasType(PhraseType.VALUE)) {
-							newPhrase.setLinkedColumn(getLastPhrase(output));
-							getLastPhrase(output).setLinkedValue(newPhrase);
+							SQLPhrase previousLinkablePhrase = getLastPhrase(output);
+							newPhrase.setLinkedColumn(previousLinkablePhrase);
+							newPhrase.setLinkedOperator(operator);
+							previousLinkablePhrase.setLinkedValue(newPhrase);
 						}
-						equality = false;
+						operator = null;
 					}
 					if (dot) {
 						if (!newPhrase.hasType(PhraseType.TABLE_NAME)) {
@@ -114,6 +120,13 @@ public class SQLLexer {
 		}
 		else if (getAllKeywords().contains(previousPhrase.getString() + " " + newPhrase.getString())) {
 			String bothPhraseStrings = previousPhrase.getString() + " " + newPhrase.getString();
+			previousPhrases.remove(previousPhrase);
+			newPhrase.setString(bothPhraseStrings);
+			newPhrase.setType(PhraseType.KEYWORD);
+			newPhrase.setKeywordTypes(getKeywordTypes(bothPhraseStrings));
+		}
+		else if (getAllKeywords().contains(previousPhrase.getString() + newPhrase.getString())) {
+			String bothPhraseStrings = previousPhrase.getString() + newPhrase.getString();
 			previousPhrases.remove(previousPhrase);
 			newPhrase.setString(bothPhraseStrings);
 			newPhrase.setType(PhraseType.KEYWORD);
@@ -171,12 +184,14 @@ public class SQLLexer {
 	}
 	
 	private static final List<String> getAllKeywords(){
-		List<String> allKeywords = new ArrayList<>();
-		allKeywords.addAll(INSTRUCTION_KEYWORDS);
-		allKeywords.addAll(TABLE_IDENTIFIER_KEYWORDS);
-		allKeywords.addAll(EXPRESSION_KEYWORDS);
-		allKeywords.addAll(JOIN_KEYWORDS);
-		allKeywords.addAll(ORDER_KEYWORDS);
+		if (allKeywords == null) {
+			allKeywords = new ArrayList<>();
+			allKeywords.addAll(INSTRUCTION_KEYWORDS);
+			allKeywords.addAll(TABLE_IDENTIFIER_KEYWORDS);
+			allKeywords.addAll(EXPRESSION_KEYWORDS);
+			allKeywords.addAll(JOIN_KEYWORDS);
+			allKeywords.addAll(ORDER_KEYWORDS);
+		}
 		return allKeywords;
 	}
 	
