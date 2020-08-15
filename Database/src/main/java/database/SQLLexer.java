@@ -29,8 +29,6 @@ public class SQLLexer {
 	
 	private static final Set<String> ORDER_KEYWORDS = new HashSet<>(Arrays.asList("ASC", "DESC"));
 	
-	//private static final Set<String> OPERATORS = new HashSet<>(Arrays.asList("=", ">", "<", ">=", "<=", "!="));
-	
 	private static List<String> allKeywords;
 	
 	public static List<SQLPhrase> readQuery(String query){
@@ -72,9 +70,17 @@ public class SQLLexer {
 				newPhrase.setType(PhraseType.TABLE_NAME);
 				dot = true;
 			}
-			if (getOperatorFromString(currentCharacter) != null) {
+			if (getOperatorFromString(currentCharacter) != null ) {
 				newPhrase = splitOffSQLPhrase(currentPhrase, i);
-				operator = getOperatorFromString(currentCharacter);
+				if (operator == null) {
+					if (currentPhrase.equals("!")) {
+						currentCharacter = "!" + currentCharacter;
+						newPhrase = new SQLPhrase("");
+					}
+					operator = getOperatorFromString(currentCharacter);
+				} else {
+					operator = getOperatorFromString(operator.getString() + currentCharacter);
+				}
 			}
 			if (currentCharacter.equals(";")) {
 				newPhrase = splitOffSQLPhrase(currentPhrase, i);

@@ -19,6 +19,8 @@ import org.junit.runners.BlockJUnit4ClassRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.sun.org.apache.xalan.internal.xsltc.compiler.util.ResultTreeType;
+
 @RunWith(BlockJUnit4ClassRunner.class)
 public class SQLInterpreterTest {
 	
@@ -248,6 +250,49 @@ public class SQLInterpreterTest {
 		assertEquals("1000 results should be returned", 1000, result.size());
 		softly.assertThat(result.get(0)).isEqualTo("AC04ZCS	Ford	Fiesta");
 		softly.assertThat(result.get(999)).isEqualTo("ZY57CKF	Ford	Transit");
+	}
+	
+	@Test
+	public void testOperators() {
+		loadData();
+		String queryString;
+		Query query;
+		List<String> result;
+		
+		queryString = "select registration, manufacturer, model, engine_size from car where engine_size > '2.8';";		
+		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
+		result = query.execute();
+		result.forEach(line -> LOGGER.info(line));
+		
+		softly.assertThat(result).as("Test number of cars with engine size > 2.8").hasSize(79);
+		
+		queryString = "select registration, manufacturer, model, engine_size from car where engine_size >= '2.90';";		
+		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
+		result = query.execute();
+		result.forEach(line -> LOGGER.info(line));
+		
+		softly.assertThat(result).as("Test number of cars with engine size >= 2.90").hasSize(79);
+		
+		queryString = "select registration, manufacturer, model, engine_size from car where engine_size < '1.2';";		
+		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
+		result = query.execute();
+		result.forEach(line -> LOGGER.info(line));
+		
+		softly.assertThat(result).as("Test number of cars with engine size < 1.2").hasSize(73);
+		
+		queryString = "select registration, manufacturer, model, engine_size from car where engine_size <= '1.1';";		
+		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
+		result = query.execute();
+		result.forEach(line -> LOGGER.info(line));
+		
+		softly.assertThat(result).as("Test number of cars with engine size <= 1.10").hasSize(73);
+		
+		queryString = "select registration, manufacturer, model, engine_size from car where engine_size != '1';";		
+		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
+		result = query.execute();
+		result.forEach(line -> LOGGER.info(line));
+		
+		softly.assertThat(result).as("Test number of cars with engine size != 1").hasSize(971);
 	}
 	
 	private static String getDataDirectory() {
