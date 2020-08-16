@@ -59,7 +59,7 @@ public final class SQLInterpreter {
 			SQLPhrase phrase = sqlStatement.get(i);
 			SQLPhrase linkedPhrase = phrase.getLinkedColumn();
 			if (linkedPhrase != null && linkedPhrase.hasType(PhraseType.COLUMN_NAME) && phrase.hasType(PhraseType.VALUE)) {
-				output.put(linkedPhrase.getString(), new Pair<Operator, String>(phrase.getLinkedOperator(), phrase.getString()));
+				output.put(linkedPhrase.getString(), phrase.getLinkedOperator().pairWith(phrase.getString()));
 			}
 		}
 		return output;

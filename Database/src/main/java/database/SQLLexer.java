@@ -70,13 +70,9 @@ public class SQLLexer {
 				newPhrase.setType(PhraseType.TABLE_NAME);
 				dot = true;
 			}
-			if (getOperatorFromString(currentCharacter) != null ) {
+			if (getOperatorFromString(currentCharacter) != null && !openQuote) {
 				newPhrase = splitOffSQLPhrase(currentPhrase, i);
 				if (operator == null) {
-					if (currentPhrase.equals("!")) {
-						currentCharacter = "!" + currentCharacter;
-						newPhrase = new SQLPhrase("");
-					}
 					operator = getOperatorFromString(currentCharacter);
 				} else {
 					operator = getOperatorFromString(operator.getString() + currentCharacter);

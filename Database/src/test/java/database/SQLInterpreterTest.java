@@ -145,7 +145,7 @@ public class SQLInterpreterTest {
 	@Test
 	public void testLeftJoin() {
 		loadData();
-		String queryString = "select forename, surname, registration, manufacturer, model from owner left join car on owner.car_id = car.id; ";
+		String queryString = "select forename, surname, registration, manufacturer, model from owner left join car on owner.car_id = car.id;";
 		
 		Query query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
 		List<String> result = query.execute();
@@ -163,7 +163,7 @@ public class SQLInterpreterTest {
 	@Test
 	public void testRightJoin() {
 		loadData();
-		String queryString = "select forename, surname, registration, manufacturer, model from owner right join car on car.id = owner.car_id; ";
+		String queryString = "select forename, surname, registration, manufacturer, model from owner right join car on car.id = owner.car_id;";
 		
 		Query query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
 		List<String> result = query.execute();
@@ -180,7 +180,7 @@ public class SQLInterpreterTest {
 	@Test
 	public void testInnerJoin() {
 		loadData();
-		String queryString = "select forename, surname, registration, manufacturer, model from owner inner join car on car.id = owner.car_id; ";
+		String queryString = "select forename, surname, registration, manufacturer, model from owner inner join car on car.id = owner.car_id;";
 		
 		Query query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
 		List<String> result = query.execute();
@@ -197,7 +197,7 @@ public class SQLInterpreterTest {
 	@Test
 	public void testFullJoin() {
 		loadData();
-		String queryString = "select forename, surname, registration, manufacturer, model from owner full join car on car.id = owner.car_id; ";
+		String queryString = "select forename, surname, registration, manufacturer, model from owner full join car on car.id = owner.car_id;";
 		
 		Query query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
 		List<String> result = query.execute();
@@ -287,12 +287,19 @@ public class SQLInterpreterTest {
 		
 		softly.assertThat(result).as("Test number of cars with engine size <= 1.10").hasSize(73);
 		
-		queryString = "select registration, manufacturer, model, engine_size from car where engine_size != '1';";		
+		queryString = "select registration, manufacturer, model, engine_size from car where engine_size <> '1';";		
 		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
 		result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
-		softly.assertThat(result).as("Test number of cars with engine size != 1").hasSize(971);
+		softly.assertThat(result).as("Test number of cars with engine size <> 1").hasSize(971);
+		
+		queryString = "select registration, manufacturer, model, engine_size from car where model > 'Fusion';";		
+		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
+		result = query.execute();
+		result.forEach(line -> LOGGER.info(line));
+		
+		assertEquals("Test operator on non-numeric data type", 0, result.size());
 	}
 	
 	private static String getDataDirectory() {

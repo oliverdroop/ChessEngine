@@ -181,7 +181,7 @@ public class Query {
 		for(int i = 0; i < tablePrimary.getData().length; i += tablePrimary.getRowLength()) {
 			byte[] rowPrimary = Arrays.copyOfRange(tablePrimary.getData(), i, i + tablePrimary.getRowLength());
 			String joinValueString = tablePrimary.getValueString(columnPrimary, rowPrimary);
-			propertyStringMap.put(columnSecondaryName, new Pair<Operator, String>(Operator.EQUAL,joinValueString));
+			propertyStringMap.put(columnSecondaryName, Operator.EQUAL.pairWith(joinValueString));
 			List<byte[]> rowsSecondary = tableSecondary.getStringMatchedRows(propertyStringMap);
 			
 			if (rowsSecondary.size() == 0) {

@@ -95,27 +95,27 @@ public class TableTest {
 		Table table = setUpMatchedRowsTestTable();
 		
 		Map<String, Pair<Operator, byte[]>> propertyValueMap = new HashMap<>();
-		propertyValueMap.put("COLOUR", new Pair<Operator, byte[]>(Operator.EQUAL, "Black".getBytes()));
+		propertyValueMap.put("COLOUR", Operator.EQUAL.pairWith("Black".getBytes()));
 		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find 3 black cars").hasSize(3);
 		
 		propertyValueMap = new HashMap<>();
-		propertyValueMap.put("ENGINE_SIZE", new Pair<Operator, byte[]>(Operator.EQUAL, ByteBuffer.allocate(8).putDouble(1.25).array()));
+		propertyValueMap.put("ENGINE_SIZE", Operator.EQUAL.pairWith(ByteBuffer.allocate(8).putDouble(1.25).array()));
 		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find 2 cars with engineSize 1.25").hasSize(2);
 		
 		propertyValueMap = new HashMap<>();
-		propertyValueMap.put("MODEL", new Pair<Operator, byte[]>(Operator.EQUAL, "Fiesta".getBytes()));
+		propertyValueMap.put("MODEL", Operator.EQUAL.pairWith("Fiesta".getBytes()));
 		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find 4 Fiestas").hasSize(4);
 		
-		propertyValueMap.put("COLOUR", new Pair<Operator, byte[]>(Operator.EQUAL, "Black".getBytes()));
+		propertyValueMap.put("COLOUR", Operator.EQUAL.pairWith("Black".getBytes()));
 		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find 3 Black Fiestas").hasSize(3);
 		
-		propertyValueMap.put("ENGINE_SIZE", new Pair<Operator, byte[]>(Operator.EQUAL, ByteBuffer.allocate(8).putDouble(1.25).array()));
+		propertyValueMap.put("ENGINE_SIZE", Operator.EQUAL.pairWith(ByteBuffer.allocate(8).putDouble(1.25).array()));
 		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find 2 Black Fiestas with engineSize 1.25").hasSize(2);
 		
-		propertyValueMap.put("TAXED", new Pair<Operator, byte[]>(Operator.EQUAL, new byte[] {1}));
+		propertyValueMap.put("TAXED", Operator.EQUAL.pairWith(new byte[] {1}));
 		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find 1 taxed Black Fiesta with engineSize 1.25").hasSize(1);
 		
-		propertyValueMap.put("SEATS", new Pair<Operator, byte[]>(Operator.EQUAL, new byte[] {2}));
+		propertyValueMap.put("SEATS", Operator.EQUAL.pairWith(new byte[] {2}));
 		softly.assertThat(table.getByteMatchedRows(propertyValueMap)).as("Expected to find no taxed Black 1.25 Fiestas with 2 seats").isEmpty();
 	}
 	
@@ -124,27 +124,27 @@ public class TableTest {
 		Table table = setUpMatchedRowsTestTable();
 		
 		Map<String, Pair<Operator, String>> propertyStringMap = new HashMap<>();
-		propertyStringMap.put("COLOUR", new Pair<Operator, String>(Operator.EQUAL, "Black"));
+		propertyStringMap.put("COLOUR", Operator.EQUAL.pairWith("Black"));
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find 3 black cars").hasSize(3);
 		
 		propertyStringMap = new HashMap<>();
-		propertyStringMap.put("ENGINE_SIZE", new Pair<Operator, String>(Operator.EQUAL, "1.25"));
+		propertyStringMap.put("ENGINE_SIZE", Operator.EQUAL.pairWith("1.25"));
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find 2 cars with engineSize 1.25").hasSize(2);
 		
 		propertyStringMap = new HashMap<>();
-		propertyStringMap.put("MODEL", new Pair<Operator, String>(Operator.EQUAL, "Fiesta"));
+		propertyStringMap.put("MODEL", Operator.EQUAL.pairWith("Fiesta"));
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find 4 Fiestas").hasSize(4);
 		
-		propertyStringMap.put("COLOUR", new Pair<Operator, String>(Operator.EQUAL, "Black"));
+		propertyStringMap.put("COLOUR", Operator.EQUAL.pairWith("Black"));
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find 3 Black Fiestas").hasSize(3);
 		
-		propertyStringMap.put("ENGINE_SIZE", new Pair<Operator, String>(Operator.EQUAL, "1.25"));
+		propertyStringMap.put("ENGINE_SIZE", Operator.EQUAL.pairWith("1.25"));
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find 2 Black Fiestas with engineSize 1.25").hasSize(2);
 		
-		propertyStringMap.put("TAXED", new Pair<Operator, String>(Operator.EQUAL, "true"));
+		propertyStringMap.put("TAXED", Operator.EQUAL.pairWith("true"));
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find 1 taxed Black Fiesta with engineSize 1.25").hasSize(1);
 		
-		propertyStringMap.put("SEATS", new Pair<Operator, String>(Operator.EQUAL, "2"));
+		propertyStringMap.put("SEATS", Operator.EQUAL.pairWith("2"));
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Expected to find no taxed Black 1.25 Fiestas with 2 seats").isEmpty();
 	}
 	
@@ -169,9 +169,9 @@ public class TableTest {
 		table.addRow(parser.parse(car));
 		softly.assertThat(table.countRows()).as("Table %s should contain 3 rows", table.getName()).isEqualTo(3);
 		Map<String, Pair<Operator, String>> propertyStringMap = new HashMap<>();
-		propertyStringMap.put("ID", new Pair<Operator, String>(Operator.EQUAL, "1"));
+		propertyStringMap.put("ID", Operator.EQUAL.pairWith("1"));
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Only 1 row should be returned with id of 1").hasSize(1);
-		propertyStringMap.put("ID", new Pair<Operator, String>(Operator.EQUAL, "2"));
+		propertyStringMap.put("ID", Operator.EQUAL.pairWith("2"));
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Only 1 row should be returned with id of 2").hasSize(1);
 	}
 	
@@ -179,7 +179,7 @@ public class TableTest {
 	public void testDeleteRows() {
 		Table table = setUpMatchedRowsTestTable();
 		Map<String, Pair<Operator, String>> propertyStringMap = new HashMap<>();
-		propertyStringMap.put("MODEL", new Pair<Operator, String>(Operator.EQUAL, "Focus"));
+		propertyStringMap.put("MODEL", Operator.EQUAL.pairWith("Focus"));
 		ObjectParser parser = new ObjectParser(database);
 		Car focus = (Car)parser.unparse(table.getStringMatchedRows(propertyStringMap).get(0), table);
 		byte[] focusId = DataType.getBytes(focus.getId());
@@ -189,12 +189,12 @@ public class TableTest {
 		softly.assertThat(table.countRows()).as("Table %s should have a size of 4 after the first removal", table.getName()).isEqualTo(4);
 		
 		propertyStringMap.remove("MODEL");
-		propertyStringMap.put("TAXED", new Pair<Operator, String>(Operator.EQUAL, "false"));
+		propertyStringMap.put("TAXED", Operator.EQUAL.pairWith("false"));
 		table.deleteStringMatchedRows(propertyStringMap);
 		softly.assertThat(table.countRows()).as("Table %s should have a size of 3 after the second removal", table.getName()).isEqualTo(3);
 		
 		propertyStringMap.remove("TAXED");
-		propertyStringMap.put("COLOUR", new Pair<Operator, String>(Operator.EQUAL, "Black"));
+		propertyStringMap.put("COLOUR", Operator.EQUAL.pairWith("Black"));
 		table.deleteStringMatchedRows(propertyStringMap);
 		softly.assertThat(table.countRows()).as("Table %s should have a size of 1 after the third removal", table.getName()).isEqualTo(1);
 		
@@ -207,7 +207,7 @@ public class TableTest {
 	public void testUpdateRows() {
 		Table table = setUpMatchedRowsTestTable();
 		Map<String, Pair<Operator, String>> propertyStringMap = new HashMap<>();
-		propertyStringMap.put("MODEL", new Pair<Operator, String>(Operator.EQUAL, "Focus"));
+		propertyStringMap.put("MODEL", Operator.EQUAL.pairWith("Focus"));
 		
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Only one Focus should exist in database").hasSize(1);
 		Map<String,String> updateMap = new HashMap<>();
@@ -216,7 +216,7 @@ public class TableTest {
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("No Focuses should exist in database").hasSize(0);
 		
 		propertyStringMap.remove("MODEL");
-		propertyStringMap.put("ENGINE_SIZE", new Pair<Operator, String>(Operator.EQUAL, "1.6"));
+		propertyStringMap.put("ENGINE_SIZE", Operator.EQUAL.pairWith("1.6"));
 		updateMap.put("MODEL", "Fiesta RS");
 		updateMap.put("COLOUR", "Yellow");
 		updateMap.put("SEATS", "2");
@@ -225,7 +225,7 @@ public class TableTest {
 		
 		propertyStringMap = new HashMap<>();
 		for(String column : updateMap.keySet()) {
-			propertyStringMap.put(column, new Pair<Operator, String>(Operator.EQUAL, updateMap.get(column)));
+			propertyStringMap.put(column, Operator.EQUAL.pairWith(updateMap.get(column)));
 		}
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Two updated cars should exist with the specified properties").hasSize(2);
 	}
@@ -253,31 +253,31 @@ public class TableTest {
 		Table table = setUpMatchedRowsTestTable();
 		Map<String, Pair<Operator, String>> propertyStringMap = new HashMap<>();
 
-		propertyStringMap.put("ENGINE_SIZE", new Pair<>(Operator.GREATER, "0.9"));
+		propertyStringMap.put("ENGINE_SIZE", Operator.GREATER.pairWith("0.9"));
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Test engine size greater than 0.9").hasSize(5);
 		
 		propertyStringMap = new HashMap<>();
-		propertyStringMap.put("ENGINE_SIZE", new Pair<>(Operator.GREATER, "1.25"));
+		propertyStringMap.put("ENGINE_SIZE", Operator.GREATER.pairWith("1.25"));
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Test engine size greater than 1.25").hasSize(3);
 		
 		propertyStringMap = new HashMap<>();
-		propertyStringMap.put("ENGINE_SIZE", new Pair<>(Operator.GREATER_EQUAL, "1.40"));
+		propertyStringMap.put("ENGINE_SIZE", Operator.GREATER_EQUAL.pairWith("1.40"));
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Test engine size greater than or equal to 1.4").hasSize(3);
 		
 		propertyStringMap = new HashMap<>();
-		propertyStringMap.put("ENGINE_SIZE", new Pair<>(Operator.LESS, "1.40"));
+		propertyStringMap.put("ENGINE_SIZE", Operator.LESS.pairWith("1.40"));
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Test engine size less than 1.4").hasSize(2);
 		
 		propertyStringMap = new HashMap<>();
-		propertyStringMap.put("ENGINE_SIZE", new Pair<>(Operator.LESS_EQUAL, "1.40"));
+		propertyStringMap.put("ENGINE_SIZE", Operator.LESS_EQUAL.pairWith("1.40"));
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Test engine size less than or equal to 1.4").hasSize(3);
 		
 		propertyStringMap = new HashMap<>();
-		propertyStringMap.put("ENGINE_SIZE", new Pair<>(Operator.NOT_EQUAL, "1.40"));
+		propertyStringMap.put("ENGINE_SIZE", Operator.NOT_EQUAL.pairWith("1.40"));
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Test engine size not 1.4").hasSize(4);
 		
 		propertyStringMap = new HashMap<>();
-		propertyStringMap.put("ENGINE_SIZE", new Pair<>(Operator.EQUAL, "1.40"));
+		propertyStringMap.put("ENGINE_SIZE", Operator.EQUAL.pairWith("1.40"));
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Test engine size equals 1.4").hasSize(1);
 	}
 	

@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -94,18 +95,23 @@ public class Table {
 		return rowLength;
 	}
 	
-	public List<byte[]> getByteMatchedRows(Map<String, Pair<Operator,byte[]>> propertyValueMap) {
+	public List<byte[]> getByteMatchedRows(Map<String, Pair<Operator, byte[]>> propertyValueMap) {
 		for(String fieldName : propertyValueMap.keySet()) {
 			Column column = columns.get(fieldName);
+			DataType dataType = column.getDataType();
 			Operator operator = propertyValueMap.get(fieldName).getKey();
+			if (!Operator.isValidOperation(operator, dataType)){
+				LOGGER.warn("Cannot perform evaluation {} on non-numeric data type {}", operator.name(), dataType.name());
+				return Collections.emptyList();
+			}
 			byte[] value = propertyValueMap.get(fieldName).getValue();
-			if (value.length < column.getLength() && column.getDataType() == DataType.VARCHAR) {
+			if (value.length < column.getLength() && dataType == DataType.VARCHAR) {
 				byte[] valueWithWhitespace = new byte[column.getLength()];
 				System.arraycopy(value, 0, valueWithWhitespace, 0, value.length);
-				propertyValueMap.put(fieldName, new Pair<Operator, byte[]>(operator, valueWithWhitespace));
+				propertyValueMap.put(fieldName, operator.pairWith(valueWithWhitespace));
 			}
 		}
-		
+
 		List<byte[]> matches = new ArrayList<>();
 		for(byte[] row : getAllRows()) {
 			boolean match = true;
@@ -116,12 +122,10 @@ public class Table {
 				Operator operator = propertyValueMap.get(columnName).getKey();
 				byte[] testValue = getValueBytes(columnName, row);
 				byte[] conditionValue = propertyValueMap.get(columnName).getValue();
-				if (!operator.evaluate(testValue, conditionValue, columns.get(columnName).getDataType())) {
+				DataType dataType = columns.get(columnName).getDataType();
+				if (!operator.evaluate(testValue, conditionValue, dataType)) {
 					match = false;
 				}
-//				if (!Arrays.equals(getValueBytes(columnName, row), propertyValueMap.get(columnName).getValue())) {
-//					match = false;
-//				}
 			}
 			if (match) {
 				matches.add(row);
@@ -461,7 +465,7 @@ public class Table {
 			Column column = columns.get(fieldName);
 			Operator operator = propertyStringMap.get(fieldName).getKey();
 			byte[] bytes = column.getDataType().getBytes(propertyStringMap.get(fieldName).getValue());
-			propertyValueMap.put(fieldName, new Pair<Operator, byte[]>(operator, bytes));
+			propertyValueMap.put(fieldName, operator.pairWith(bytes));
 		}
 		return propertyValueMap;
 	}
