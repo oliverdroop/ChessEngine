@@ -13,7 +13,8 @@ public enum Operator {
 	GREATER(">"), 
 	LESS_EQUAL("<="), 
 	GREATER_EQUAL(">="), 
-	NOT_EQUAL("!=");
+	NOT_EQUAL("!="),
+	CONTAINS("LIKE");
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(Operator.class);
 	
@@ -35,7 +36,10 @@ public enum Operator {
 			if (this == NOT_EQUAL) {
 				return !Arrays.equals(a, b);
 			}
-			LOGGER.warn("Cannot perform evaluation {} on non-numeric data type {}", this.name(), dataType.name());
+			if (this == CONTAINS) {
+				return arrayContains(a, b);
+			}
+			LOGGER.warn("Cannot perform evaluation {} on data type {}", this.name(), dataType.name());
 		}
 		else {
 			Double valueA = Double.parseDouble(dataType.getValueString(a));
@@ -71,11 +75,25 @@ public enum Operator {
 	}
 	
 	public static boolean isValidOperation(Operator operator, DataType dataType) {
-		if (dataType.isNumeric()) {
+		if (dataType.isNumeric() && operator != CONTAINS) {
 			return true;
 		}
-		if (operator == EQUAL || operator == NOT_EQUAL) {
+		if (operator == EQUAL || operator == NOT_EQUAL || operator == CONTAINS) {
 			return true;
+		}
+		return false;
+	}
+	
+	private boolean arrayContains(byte[] a, byte[] b) {
+		if (a.length < b.length) {
+			return false;
+		}
+		byte[] equalLengthArray = new byte[b.length];
+		for(int i = 0; i <= a.length - b.length; i++) {
+			System.arraycopy(a, i, equalLengthArray, 0, b.length);
+			if (Arrays.equals(equalLengthArray, b)) {
+				return true;
+			}
 		}
 		return false;
 	}

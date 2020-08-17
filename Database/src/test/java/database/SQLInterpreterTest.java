@@ -294,6 +294,13 @@ public class SQLInterpreterTest {
 		
 		softly.assertThat(result).as("Test number of cars with engine size != 1").hasSize(971);
 		
+		queryString = "select registration, manufacturer, model, engine_size from car where model like 'a';";		
+		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
+		result = query.execute();
+		result.forEach(line -> LOGGER.info(line));
+		
+		softly.assertThat(result).as("Test number of cars with a in the model").hasSize(574);
+		
 		queryString = "select registration, manufacturer, model, engine_size from car where model > 'Fusion';";		
 		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
 		result = query.execute();

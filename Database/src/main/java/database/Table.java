@@ -105,7 +105,7 @@ public class Table {
 				return Collections.emptyList();
 			}
 			byte[] value = propertyValueMap.get(fieldName).getValue();
-			if (value.length < column.getLength() && dataType == DataType.VARCHAR) {
+			if (value.length < column.getLength() && dataType == DataType.VARCHAR && operator != Operator.CONTAINS) {
 				byte[] valueWithWhitespace = new byte[column.getLength()];
 				System.arraycopy(value, 0, valueWithWhitespace, 0, value.length);
 				propertyValueMap.put(fieldName, operator.pairWith(valueWithWhitespace));
