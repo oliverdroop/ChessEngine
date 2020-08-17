@@ -75,8 +75,12 @@ public enum Operator {
 	}
 	
 	public static boolean isValidOperation(Operator operator, DataType dataType) {
-		if (dataType.isNumeric() && operator != CONTAINS) {
-			return true;
+		if (dataType.isNumeric()) {
+			if (operator == CONTAINS) {
+				return false;
+			} else {
+				return true;
+			}
 		}
 		if (operator == EQUAL || operator == NOT_EQUAL || operator == CONTAINS) {
 			return true;
