@@ -101,7 +101,7 @@ public class Table {
 			DataType dataType = column.getDataType();
 			Operator operator = propertyValueMap.get(fieldName).getKey();
 			if (!Operator.isValidOperation(operator, dataType)){
-				LOGGER.warn("Cannot perform evaluation {} on non-numeric data type {}", operator.name(), dataType.name());
+				LOGGER.warn("Cannot perform evaluation {} on data type {}", operator.name(), dataType.name());
 				return Collections.emptyList();
 			}
 			byte[] value = propertyValueMap.get(fieldName).getValue();

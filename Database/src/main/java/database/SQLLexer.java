@@ -70,13 +70,16 @@ public class SQLLexer {
 				newPhrase.setType(PhraseType.TABLE_NAME);
 				dot = true;
 			}
-			if (getOperatorFromString(currentCharacter) != null && !openQuote) {
-				newPhrase = splitOffSQLPhrase(currentPhrase, i);
-				if (operator == null) {
-					operator = getOperatorFromString(currentCharacter);
-				} else {
-					operator = getOperatorFromString(operator.getString() + currentCharacter);
-				}
+//			if (getOperator(currentCharacter) != null && !openQuote) {
+//				newPhrase = splitOffSQLPhrase(currentPhrase, i);
+//				if (operator == null) {
+//					operator = getOperator(currentCharacter);
+//				} else {
+//					operator = getOperator(operator.getString() + currentCharacter);
+//				}
+//			}
+			if (getOperator(currentPhrase + currentCharacter) != null && !openQuote) {
+				operator = getOperator(currentPhrase + currentCharacter);
 			}
 			if (currentCharacter.equals(";")) {
 				newPhrase = splitOffSQLPhrase(currentPhrase, i);
@@ -92,8 +95,8 @@ public class SQLLexer {
 							newPhrase.setLinkedColumn(previousLinkablePhrase);
 							newPhrase.setLinkedOperator(operator);
 							previousLinkablePhrase.setLinkedValue(newPhrase);
+							operator = null;
 						}
-						operator = null;
 					}
 					if (dot) {
 						if (!newPhrase.hasType(PhraseType.TABLE_NAME)) {
@@ -102,7 +105,9 @@ public class SQLLexer {
 							dot = false;
 						}
 					}
-					output.add(newPhrase);
+					if (newPhrase.getType() != null) {
+						output.add(newPhrase);
+					}
 				}
 				currentPhrase = "";
 			}
@@ -145,6 +150,9 @@ public class SQLLexer {
 		else if(previousPhrase.hasType(PhraseType.COLUMN_NAME)) {
 			newPhrase.setType(PhraseType.COLUMN_NAME);
 		}
+		if (getOperator(newPhrase.getString()) != null) {
+			newPhrase.setType(null);
+		}
 	}
 	
 	private static SQLPhrase splitOffSQLPhrase(String currentPhrase, int index) {
@@ -153,7 +161,7 @@ public class SQLLexer {
 		return newPhrase;
 	}
 	
-	private static Operator getOperatorFromString(String input) {
+	private static Operator getOperator(String input) {
 		for(Operator operator : Operator.values()) {
 			if (operator.getString().equals(input)) {
 				return operator;

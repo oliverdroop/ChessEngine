@@ -287,12 +287,12 @@ public class SQLInterpreterTest {
 		
 		softly.assertThat(result).as("Test number of cars with engine size <= 1.10").hasSize(73);
 		
-		queryString = "select registration, manufacturer, model, engine_size from car where engine_size <> '1';";		
+		queryString = "select registration, manufacturer, model, engine_size from car where engine_size != '1';";		
 		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
 		result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
-		softly.assertThat(result).as("Test number of cars with engine size <> 1").hasSize(971);
+		softly.assertThat(result).as("Test number of cars with engine size != 1").hasSize(971);
 		
 		queryString = "select registration, manufacturer, model, engine_size from car where model > 'Fusion';";		
 		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));

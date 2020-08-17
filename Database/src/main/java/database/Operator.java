@@ -13,7 +13,7 @@ public enum Operator {
 	GREATER(">"), 
 	LESS_EQUAL("<="), 
 	GREATER_EQUAL(">="), 
-	NOT_EQUAL("<>");
+	NOT_EQUAL("!=");
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(Operator.class);
 	
