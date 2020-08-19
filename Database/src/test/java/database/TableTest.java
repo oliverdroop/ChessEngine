@@ -8,11 +8,13 @@ import java.nio.ByteBuffer;
 import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
@@ -185,6 +187,12 @@ public class TableTest {
 		byte[] focusId = DataType.getBytes(focus.getId());
 		
 		softly.assertThat(table.countRows()).as("Table %s should have a size of 5 when the test starts", table.getName()).isEqualTo(5);
+		List<Column> columns = new ArrayList<>(table.getColumns().values());
+		List<String> results = Arrays.asList(table.getAllRows())
+				.stream()
+				.map(row -> table.getValuesString(columns, row))
+				.collect(Collectors.toList());
+		LOGGER.info(ResultFormatter.formatResult(results, columns, true));
 		table.deleteRow(focusId);
 		softly.assertThat(table.countRows()).as("Table %s should have a size of 4 after the first removal", table.getName()).isEqualTo(4);
 		

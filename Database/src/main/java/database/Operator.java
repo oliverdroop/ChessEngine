@@ -88,7 +88,7 @@ public enum Operator {
 		return false;
 	}
 	
-	private boolean arrayContains(byte[] a, byte[] b) {
+	private static boolean arrayContains(byte[] a, byte[] b) {
 		if (a.length < b.length) {
 			return false;
 		}
