@@ -71,13 +71,15 @@ public class MyHttpHandler implements HttpHandler {
 	}
 	
 	private String read(InputStream inputStream) throws IOException{
-		String in = "";
+		int timeout = 3000;
+		long requestStart = System.currentTimeMillis();
+		StringBuilder in = new StringBuilder();
 		BufferedReader br = new BufferedReader(new InputStreamReader(inputStream));
-		while(br.ready() || in.length() == 0) {
-			in += br.readLine();
+		while((br.ready() || in.length() == 0) && System.currentTimeMillis() < requestStart + timeout) {
+			in.append(br.readLine());
 		}
 		inputStream.close();
-		return in;
+		return in.toString();
 	}
     
     private byte[] readFile(String path) {
