@@ -394,6 +394,7 @@ public class Table {
 			File file = new File(path);
     		Path actualPath = file.toPath();
 			Files.write(actualPath, data);
+    		LOGGER.info("Saved {} bytes in table {}", data.length, getName());
 		}
 		catch(IOException e) {
     		e.printStackTrace();
@@ -406,6 +407,7 @@ public class Table {
     		File file = new File(path);
     		Path actualPath = file.toPath();
     		data = Files.readAllBytes(actualPath);
+    		LOGGER.info("Loaded {} bytes into table {}", data.length, getName());
     	}
     	catch(IOException e) {
     		e.printStackTrace();

@@ -35,7 +35,7 @@ public class SQLInterpreterTest {
 	
 	@Before
 	public void setUp(){
-		database = new Database(getDataDirectory());		
+		database = new Database(getDataDirectory(), false);		
 	}
 	
 	@Test
@@ -47,8 +47,8 @@ public class SQLInterpreterTest {
 		List<String> result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
-		softly.assertThat(result).as("Only one car should be returned").hasSize(1);		
-		softly.assertThat(result.get(0)).contains("BK52VJC	Ford	Mondeo");
+		softly.assertThat(result).as("Only one car should be returned").hasSize(2);		
+		softly.assertThat(result.get(1)).contains("BK52VJC	Ford	Mondeo");
 		
 		queryString = "select * from Car where colour = 'Orange' and year_of_registration = '2002' and model = 'Mondeo';";
 		
@@ -56,16 +56,16 @@ public class SQLInterpreterTest {
 		result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
-		softly.assertThat(result).as("Only one car should be returned").hasSize(1);
+		softly.assertThat(result).as("Only one car should be returned").hasSize(2);
 		int columnCount = database.getTables().get("CAR").getColumns().size();
-		softly.assertThat(result.get(0).split("\t", 0)).hasSize(columnCount);
+		softly.assertThat(result.get(1).split("\t", 0)).hasSize(columnCount);
 		
 		queryString = "select * from car;";
 		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
 		result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
-		softly.assertThat(result).as("All 1000 cars should be returned").hasSize(1000);
+		softly.assertThat(result).as("All 1000 cars should be returned").hasSize(1001);
 	}
 	
 	@Test
@@ -122,7 +122,7 @@ public class SQLInterpreterTest {
 		List<String> result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
-		softly.assertThat(result).as("Only one line should be returned").hasSize(1);
+		softly.assertThat(result).as("Only one car should be returned").hasSize(1);
 		softly.assertThat(result.get(0)).isEqualTo("Updated 5 rows in table CAR");
 		
 		queryString = "update Car set colour = 'Red';";
@@ -139,7 +139,7 @@ public class SQLInterpreterTest {
 		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
 		result = query.execute();
 		
-		softly.assertThat(result).as("All 1000 cars should have been turned red").hasSize(1000);
+		softly.assertThat(result).as("All 1000 cars should have been turned red").hasSize(1001);
 	}
 	
 	@Test
@@ -151,13 +151,13 @@ public class SQLInterpreterTest {
 		List<String> result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
-		assertEquals("5 results should be returned", 5, result.size());
+		assertEquals("6 results should be returned", 6, result.size());
 		
-		softly.assertThat(result.get(0)).isEqualTo("Joe	Bloggs	LE65RGD	Ford	Focus");
-		softly.assertThat(result.get(1)).isEqualTo("John	Smith	RX06SYB	Ford	Fiesta");
-		softly.assertThat(result.get(2)).isEqualTo("John	Doe	US54LJR	Ford	Transit");
-		softly.assertThat(result.get(3)).isEqualTo("Jane	Doe	TN68LUX	Ford	Ka");
-		softly.assertThat(result.get(4)).isEqualTo("Elvis	Presley			");
+		softly.assertThat(result.get(1)).isEqualTo("Joe	Bloggs	LE65RGD	Ford	Focus");
+		softly.assertThat(result.get(2)).isEqualTo("John	Smith	RX06SYB	Ford	Fiesta");
+		softly.assertThat(result.get(3)).isEqualTo("John	Doe	US54LJR	Ford	Transit");
+		softly.assertThat(result.get(4)).isEqualTo("Jane	Doe	TN68LUX	Ford	Ka");
+		softly.assertThat(result.get(5)).isEqualTo("Elvis	Presley			");
 	}
 	
 	@Test
@@ -169,12 +169,12 @@ public class SQLInterpreterTest {
 		List<String> result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 
-		assertEquals("1000 results should be returned", 1000, result.size());
+		assertEquals("1001 results should be returned", 1001, result.size());
 		
-		softly.assertThat(result.get(249)).isEqualTo("Joe	Bloggs	LE65RGD	Ford	Focus");
-		softly.assertThat(result.get(499)).isEqualTo("John	Smith	RX06SYB	Ford	Fiesta");
-		softly.assertThat(result.get(749)).isEqualTo("John	Doe	US54LJR	Ford	Transit");
-		softly.assertThat(result.get(999)).isEqualTo("Jane	Doe	TN68LUX	Ford	Ka");
+		softly.assertThat(result.get(250)).isEqualTo("Joe	Bloggs	LE65RGD	Ford	Focus");
+		softly.assertThat(result.get(500)).isEqualTo("John	Smith	RX06SYB	Ford	Fiesta");
+		softly.assertThat(result.get(750)).isEqualTo("John	Doe	US54LJR	Ford	Transit");
+		softly.assertThat(result.get(1000)).isEqualTo("Jane	Doe	TN68LUX	Ford	Ka");
 	}
 	
 	@Test
@@ -184,14 +184,15 @@ public class SQLInterpreterTest {
 		
 		Query query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
 		List<String> result = query.execute();
-		result.forEach(line -> LOGGER.info(line));
+		//result.forEach(line -> LOGGER.info(line));
+		LOGGER.info(ResultFormatter.formatResult(result));
 		
-		assertEquals("4 results should be returned", 4, result.size());
+		assertEquals("5 results should be returned", 5, result.size());
 		
-		softly.assertThat(result.get(0)).isEqualTo("Joe	Bloggs	LE65RGD	Ford	Focus");
-		softly.assertThat(result.get(1)).isEqualTo("John	Smith	RX06SYB	Ford	Fiesta");
-		softly.assertThat(result.get(2)).isEqualTo("John	Doe	US54LJR	Ford	Transit");
-		softly.assertThat(result.get(3)).isEqualTo("Jane	Doe	TN68LUX	Ford	Ka");
+		softly.assertThat(result.get(1)).isEqualTo("Joe	Bloggs	LE65RGD	Ford	Focus");
+		softly.assertThat(result.get(2)).isEqualTo("John	Smith	RX06SYB	Ford	Fiesta");
+		softly.assertThat(result.get(3)).isEqualTo("John	Doe	US54LJR	Ford	Transit");
+		softly.assertThat(result.get(4)).isEqualTo("Jane	Doe	TN68LUX	Ford	Ka");
 	}
 	
 	@Test
@@ -203,14 +204,14 @@ public class SQLInterpreterTest {
 		List<String> result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
-		assertEquals("1001 results should be returned", 1001, result.size());
+		assertEquals("1002 results should be returned", 1002, result.size());
 		
-		softly.assertThat(result.get(0)).isEqualTo("Joe	Bloggs	LE65RGD	Ford	Focus");
-		softly.assertThat(result.get(1)).isEqualTo("John	Smith	RX06SYB	Ford	Fiesta");
-		softly.assertThat(result.get(2)).isEqualTo("John	Doe	US54LJR	Ford	Transit");
-		softly.assertThat(result.get(3)).isEqualTo("Jane	Doe	TN68LUX	Ford	Ka");
-		softly.assertThat(result.get(4)).isEqualTo("Elvis	Presley			");
-		softly.assertThat(result.get(5)).isEqualTo("		XG63PJS	Ford	Focus");
+		softly.assertThat(result.get(1)).isEqualTo("Joe	Bloggs	LE65RGD	Ford	Focus");
+		softly.assertThat(result.get(2)).isEqualTo("John	Smith	RX06SYB	Ford	Fiesta");
+		softly.assertThat(result.get(3)).isEqualTo("John	Doe	US54LJR	Ford	Transit");
+		softly.assertThat(result.get(4)).isEqualTo("Jane	Doe	TN68LUX	Ford	Ka");
+		softly.assertThat(result.get(5)).isEqualTo("Elvis	Presley			");
+		softly.assertThat(result.get(6)).isEqualTo("		XG63PJS	Ford	Focus");
 	}
 	
 	@Test
@@ -222,10 +223,10 @@ public class SQLInterpreterTest {
 		List<String> result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
-		assertEquals("2 results should be returned", 2, result.size());
+		assertEquals("3 results should be returned", 3, result.size());
 
-		softly.assertThat(result.get(0)).isEqualTo("John	Smith	RX06SYB	Ford	Fiesta");
-		softly.assertThat(result.get(1)).isEqualTo("John	Doe	US54LJR	Ford	Transit");
+		softly.assertThat(result.get(1)).isEqualTo("John	Smith	RX06SYB	Ford	Fiesta");
+		softly.assertThat(result.get(2)).isEqualTo("John	Doe	US54LJR	Ford	Transit");
 	}
 	
 	@Test
@@ -237,9 +238,9 @@ public class SQLInterpreterTest {
 		List<String> result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
-		assertEquals("1000 results should be returned", 1000, result.size());
-		softly.assertThat(result.get(0)).isEqualTo("AB04WBF	Ford	Focus");
-		softly.assertThat(result.get(999)).isEqualTo("ZZ69VYE	Ford	Fusion");
+		assertEquals("1001 results should be returned", 1001, result.size());
+		softly.assertThat(result.get(1)).isEqualTo("AB04WBF	Ford	Focus");
+		softly.assertThat(result.get(1000)).isEqualTo("ZZ69VYE	Ford	Fusion");
 		
 		queryString = "select registration, manufacturer, model from car order by model, registration;";
 		
@@ -247,9 +248,9 @@ public class SQLInterpreterTest {
 		result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
-		assertEquals("1000 results should be returned", 1000, result.size());
-		softly.assertThat(result.get(0)).isEqualTo("AC04ZCS	Ford	Fiesta");
-		softly.assertThat(result.get(999)).isEqualTo("ZY57CKF	Ford	Transit");
+		assertEquals("1001 results should be returned", 1001, result.size());
+		softly.assertThat(result.get(1)).isEqualTo("AC04ZCS	Ford	Fiesta");
+		softly.assertThat(result.get(1000)).isEqualTo("ZY57CKF	Ford	Transit");
 	}
 	
 	@Test
@@ -264,56 +265,56 @@ public class SQLInterpreterTest {
 		result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
-		softly.assertThat(result).as("Test number of cars with engine size > 2.8").hasSize(79);
+		softly.assertThat(result).as("Test number of cars with engine size > 2.8").hasSize(80);
 		
 		queryString = "select registration, manufacturer, model, engine_size from car where engine_size >= '2.90';";		
 		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
 		result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
-		softly.assertThat(result).as("Test number of cars with engine size >= 2.90").hasSize(79);
+		softly.assertThat(result).as("Test number of cars with engine size >= 2.90").hasSize(80);
 		
 		queryString = "select registration, manufacturer, model, engine_size from car where engine_size < '1.2';";		
 		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
 		result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
-		softly.assertThat(result).as("Test number of cars with engine size < 1.2").hasSize(73);
+		softly.assertThat(result).as("Test number of cars with engine size < 1.2").hasSize(74);
 		
 		queryString = "select registration, manufacturer, model, engine_size from car where engine_size <= '1.1';";		
 		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
 		result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
-		softly.assertThat(result).as("Test number of cars with engine size <= 1.10").hasSize(73);
+		softly.assertThat(result).as("Test number of cars with engine size <= 1.10").hasSize(74);
 		
 		queryString = "select registration, manufacturer, model, engine_size from car where engine_size != '1';";		
 		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
 		result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
-		softly.assertThat(result).as("Test number of cars with engine size != 1").hasSize(971);
+		softly.assertThat(result).as("Test number of cars with engine size != 1").hasSize(972);
 		
 		queryString = "select registration, manufacturer, model, engine_size from car where model like 'si';";		
 		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
 		result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
-		softly.assertThat(result).as("Test number of cars with si in the model").hasSize(278);
+		softly.assertThat(result).as("Test number of cars with si in the model").hasSize(279);
 		
 		queryString = "select registration, manufacturer, model, engine_size from car where model > 'Fusion';";		
 		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
 		result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
-		softly.assertThat(result).as("Test > operator on non-numeric data type").isEmpty();
+		softly.assertThat(result).as("Test > operator on non-numeric data type").hasSize(1);
 		
 		queryString = "select registration, manufacturer, model, engine_size from car where engine_size like '2.56';";		
 		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
 		result = query.execute();
 		result.forEach(line -> LOGGER.info(line));
 		
-		softly.assertThat(result).as("Test LIKE operator on numeric data type").isEmpty();
+		softly.assertThat(result).as("Test LIKE operator on numeric data type").hasSize(1);
 	}
 	
 	private static String getDataDirectory() {

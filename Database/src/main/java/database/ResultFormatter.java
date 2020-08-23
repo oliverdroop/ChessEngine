@@ -19,28 +19,23 @@ public class ResultFormatter {
 	
 	private static String horizontalLine = "-";
 	
-	public static String formatResult(List<String> results, List<Column> columns, boolean showHeaders) {
-		//Map<Column, DataType> dataTypeMap = getDataTypeMap(columns);
-		if (showHeaders) {			
-			results.add(0, getColumnNamesString(columns));
-		}
-		Map<Column, Integer> longestValueMap = getLongestValueMap(results, columns);
-		Map<Column, String> formatMap = getFormatMap(longestValueMap);
+	public static String formatResult(List<String> results) {
+		Map<Integer, Integer> longestValueMap = getLongestValueMap(results);
+		Map<Integer, String> formatMap = getFormatMap(longestValueMap);
 		StringBuilder output = new StringBuilder();
 		String horizontalLine = getHorizontalLine(longestValueMap);
 		output.append(outputLineSeparator);
 		output.append(horizontalLine);
-		//for(String row : results) {
 		for(int rowIndex = 0; rowIndex < results.size(); rowIndex++) {
 			String row = results.get(rowIndex);
-			if (showHeaders && rowIndex == 1) {
+			if (rowIndex == 1) {
 				output.append(horizontalLine);
 			}
 			String[] values = row.split(inputColumnSeparator, -1);
 			output.append(outputColumnSeparator);
-			for(int index = 0; index < columns.size(); index++) {
+			for(int index = 0; index < countColumns(results); index++) {
 				output.append(horizontalPadding);
-				output.append(String.format(formatMap.get(columns.get(index)), values[index]));
+				output.append(String.format(formatMap.get(index), values[index]));
 				output.append(horizontalPadding);
 				output.append(outputColumnSeparator);
 			}
@@ -50,11 +45,11 @@ public class ResultFormatter {
 		return output.toString();
 	}
 	
-	private static String getHorizontalLine(Map<Column, Integer> longestValueMap) {
+	private static String getHorizontalLine(Map<Integer, Integer> longestValueMap) {
 		StringBuilder output = new StringBuilder();
-		for(Column column : longestValueMap.keySet()) {
+		for(int index : longestValueMap.keySet()) {
 			output.append(corner);
-			for(int i = longestValueMap.get(column) + (horizontalPadding.length()); i >= 0; i--) {
+			for(int i = longestValueMap.get(index) + (horizontalPadding.length()); i >= 0; i--) {
 				output.append(horizontalLine);
 			}
 		}
@@ -73,40 +68,34 @@ public class ResultFormatter {
 		return columnNames.toString();
 	}
 	
-	private static Map<Column, String> getFormatMap(Map<Column, Integer> longestValueMap){
-		Map<Column, String> formatMap = new HashMap<>();
-		for(Column column : longestValueMap.keySet()) {
+	private static Map<Integer, String> getFormatMap(Map<Integer, Integer> longestValueMap){
+		Map<Integer, String> formatMap = new HashMap<>();
+		for(int index : longestValueMap.keySet()) {
 			StringBuilder formatBuilder = new StringBuilder();
-			boolean numeric = column.getDataType().isNumeric();
 			formatBuilder.append("%");
-			formatBuilder.append(numeric ? "" : "-");
-			formatBuilder.append(String.valueOf(longestValueMap.get(column)));
+			formatBuilder.append("-");
+			formatBuilder.append(String.valueOf(longestValueMap.get(index)));
 			formatBuilder.append("s");
-			formatMap.put(column, formatBuilder.toString());
+			formatMap.put(index, formatBuilder.toString());
 		}
 		return formatMap;
 	}
 	
-	private static Map<Column, Integer> getLongestValueMap(List<String> results, List<Column> columns){
-		Map<Column, Integer> output = new LinkedHashMap<>();
+	private static int countColumns(List<String> results) {
+		return results.get(0).split(inputColumnSeparator).length;
+	}
+	
+	private static Map<Integer, Integer> getLongestValueMap(List<String> results){
+		Map<Integer, Integer> output = new LinkedHashMap<>();
 		for(String row : results) {
 			String[] values = row.split(inputColumnSeparator, -1);
-			for(int index = 0; index < columns.size(); index++) {
-				Column column = columns.get(index);
-				Integer maxLength = output.get(column);
+			for(int index = 0; index < countColumns(results); index++) {
+				Integer maxLength = output.get(index);
 				if (maxLength == null || maxLength < values[index].length()) {
-					output.put(column, values[index].length());
+					output.put(index, values[index].length());
 				}
 			}
 		}
 		return output;
-	}
-	
-	private static Map<Column, DataType> getDataTypeMap(List<Column> columns){
-		Map<Column, DataType> dataTypeMap = new HashMap<>();
-		for(Column column : columns) {
-			dataTypeMap.put(column, column.getDataType());
-		}
-		return dataTypeMap;
 	}
 }

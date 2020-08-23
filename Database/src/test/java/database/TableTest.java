@@ -54,7 +54,7 @@ public class TableTest {
 		directory += "src" + File.separator;
 		directory += "test" + File.separator;
 		directory += "resources" + File.separator;
-		database = new Database(directory);
+		database = new Database(directory, false);
 	}
 	
 	@Test
@@ -186,13 +186,7 @@ public class TableTest {
 		Car focus = (Car)parser.unparse(table.getStringMatchedRows(propertyStringMap).get(0), table);
 		byte[] focusId = DataType.getBytes(focus.getId());
 		
-		softly.assertThat(table.countRows()).as("Table %s should have a size of 5 when the test starts", table.getName()).isEqualTo(5);
-		List<Column> columns = new ArrayList<>(table.getColumns().values());
-		List<String> results = Arrays.asList(table.getAllRows())
-				.stream()
-				.map(row -> table.getValuesString(columns, row))
-				.collect(Collectors.toList());
-		LOGGER.info(ResultFormatter.formatResult(results, columns, true));
+		softly.assertThat(table.countRows()).as("Table %s should have a size of 5 when the test starts", table.getName()).isEqualTo(5);		
 		table.deleteRow(focusId);
 		softly.assertThat(table.countRows()).as("Table %s should have a size of 4 after the first removal", table.getName()).isEqualTo(4);
 		

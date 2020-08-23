@@ -16,7 +16,8 @@ public class Database {
 	
 	private Map<String, Table> tables;
 	
-	public Database(String rootDirectory) {
+	public Database(String rootDirectory, boolean loadData) {
+		LOGGER.info("Started database");
 		File directory = new File(rootDirectory);
     	File[] files = directory.listFiles();
     	tables = new HashMap<>();
@@ -25,12 +26,35 @@ public class Database {
     			Table table = new Table(file);
     			tables.put(table.getName(), table);
     			LOGGER.info("Created new table: {}", table.getName());
-    		}
+    		}    		
+		}
+		
+		if (loadData) {
+			for(Table t : getTables().values()) {
+				t.load(rootDirectory + File.separator + t.getName() + ".ddbt");
+			}
 		}
 	}
 	
+	public void listen() {
+		CommandListener.listen(this);
+	}
+	
 	public static void main(String[] args) {
-		new Database(System.getProperty("user.dir"));
+		String path = System.getProperty("user.dir");
+		boolean loadData = false;
+		if (args.length > 0) {
+			path = args[args.length - 1];
+			if (args.length > 1) {
+				for(int index = 0; index < args.length - 1; index++) {
+					if (args[index].equals("-l") || args[index].equals("--load")) {
+						loadData = true;
+					}
+				}
+			}
+		}
+		Database database = new Database(path, loadData);	
+		database.listen();
 	}
 	
 	public Map<String, Table> getTables(){

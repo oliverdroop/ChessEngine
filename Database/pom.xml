@@ -42,6 +42,12 @@
 		    <artifactId>assertj-core</artifactId>
 		    <version>3.14.0</version>
 		    <scope>test</scope>
-		</dependency>		
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.openjfx/javafx-base -->
+		<dependency>
+		    <groupId>org.openjfx</groupId>
+		    <artifactId>javafx-base</artifactId>
+		    <version>14</version>
+		</dependency>
 	</dependencies>
 </project>

@@ -98,9 +98,9 @@ public class Query {
 					}
 				}
 				if (!targets.isEmpty()) {
-					return rows.stream()
+					return getResultsWithHeader(rows.stream()
 							.map(row -> getValuesString(table, getTargetColumns(targets, table), row))
-							.collect(Collectors.toList());
+							.collect(Collectors.toList()));
 				}
 			}
 			
@@ -132,6 +132,20 @@ public class Query {
 			
 		}
 		return output;
+	}
+	
+	private List<String> getResultsWithHeader(List<String> results){
+		if (targets != null && !targets.isEmpty()) {
+			StringBuilder header = new StringBuilder();
+			for(int index = 0; index < targets.size(); index++) {
+				header.append(targets.get(index));
+				if (index < targets.size() - 1) {
+					header.append("\t");
+				}
+			}
+			results.add(0, header.toString());
+		}
+		return results;
 	}
 	
 	private Table getJoinTable() {
