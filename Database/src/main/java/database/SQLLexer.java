@@ -37,15 +37,22 @@ public class SQLLexer {
 		boolean openQuote = false;
 		boolean openBracket = false;
 		boolean dot = false;
+		boolean numeric = false;
 		Operator operator = null;
 		for(int i = 0; i < query.length(); i++) {
 			String currentCharacter = query.substring(i, i + 1);
 			if (!openQuote) {
 				currentCharacter = currentCharacter.toUpperCase();
+				if (!numeric && currentPhrase.matches("[0-9\\.]")) {
+					numeric = true;
+				}
 			}
-			SQLPhrase newPhrase = null;			
-			if (currentCharacter.equals(" ")) {
-				newPhrase = splitOffSQLPhrase(currentPhrase, i);				
+			SQLPhrase newPhrase = null;
+			if (currentCharacter.equals(" ") && !openQuote) {
+				newPhrase = splitOffSQLPhrase(currentPhrase, i);
+				if (numeric) {
+					newPhrase.setType(PhraseType.VALUE);
+				}
 			}
 			if (currentCharacter.equals("'")) {
 				newPhrase = splitOffSQLPhrase(currentPhrase, i);
@@ -54,35 +61,30 @@ public class SQLLexer {
 				}
 				openQuote = !openQuote;
 			}
-			if (currentCharacter.equals("(")) {
+			if (currentCharacter.equals("(") && !openQuote) {
 				newPhrase = splitOffSQLPhrase(currentPhrase, i);
 				openBracket = true;
 			}
-			if (currentCharacter.equals(")")) {
+			if (currentCharacter.equals(")") && !openQuote) {
 				newPhrase = splitOffSQLPhrase(currentPhrase, i);
 				openBracket = false;
 			}
-			if (currentCharacter.equals(",")) {
+			if (currentCharacter.equals(",") && !openQuote) {
 				newPhrase = splitOffSQLPhrase(currentPhrase, i);
 			}
-			if (currentCharacter.equals(".") && !openQuote) {
+			if (currentCharacter.equals(".") && !openQuote && !numeric) {
 				newPhrase = splitOffSQLPhrase(currentPhrase, i);
 				newPhrase.setType(PhraseType.TABLE_NAME);
 				dot = true;
 			}
-//			if (getOperator(currentCharacter) != null && !openQuote) {
-//				newPhrase = splitOffSQLPhrase(currentPhrase, i);
-//				if (operator == null) {
-//					operator = getOperator(currentCharacter);
-//				} else {
-//					operator = getOperator(operator.getString() + currentCharacter);
-//				}
-//			}
 			if (getOperator(currentPhrase + currentCharacter) != null && !openQuote) {
 				operator = getOperator(currentPhrase + currentCharacter);
 			}
-			if (currentCharacter.equals(";")) {
+			if (currentCharacter.equals(";") && !openQuote) {
 				newPhrase = splitOffSQLPhrase(currentPhrase, i);
+				if (numeric) {
+					newPhrase.setType(PhraseType.VALUE);
+				}
 			}
 			if (newPhrase != null) {
 				if (newPhrase.getString().length() > 0) {

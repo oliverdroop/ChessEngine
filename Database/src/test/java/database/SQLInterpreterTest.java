@@ -1,6 +1,7 @@
 package database;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -315,6 +316,28 @@ public class SQLInterpreterTest {
 		result.forEach(line -> LOGGER.info(line));
 		
 		softly.assertThat(result).as("Test LIKE operator on numeric data type").hasSize(1);
+	}
+	
+	@Test
+	public void testNumericValues() {
+		loadData();
+		String queryString;
+		Query query;
+		List<String> result;
+		
+		queryString = "select registration, manufacturer, model, engine_size from car where engine_size = 3;";		
+		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
+		result = query.execute();
+		result.forEach(line -> LOGGER.info(line));
+		
+		softly.assertThat(result).hasSize(29);
+		
+		queryString = "select registration, manufacturer, model, engine_size from car where engine_size > 2.9;";		
+		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
+		result = query.execute();
+		result.forEach(line -> LOGGER.info(line));
+		
+		softly.assertThat(result).hasSize(29);
 	}
 	
 	private static String getDataDirectory() {

@@ -97,7 +97,7 @@ public class Query {
 						rows = table.sortRows(column, orderBy.get(columnName), rows);
 					}
 				}
-				if (!targets.isEmpty()) {
+				if (targets != null && !targets.isEmpty()) {
 					return getResultsWithHeader(rows.stream()
 							.map(row -> getValuesString(table, getTargetColumns(targets, table), row))
 							.collect(Collectors.toList()));
