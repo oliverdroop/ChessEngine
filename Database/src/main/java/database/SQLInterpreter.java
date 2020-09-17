@@ -97,7 +97,7 @@ public final class SQLInterpreter {
 			}
 			else {
 				if (unlinkedValues.size() == 0) {
-					if (unlinkedColumns.size() == 1 && unlinkedColumns.get(0).getString().equals("*") && table != null) {
+					if (unlinkedColumns.get(0).getString().equals("*") && table != null) {
 						targets = table.getColumns().keySet().stream().collect(Collectors.toList());
 					}
 					else {
@@ -141,7 +141,7 @@ public final class SQLInterpreter {
 			i = sqlStatement.indexOf(joinType);
 			if (sqlStatement.get(i - 1).hasType(PhraseType.TABLE_NAME)
 					&& sqlStatement.get(i + 1).hasType(PhraseType.TABLE_NAME)
-					&& sqlStatement.get(i + 2).hasKeywordType(KeywordType.TABLE_IDENTIFIER)
+					&& sqlStatement.get(i + 2).hasKeywordType(KeywordType.TABLE_POINTER)
 					&& sqlStatement.get(i + 3).hasType(PhraseType.TABLE_NAME)
 					&& sqlStatement.get(i + 4).hasType(PhraseType.COLUMN_NAME)
 					&& sqlStatement.get(i + 5).hasType(PhraseType.TABLE_NAME)

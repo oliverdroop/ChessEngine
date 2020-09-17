@@ -10,7 +10,7 @@ public class SQLPhrase {
 	}
 	
 	public static enum KeywordType{
-		INSTRUCTION, TABLE_IDENTIFIER, EXPRESSION, JOIN, ORDER
+		INSTRUCTION, TABLE_POINTER, EXPRESSION, JOIN, ORDER
 	}
 	
 	private PhraseType type;
@@ -100,15 +100,15 @@ public class SQLPhrase {
 	@Override
 	public String toString() {
 		StringBuilder stringBuilder = new StringBuilder();
+		stringBuilder.append("[");
+		stringBuilder.append("\"");
 		stringBuilder.append(string);
+		stringBuilder.append("\"");
 		stringBuilder.append(", ");
 		stringBuilder.append(type);
-		stringBuilder.append(", [");
 		for(KeywordType keywordType : keywordTypes) {
+			stringBuilder.append(", ");
 			stringBuilder.append(keywordType);
-			if (keywordTypes.indexOf(keywordType) < keywordTypes.size() - 1) {
-				stringBuilder.append(", ");
-			}
 		}
 		stringBuilder.append("]");
 		return stringBuilder.toString();

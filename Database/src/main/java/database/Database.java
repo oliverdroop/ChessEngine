@@ -41,19 +41,8 @@ public class Database {
 	}
 	
 	public static void main(String[] args) {
-		String path = System.getProperty("user.dir");
-		boolean loadData = false;
-		if (args.length > 0) {
-			path = args[args.length - 1];
-			if (args.length > 1) {
-				for(int index = 0; index < args.length - 1; index++) {
-					if (args[index].equals("-l") || args[index].equals("--load")) {
-						loadData = true;
-					}
-				}
-			}
-		}
-		Database database = new Database(path, loadData);	
+		String path = System.getProperty("user.dir");		
+		Database database = new Database(path, true);	
 		database.listen();
 	}
 	

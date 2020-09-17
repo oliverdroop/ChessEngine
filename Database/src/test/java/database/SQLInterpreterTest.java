@@ -252,6 +252,18 @@ public class SQLInterpreterTest {
 		assertEquals("1001 results should be returned", 1001, result.size());
 		softly.assertThat(result.get(1)).isEqualTo("AC04ZCS	Ford	Fiesta");
 		softly.assertThat(result.get(1000)).isEqualTo("ZY57CKF	Ford	Transit");
+		
+		queryString = "select * from car where colour = 'Red' order by model, registration;";
+		
+		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
+		result = query.execute();
+		result.forEach(line -> LOGGER.info(line));
+		
+		assertEquals("119 results should be returned", 119, result.size());
+		String header = "ID	REGISTRATION	MANUFACTURER	MODEL	COLOUR	YEAR_OF_REGISTRATION	SEATS	ENGINE_SIZE	TAXED";
+		softly.assertThat(result.get(0)).isEqualTo(header);
+		softly.assertThat(result.get(1)).contains("AP64KMV");
+		softly.assertThat(result.get(118)).contains("YP05UYK");
 	}
 	
 	@Test

@@ -21,7 +21,7 @@ public class SQLLexer {
 	
 	private static final Set<String> INSTRUCTION_KEYWORDS = new HashSet<>(Arrays.asList("INSERT", "SELECT DISTINCT", "SELECT", "UPDATE", "DELETE", "SET", "ORDER BY"));
 	
-	private static final Set<String> TABLE_IDENTIFIER_KEYWORDS = new HashSet<>(Arrays.asList("FROM", "INTO", "UPDATE", "ON", "LEFT JOIN", "RIGHT JOIN", "FULL JOIN", "INNER JOIN"));
+	private static final Set<String> TABLE_POINTER_KEYWORDS = new HashSet<>(Arrays.asList("FROM", "INTO", "UPDATE", "ON", "LEFT JOIN", "RIGHT JOIN", "FULL JOIN", "INNER JOIN"));
 	
 	private static final Set<String> EXPRESSION_KEYWORDS = new HashSet<>(Arrays.asList( "WHERE", "AND", "VALUES"));
 	
@@ -134,7 +134,7 @@ public class SQLLexer {
 			newPhrase.setType(PhraseType.KEYWORD);
 			newPhrase.setKeywordTypes(getKeywordTypes(bothPhraseStrings));
 		}
-		else if(previousKeyword.hasKeywordType(KeywordType.TABLE_IDENTIFIER) && previousPhrase.hasType(PhraseType.KEYWORD)) {
+		else if(previousKeyword.hasKeywordType(KeywordType.TABLE_POINTER) && previousPhrase.hasType(PhraseType.KEYWORD)) {
 			newPhrase.setType(PhraseType.TABLE_NAME);
 		}
 		else if(previousKeyword.hasKeywordType(KeywordType.INSTRUCTION)) {
@@ -201,7 +201,7 @@ public class SQLLexer {
 		if (allKeywords == null) {
 			allKeywords = new ArrayList<>();
 			allKeywords.addAll(INSTRUCTION_KEYWORDS);
-			allKeywords.addAll(TABLE_IDENTIFIER_KEYWORDS);
+			allKeywords.addAll(TABLE_POINTER_KEYWORDS);
 			allKeywords.addAll(EXPRESSION_KEYWORDS);
 			allKeywords.addAll(JOIN_KEYWORDS);
 			allKeywords.addAll(ORDER_KEYWORDS);
@@ -212,7 +212,7 @@ public class SQLLexer {
 	private static List<KeywordType> getKeywordTypes(String phrase) {
 		Map<KeywordType, Set<String>> keywordGroupMap = new HashMap<>();
 		keywordGroupMap.put(KeywordType.INSTRUCTION, INSTRUCTION_KEYWORDS);
-		keywordGroupMap.put(KeywordType.TABLE_IDENTIFIER, TABLE_IDENTIFIER_KEYWORDS);
+		keywordGroupMap.put(KeywordType.TABLE_POINTER, TABLE_POINTER_KEYWORDS);
 		keywordGroupMap.put(KeywordType.EXPRESSION, EXPRESSION_KEYWORDS);
 		keywordGroupMap.put(KeywordType.JOIN, JOIN_KEYWORDS);
 		keywordGroupMap.put(KeywordType.ORDER, ORDER_KEYWORDS);
