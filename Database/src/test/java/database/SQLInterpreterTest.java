@@ -5,6 +5,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -350,6 +351,28 @@ public class SQLInterpreterTest {
 		result.forEach(line -> LOGGER.info(line));
 		
 		softly.assertThat(result).hasSize(29);
+	}
+	
+	@Test
+	public void testInvalidSQL() {
+		loadData();
+		String queryString;
+		Query query;
+		List<String> result;
+		
+		queryString = "select invalid_column_name from car where invalid_column_name > '2.8';";		
+		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
+		result = query.execute();
+		result.forEach(line -> LOGGER.info(line));
+		
+		softly.assertThat(result).as("Invalid column names should return no results").hasSize(0);
+		
+		queryString = "invalid_instruction registration from car where engine_size > '2.8';";		
+		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
+		result = query.execute();
+		result.forEach(line -> LOGGER.info(line));
+		
+		softly.assertThat(result).as("Invalid instructions should return no results").hasSize(0);
 	}
 	
 	private static String getDataDirectory() {

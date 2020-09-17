@@ -466,8 +466,11 @@ public class Table {
 		for(String fieldName : propertyStringMap.keySet()) {
 			Column column = columns.get(fieldName);
 			Operator operator = propertyStringMap.get(fieldName).getKey();
-			byte[] bytes = column.getDataType().getBytes(propertyStringMap.get(fieldName).getValue());
-			propertyValueMap.put(fieldName, operator.pairWith(bytes));
+			byte[] bytes = null;
+			if (column != null) {
+				bytes = column.getDataType().getBytes(propertyStringMap.get(fieldName).getValue());
+				propertyValueMap.put(fieldName, operator.pairWith(bytes));
+			}
 		}
 		return propertyValueMap;
 	}

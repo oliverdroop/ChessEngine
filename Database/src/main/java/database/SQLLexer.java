@@ -127,6 +127,9 @@ public class SQLLexer {
 			newPhrase.setType(PhraseType.KEYWORD);
 			newPhrase.setKeywordTypes(getKeywordTypes(newPhrase.getString()));
 		}
+		else if (previousPhrase == null || previousKeyword == null) {
+			return;
+		}
 		else if (getAllKeywords().contains(previousPhrase.getString() + " " + newPhrase.getString())) {
 			String bothPhraseStrings = previousPhrase.getString() + " " + newPhrase.getString();
 			previousPhrases.remove(previousPhrase);

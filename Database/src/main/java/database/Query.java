@@ -1,5 +1,6 @@
 package database;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -83,7 +84,10 @@ public class Query {
 				if (conditions.isEmpty()) {
 					rows = Arrays.asList(table.getAllRows());
 				}
-				else {
+				else if (!conditions.keySet().stream()
+						.filter(columnName -> table.getColumns().get(columnName) != null)
+						.collect(Collectors.toList())
+						.isEmpty()){
 					rows = table.getStringMatchedRows(conditions);
 				}
 				if (orderBy != null && !orderBy.isEmpty()) {
@@ -97,10 +101,12 @@ public class Query {
 						rows = table.sortRows(column, orderBy.get(columnName), rows);
 					}
 				}
-				if (targets != null && !targets.isEmpty()) {
+				if (targets != null && !targets.isEmpty() && rows != null) {
 					return getResultsWithHeader(rows.stream()
 							.map(row -> getValuesString(table, getTargetColumns(targets, table), row))
 							.collect(Collectors.toList()));
+				} else {
+					LOGGER.warn("Invalid SQL");
 				}
 			}
 			

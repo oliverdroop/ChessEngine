@@ -95,7 +95,11 @@ public enum DataType {
 		if (this == DataType.VARCHAR){
 			o = value;
 		}
-		return getBytes(o);
+		if (o != null) {
+			return getBytes(o);
+		} else {
+			return new byte[0];
+		}
 	}
 	
 	public Object getValue(byte[] fieldBytes) {
