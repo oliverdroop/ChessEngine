@@ -1,17 +1,23 @@
 package database;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import database.SQLPhrase.KeywordType;
 import database.SQLPhrase.PhraseType;
 import javafx.util.Pair;
 
 public final class SQLInterpreter {
+	
+	private static final Logger LOGGER = LoggerFactory.getLogger(SQLInterpreter.class);
 	
 	public static QueryParameters interpret(List<SQLPhrase> sqlStatement, Database database) {
 		QueryParameters parameters = new QueryParameters();
@@ -33,6 +39,9 @@ public final class SQLInterpreter {
 	}
 	
 	private static SQLPhrase extractInstruction(List<SQLPhrase> sqlStatement) {
+		if (sqlStatement.isEmpty()) {
+			return null;
+		}
 		return sqlStatement.get(0).hasKeywordType(KeywordType.INSTRUCTION) ? sqlStatement.get(0) : null;
 	}
 	
@@ -66,6 +75,10 @@ public final class SQLInterpreter {
 	}
 	
 	private static Map<String, Object> extractAssignmentsAndTargets(List<SQLPhrase> sqlStatement, Database database, Table table){
+		if (table == null) {
+			LOGGER.warn("Table is null");
+			return Collections.emptyMap();
+		}
 		Map<String, String> assignments = new LinkedHashMap<>();
 		List<String> targets = null;
 		for (int i = 0; i < sqlStatement.size(); i++) {

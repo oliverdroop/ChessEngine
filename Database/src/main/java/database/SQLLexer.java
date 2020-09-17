@@ -2,6 +2,7 @@ package database;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -117,7 +118,7 @@ public class SQLLexer {
 				currentPhrase += currentCharacter;
 			}
 		}
-		return output;
+		return validateStatement(output);
 	}
 	
 	private static void categorizePhrase(SQLPhrase newPhrase, List<SQLPhrase> previousPhrases) {
@@ -158,6 +159,20 @@ public class SQLLexer {
 		if (getOperator(newPhrase.getString()) != null) {
 			newPhrase.setType(null);
 		}
+	}
+	
+	private static List<SQLPhrase> validateStatement(List<SQLPhrase> statement){
+		boolean valid = true;
+		for(SQLPhrase phrase : statement) {
+			if (phrase.getType() == null) {
+				valid = false;				
+				LOGGER.warn("Invalid SQLPhrase : {}", phrase.getString());
+			}
+		}
+		if(valid) {
+			return statement;
+		}
+		return Collections.emptyList();
 	}
 	
 	private static SQLPhrase splitOffSQLPhrase(String currentPhrase, int index) {

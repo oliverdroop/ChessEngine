@@ -373,6 +373,20 @@ public class SQLInterpreterTest {
 		result.forEach(line -> LOGGER.info(line));
 		
 		softly.assertThat(result).as("Invalid instructions should return no results").hasSize(0);
+		
+		queryString = "select registration invalid_keyword car where engine_size > '2.8';";		
+		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
+		result = query.execute();
+		result.forEach(line -> LOGGER.info(line));
+		
+		softly.assertThat(result).as("Invalid keywords should return no results").hasSize(0);
+		
+		queryString = "invalid_instruction registration invalid_keyword car where engine_size > '2.8';";		
+		query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));
+		result = query.execute();
+		result.forEach(line -> LOGGER.info(line));
+		
+		softly.assertThat(result).as("Invalid keywords should return no results").hasSize(0);
 	}
 	
 	private static String getDataDirectory() {
