@@ -31,6 +31,8 @@
 <script>
 var canv = document.getElementById("canv");
 var ctx = canv.getContext('2d');
+//var hostAddress = "http://127.0.0.1:8080/welcome";
+var hostAddress = "http://178.62.85.228/chess";
 var board = {
 	squares:[],
 	pieces:[],
@@ -48,6 +50,7 @@ var imgBlackRook = loadImage("ChessRookBlack.bmp");
 var imgBlackBishop = loadImage("ChessBishopBlack.bmp");
 var imgBlackKnight = loadImage("ChessKnightBlack.bmp");
 var imgBlackPawn = loadImage("ChessPawnBlack.bmp");
+var imgSpannerNut = loadImage("SpannerNut1.jpg");
 createSquares();
 createPieces();
 var pieceSelected = null;
@@ -56,6 +59,7 @@ var turnTeam = 0;
 var halfmoveClock = 0;
 var fullmoveNumber = 1;
 var xhr = null;
+var waiting = false;
 setInterval(drawAll, 100);
 
 canv.onmouseup = mouseUp;
@@ -162,8 +166,8 @@ function positionMatch(square, x, y){
 
 function getCoordinates(canvX, canvY){
 	var size = board.squareSize;
-	var x = Math.floor(canvX / size);
-	var y = Math.floor(canvY / size);
+	var x = 8 - Math.ceil(canvX / size);
+	var y = 8 - Math.ceil(canvY / size);
 	return {x:x, y:y};
 }
 
@@ -183,13 +187,16 @@ function drawAll(){
 	drawAvailableMoves();
 	drawSelectedPiece();
 	drawCheck();
+	drawWaitTimer();
 }
 
 function drawPiece(piece){
 	var size = board.squareSize;
 	var img = piece.image;
 	if (img != null){
-		ctx.drawImage(piece.image, piece.x * size, piece.y * size, size, size);
+		var x = canv.width - (piece.x * size) - size;
+		var y = canv.height - (piece.y * size) - size;
+		ctx.drawImage(piece.image, x, y, size, size);
 	}
 }
 
@@ -201,8 +208,8 @@ function drawPieces(){
 }
 
 function drawBox(piece, color){
-	var x = piece.x * board.squareSize;
-	var y = piece.y * board.squareSize;
+	var x = canv.width - ((piece.x * board.squareSize) + board.squareSize);
+	var y = canv.height - ((piece.y * board.squareSize) + board.squareSize);
 	ctx.strokeStyle = color;
 	ctx.lineWidth = 4;
 	ctx.beginPath();
@@ -230,8 +237,8 @@ function drawAvailableMoves(){
 		for(var i = 0; i < moveSquares.length; i++){
 			var square = moveSquares[i];
 			ctx.fillStyle = "#005500";
-			var screenX = (square.x * board.squareSize) + (board.squareSize / 2);
-			var screenY = (square.y * board.squareSize) + (board.squareSize / 2);
+			var screenX = canv.width - ((square.x * board.squareSize) + (board.squareSize / 2));
+			var screenY = canv.height - ((square.y * board.squareSize) + (board.squareSize / 2));
 			ctx.beginPath();
 			ctx.arc(screenX, screenY, 10, 0, Math.PI * 2);
 			ctx.fill();
@@ -938,9 +945,10 @@ function getPieceFromChar(c){
 function transmitBoardState(){
 	//Transmit board state
 	xhr = new XMLHttpRequest();
-	xhr.open("POST", "http://127.0.0.1:8080/welcome", true);
+	xhr.open("POST", hostAddress, true);
 	xhr.send(getBoardState());
 	xhr.onreadystatechange = processRequest;
+	waiting = true;
 }
 
 function processRequest(e) {
@@ -948,7 +956,17 @@ function processRequest(e) {
         var response = xhr.responseText;
 		setBoardState(response);
 		xhr = null;
+		waiting = false;
     }
+}
+
+function drawWaitTimer() {
+	if (waiting == true){
+		var x = canv.width / 2;
+		var y = canv.height / 2;
+		var size = board.squareSize;
+		ctx.drawImage(imgSpannerNut, x - (size / 2), y - (size / 2), size, size);
+	}
 }
 
 function findAngle(p1, p2) {
