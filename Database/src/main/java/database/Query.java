@@ -73,70 +73,89 @@ public class Query {
 		}
 		
 		if (table != null && instruction != null) {
-			
-			if (instruction.getString().equals("INSERT")) {
-				int rowsAdded = table.addRow(table.buildRow(assignments));
-				output.add(String.format("Inserted %d row into table %s", rowsAdded, table.getName()));
+			switch(instruction.getString()) {
+			case "INSERT":
+				return executeInsert();
+			case "SELECT":
+				return executeSelect();
+			case "UPDATE":
+				return executeUpdate();
+			case "DELETE":
+				return executeDelete();
+			default:
+				return output;					
 			}
-			
-			if (instruction.getString().equals("SELECT")) {
-				List<byte[]> rows = null;
-				if (conditions.isEmpty()) {
-					rows = Arrays.asList(table.getAllRows());
-				}
-				else if (!conditions.keySet().stream()
-						.filter(columnName -> table.getColumns().get(columnName) != null)
-						.collect(Collectors.toList())
-						.isEmpty()){
-					rows = table.getStringMatchedRows(conditions);
-				}
-				if (orderBy != null && !orderBy.isEmpty()) {
-					for (int i = orderBy.size() - 1; i >= 0; i--) {
-						String columnName = (String)orderBy.keySet().toArray()[i];
-						Column column = table.getColumns().get(columnName);
-						if (column == null) {
-							LOGGER.warn("Could not sort result set by {} : Column doesn't exist in table {}",columnName , table.getName());
-							continue;
-						}
-						rows = table.sortRows(column, orderBy.get(columnName), rows);
-					}
-				}
-				if (targets != null && !targets.isEmpty() && rows != null) {
-					return getResultsWithHeader(rows.stream()
-							.map(row -> getValuesString(table, getTargetColumns(targets, table), row))
-							.collect(Collectors.toList()));
-				} else {
-					LOGGER.warn("Invalid SQL");
-				}
-			}
-			
-			if (instruction.getString().equals("UPDATE")) {
-				if (!assignments.isEmpty()) {
-					int rowsUpdated = 0;
-					if (!conditions.isEmpty()) {
-						rowsUpdated = table.updateStringMatchedRows(conditions, assignments);
-					}
-					else {
-						
-						rowsUpdated = table.updateAllRows(assignments);
-					}
-					output.add(String.format("Updated %d rows in table %s", rowsUpdated, table.getName()));
-				}
-			}
-			
-			if (instruction.getString().equals("DELETE")) {
-				int count = 0;
-				if (conditions.isEmpty()) {
-					count = table.deleteAllRows();
-				}
-				else {
-					count = table.deleteStringMatchedRows(conditions);
-				}
-				String message = String.format("Deleted %d rows from table %s", count, table.getName());
-				output.add(message);
-			}
-			
 		}
+		return output;
+	}
+	
+	private List<String> executeInsert(){
+		List<String> output = new ArrayList<>();
+		int rowsAdded = table.addRow(table.buildRow(assignments));
+		output.add(String.format("Inserted %d row into table %s", rowsAdded, table.getName()));
+		return output;
+	}
+	
+	private List<String> executeSelect(){
+		List<String> output = new ArrayList<>();
+		List<byte[]> rows = null;
+		if (conditions.isEmpty()) {
+			rows = Arrays.asList(table.getAllRows());
+		}
+		else if (!conditions.keySet().stream()
+				.filter(columnName -> table.getColumns().get(columnName) != null)
+				.collect(Collectors.toList())
+				.isEmpty()){
+			rows = table.getStringMatchedRows(conditions);
+		}
+		if (orderBy != null && !orderBy.isEmpty()) {
+			for (int i = orderBy.size() - 1; i >= 0; i--) {
+				String columnName = (String)orderBy.keySet().toArray()[i];
+				Column column = table.getColumns().get(columnName);
+				if (column == null) {
+					LOGGER.warn("Could not sort result set by {} : Column doesn't exist in table {}",columnName , table.getName());
+					continue;
+				}
+				rows = table.sortRows(column, orderBy.get(columnName), rows);
+			}
+		}
+		if (targets != null && !targets.isEmpty() && rows != null) {
+			return getResultsWithHeader(rows.stream()
+					.map(row -> getValuesString(table, getTargetColumns(targets, table), row))
+					.collect(Collectors.toList()));
+		} else {
+			LOGGER.warn("Invalid SQL");
+		}
+		return output;
+	}
+	
+	private List<String> executeUpdate(){
+		List<String> output = new ArrayList<>();
+		if (!assignments.isEmpty()) {
+			int rowsUpdated = 0;
+			if (!conditions.isEmpty()) {
+				rowsUpdated = table.updateStringMatchedRows(conditions, assignments);
+			}
+			else {
+				
+				rowsUpdated = table.updateAllRows(assignments);
+			}
+			output.add(String.format("Updated %d rows in table %s", rowsUpdated, table.getName()));
+		}
+		return output;
+	}
+	
+	private List<String> executeDelete(){
+		int count = 0;
+		if (conditions.isEmpty()) {
+			count = table.deleteAllRows();
+		}
+		else {
+			count = table.deleteStringMatchedRows(conditions);
+		}
+		String message = String.format("Deleted %d rows from table %s", count, table.getName());
+		List<String> output = new ArrayList<>();
+		output.add(message);
 		return output;
 	}
 	

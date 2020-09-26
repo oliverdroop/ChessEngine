@@ -18,6 +18,7 @@ public class CommandListener {
 	
 	public static String listenOnce() {
 		try {
+			System.out.print("SQL> ");
 			BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 			StringBuilder output = new StringBuilder();
 			while (br.ready() || output.length() == 0) {

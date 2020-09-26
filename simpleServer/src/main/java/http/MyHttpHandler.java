@@ -90,7 +90,7 @@ public class MyHttpHandler implements HttpHandler {
     	}
     	catch(IOException e) {
     		e.printStackTrace();
-    		LOGGER.warn(e.getMessage());
+    		LOGGER.warn("Problem reading file : {}", e.getMessage());
     		return null;
     	}
     }
