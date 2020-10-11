@@ -1,6 +1,7 @@
 package database;
 
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 
 public class SQLPhrase {
@@ -24,6 +25,8 @@ public class SQLPhrase {
 	private SQLPhrase linkedColumn;
 	
 	private SQLPhrase linkedTable;
+	
+	private SQLPhrase linkedDataType;
 	
 	private Operator linkedOperator;
 	
@@ -64,6 +67,16 @@ public class SQLPhrase {
 	public boolean hasKeywordType(KeywordType keywordType) {
 		return this.keywordTypes.contains(keywordType);
 	}
+	
+	public boolean hasType(Object type) {
+		if (type instanceof PhraseType) {
+			return hasType((PhraseType) type);
+		}
+		if (type instanceof KeywordType) {
+			return hasKeywordType((KeywordType) type);
+		}
+		return false;
+	}
 
 	public SQLPhrase getLinkedValue() {
 		return linkedValue;
@@ -95,6 +108,14 @@ public class SQLPhrase {
 
 	public void setLinkedOperator(Operator operator) {
 		this.linkedOperator = operator;
+	}
+
+	public SQLPhrase getLinkedDataType() {
+		return linkedDataType;
+	}
+
+	public void setLinkedDataType(SQLPhrase linkedDataType) {
+		this.linkedDataType = linkedDataType;
 	}
 
 	@Override

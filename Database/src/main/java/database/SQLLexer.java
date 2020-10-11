@@ -66,22 +66,23 @@ public class SQLLexer {
 			}
 			if (currentCharacter.equals("(") && !openQuote) {
 				newPhrase = splitOffSQLPhrase(currentPhrase, i);
-				//categorizeColumnModifier(openBracket, newPhrase, output);
 				openBracket++;
 			}
 			if (currentCharacter.equals(")") && !openQuote) {
 				newPhrase = splitOffSQLPhrase(currentPhrase, i);
-//				if (numeric && openBracket > 1) {
-//					SQLPhrase lastPhrase = getLastPhrase(output);
-//					newPhrase.setLinkedValue(lastPhrase);
-//					lastPhrase.setLinkedValue(newPhrase);
-//					newPhrase.setType(PhraseType.VALUE);
-//				}
+				if (numeric) {
+					SQLPhrase lastPhrase = getLastPhrase(output);
+					if (lastPhrase.hasKeywordType(KeywordType.DATA_TYPE)) {
+						lastPhrase.setLinkedValue(newPhrase);
+						newPhrase.setLinkedDataType(lastPhrase);
+						newPhrase.setType(PhraseType.VALUE);
+					}
+					numeric = false;
+				}
 				openBracket--;
 			}
 			if (currentCharacter.equals(",") && !openQuote) {
 				newPhrase = splitOffSQLPhrase(currentPhrase, i);
-				//categorizeColumnModifier(openBracket, newPhrase, output);
 			}
 			if (currentCharacter.equals(".") && !openQuote && !numeric) {
 				newPhrase = splitOffSQLPhrase(currentPhrase, i);
@@ -116,6 +117,13 @@ public class SQLLexer {
 							newPhrase.setLinkedTable(getLastPhrase(output));
 							getLastPhrase(output).setLinkedColumn(newPhrase);
 							dot = false;
+						}
+					}
+					if (openBracket > 0) {
+						SQLPhrase previousLinkablePhrase = getLastPhrase(output);
+						if (newPhrase.hasKeywordType(KeywordType.DATA_TYPE) && previousLinkablePhrase.hasType(PhraseType.COLUMN_NAME)) {
+							previousLinkablePhrase.setLinkedDataType(newPhrase);
+							newPhrase.setLinkedColumn(previousLinkablePhrase);
 						}
 					}
 					if (newPhrase.getType() != null) {
@@ -166,6 +174,12 @@ public class SQLLexer {
 		else if(previousPhrase.hasType(PhraseType.COLUMN_NAME)) {
 			newPhrase.setType(PhraseType.COLUMN_NAME);
 		}
+		else if(matchesTypePattern(previousPhrases, PhraseType.COLUMN_NAME, KeywordType.DATA_TYPE)) {
+			newPhrase.setType(PhraseType.COLUMN_NAME);
+		}
+		else if(matchesTypePattern(previousPhrases, PhraseType.COLUMN_NAME, KeywordType.DATA_TYPE, PhraseType.VALUE)) {
+			newPhrase.setType(PhraseType.COLUMN_NAME);
+		}
 		if (getOperator(newPhrase.getString()) != null) {
 			newPhrase.setType(null);
 		}
@@ -200,15 +214,18 @@ public class SQLLexer {
 		return null;
 	}
 	
-	private static void categorizeColumnModifier(int openBracket, SQLPhrase newPhrase, List<SQLPhrase> output) {
-		if (openBracket > 0) {
-			SQLPhrase lastPhrase = getLastPhrase(output);
-			if (lastPhrase.hasType(PhraseType.COLUMN_NAME)) {
-				newPhrase.setType(PhraseType.VALUE);
-				newPhrase.setLinkedColumn(lastPhrase);
-				lastPhrase.setLinkedValue(newPhrase);
+	private static boolean matchesTypePattern(List<SQLPhrase> sqlPhrases, Object... types) {
+		if (sqlPhrases.size() < types.length) {
+			return false;
+		}
+		List<SQLPhrase> phrasesToTest = sqlPhrases.subList(sqlPhrases.size() - types.length, sqlPhrases.size());
+		for(int i = 0; i < types.length; i++) {
+			SQLPhrase phrase = phrasesToTest.get(i);
+			if (!phrase.hasType(types[i])) {
+				return false;
 			}
 		}
+		return true;
 	}
 	
 	public static SQLPhrase getLastPhrase(List<SQLPhrase> phrases) {
