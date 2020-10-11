@@ -283,6 +283,31 @@ public class TableTest {
 		softly.assertThat(table.getStringMatchedRows(propertyStringMap)).as("Test engine size equals 1.4").hasSize(1);
 	}
 	
+	@Test
+	public void testAddColumn() {
+		Table table = setUpMatchedRowsTestTable();
+		int newColumnLength = 16;
+		int dataLength = table.getData().length;
+		int rowCount = table.countRows();
+		int rowLength = table.getRowLength();
+		Column newColumn = new Column("OWNER_NAME", DataType.VARCHAR, newColumnLength / DataType.VARCHAR.getLength());
+		table.addColumn(newColumn);
+		
+		softly.assertThat(table.getRowLength()).as("Row length appears not to have been updated").isEqualTo(rowLength + newColumnLength);
+		softly.assertThat(table.countRows()).as("Row count should not have changed").isEqualTo(rowCount);
+		softly.assertThat(table.getData().length).as("Data length should have been updated").isEqualTo((rowCount * newColumnLength) + dataLength);
+		softly.assertThat(table.getColumns().get(newColumn.getName())).as("New column doesn't match added column").isEqualTo(newColumn);
+		softly.assertThat(table.getColumns().get(newColumn.getName()).getDataType()).as("Wrong data type on new column").isEqualTo(DataType.VARCHAR);
+		for(int i = 0; i < rowCount; i++) {
+			int startOfAddition = i * table.getRowLength() + rowLength;
+			int endOfAddition = i * table.getRowLength() + rowLength + newColumnLength;
+			for(int iByte = startOfAddition; i < endOfAddition; i++) {
+				softly.assertThat(table.getData()[iByte]).as("Newly-added data should be blank").isEqualTo(Byte.parseByte("0"));
+			}
+		}
+		setUp();
+	}
+	
 	private Table setUpMatchedRowsTestTable() {
 		int year = 2020;
 		ObjectParser parser = new ObjectParser(database);

@@ -178,7 +178,6 @@ public class Query {
 				}
 				Column column = new Column(columnName, dataType, size);
 				table.addColumn(column);
-				LOGGER.info("Added column {} to table {}", column.getName(), table.getName());
 			}
 		}
 		return output;

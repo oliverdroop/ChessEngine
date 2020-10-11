@@ -1,7 +1,5 @@
 package database;
 
-import java.lang.reflect.Type;
-
 public class Column {
 	private String name;
 	private DataType dataType;

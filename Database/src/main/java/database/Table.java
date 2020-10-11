@@ -386,6 +386,9 @@ public class Table {
 	}
 	
 	public int countRows() {
+		if (getRowLength() == 0) {
+			return 0;
+		}
 		return data.length / getRowLength();
 	}
 	
@@ -483,8 +486,18 @@ public class Table {
 	
 	public void addColumn(Column column) {
 		if (columns.get(column.getName()) == null) {
+			int oldRowLength = getRowLength();
+			int rowCount = countRows();
 			columns.put(column.getName(), column);
 			rowLength = 0;
+			if (rowCount > 0) {
+				byte[] newData = new byte[rowCount * (oldRowLength + column.getLength())];
+				for(int i = 0; i < rowCount; i++) {
+					System.arraycopy(data, i * oldRowLength, newData, i * getRowLength(), oldRowLength);
+				}
+				data = newData;
+			}
+			LOGGER.info("Added column {} to table {}", column.getName(), getName());
 		} else {
 			LOGGER.warn("Cannot add column {} to table {} : Column of same name already exists!", column.getName(), getName());
 		}
