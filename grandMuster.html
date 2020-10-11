@@ -50,7 +50,11 @@ var imgBlackRook = loadImage("ChessRookBlack.bmp");
 var imgBlackBishop = loadImage("ChessBishopBlack.bmp");
 var imgBlackKnight = loadImage("ChessKnightBlack.bmp");
 var imgBlackPawn = loadImage("ChessPawnBlack.bmp");
-var imgSpannerNut = loadImage("SpannerNut1.jpg");
+var imgCog1 = loadImage("Cog1.bmp");
+var imgCog2 = loadImage("Cog2.bmp");
+var imgCog3 = loadImage("Cog3.bmp");
+var imgCog4 = loadImage("Cog4.bmp");
+var cogs = [imgCog1, imgCog2, imgCog3, imgCog4];
 createSquares();
 createPieces();
 var pieceSelected = null;
@@ -60,6 +64,7 @@ var halfmoveClock = 0;
 var fullmoveNumber = 1;
 var xhr = null;
 var waiting = false;
+var waitTimer = 0;
 setInterval(drawAll, 100);
 
 canv.onmouseup = mouseUp;
@@ -965,7 +970,11 @@ function drawWaitTimer() {
 		var x = canv.width / 2;
 		var y = canv.height / 2;
 		var size = board.squareSize;
-		ctx.drawImage(imgSpannerNut, x - (size / 2), y - (size / 2), size, size);
+		ctx.drawImage(cogs[waitTimer], x - (size / 2), y - (size / 2), size, size);
+		waitTimer ++;
+		if (waitTimer > 3){
+			waitTimer = 0;
+		}
 	}
 }
 

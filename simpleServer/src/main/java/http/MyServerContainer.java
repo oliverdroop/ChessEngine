@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -19,15 +20,15 @@ public class MyServerContainer {
 	
 	public MyServerContainer() {
 		try {
-    		LOGGER.info("Starting application");
+    		LOGGER.debug("Starting application");
     		HttpServer httpServer = HttpServer.create(new InetSocketAddress("178.62.85.228", 80), 1024);
     		//HttpServer httpServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 80), 1024);
-    		LOGGER.info("Created httpServer");
+    		LOGGER.debug("Created httpServer");
     		List<String> contexts = getAllContexts();
     		contexts.forEach(c -> httpServer.createContext(c, myHttpHandler));
-    		contexts.forEach(c -> LOGGER.info("Created context: {}", c));
-    		httpServer.start();
-    		LOGGER.info("Started httpServer");
+    		contexts.forEach(c -> LOGGER.debug("Created context: {}", c));
+    		httpServer.start();    		
+    		LOGGER.info("STARTED HTTP SERVER - {}", getDateString());
     	}
     	catch(IOException ioe) {
     		LOGGER.info(ioe.getMessage());
@@ -53,6 +54,23 @@ public class MyServerContainer {
     	contexts.add("/");
     	contexts.add("/chess");
     	return contexts;
+    }
+    
+    private String getDateString() {
+		Calendar calendar = Calendar.getInstance();
+    	StringBuilder dateBuilder = new StringBuilder();
+		dateBuilder.append(String.format("%tH", calendar));
+		dateBuilder.append(":");
+		dateBuilder.append(String.format("%tM", calendar));
+		dateBuilder.append(":");
+		dateBuilder.append(String.format("%tS", calendar));
+		dateBuilder.append("\t");
+		dateBuilder.append(String.format("%td", calendar));
+		dateBuilder.append("/");
+		dateBuilder.append(String.format("%tm", calendar));
+		dateBuilder.append("/");
+		dateBuilder.append(String.format("%tY", calendar));
+		return dateBuilder.toString();
     }
     
     public static void main(String[] args) {
