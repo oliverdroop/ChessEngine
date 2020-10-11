@@ -214,7 +214,7 @@ public class SQLLexer {
 		return null;
 	}
 	
-	private static boolean matchesTypePattern(List<SQLPhrase> sqlPhrases, Object... types) {
+	public static boolean matchesTypePattern(List<SQLPhrase> sqlPhrases, Object... types) {
 		if (sqlPhrases.size() < types.length) {
 			return false;
 		}

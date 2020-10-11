@@ -16,7 +16,7 @@ public class QueryParameters {
 	
 	private Map<String, Pair<Operator, String>> conditions;
 	
-	private Map<String, String> assignments;
+	private Map<SQLPhrase, SQLPhrase> assignments;
 	
 	private List<String> targets;
 	
@@ -58,11 +58,11 @@ public class QueryParameters {
 		this.conditions = conditions;
 	}
 
-	public Map<String, String> getAssignments() {
+	public Map<SQLPhrase, SQLPhrase> getAssignments() {
 		return assignments;
 	}
 
-	public void setAssignments(Map<String, String> assignments) {
+	public void setAssignments(Map<SQLPhrase, SQLPhrase> assignments) {
 		this.assignments = assignments;
 	}
 

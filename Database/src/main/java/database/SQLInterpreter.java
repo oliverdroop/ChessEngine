@@ -29,7 +29,7 @@ public final class SQLInterpreter {
 		parameters.setConditions(extractConditions(sqlStatement));
 		parameters.setOrderBy(extractOrderBy(sqlStatement));
 		Map<String, Object> assignmentsAndTargets = extractAssignmentsAndTargets(sqlStatement, database, table);		
-		parameters.setAssignments((Map<String,String>) assignmentsAndTargets.get("assignments"));
+		parameters.setAssignments((Map<SQLPhrase, SQLPhrase>) assignmentsAndTargets.get("assignments"));
 		parameters.setTargets((List<String>) assignmentsAndTargets.get("targets"));
 		SQLPhrase joinType = extractJoinType(sqlStatement);
 		parameters.setJoinType(joinType);
@@ -83,7 +83,7 @@ public final class SQLInterpreter {
 			LOGGER.warn("Table is null");
 			return Collections.emptyMap();
 		}
-		Map<String, String> assignments = new LinkedHashMap<>();
+		Map<SQLPhrase, SQLPhrase> assignments = new LinkedHashMap<>();
 		List<String> targets = null;
 		for (int i = 0; i < sqlStatement.size(); i++) {
 			SQLPhrase phrase = sqlStatement.get(i);
@@ -93,7 +93,9 @@ public final class SQLInterpreter {
 					&& phrase.getLinkedValue() != null 
 					&& phrase.hasType(PhraseType.COLUMN_NAME) 
 					&& phrase.getLinkedValue().hasType(PhraseType.VALUE)) {
-				assignments.put(phrase.getString(), phrase.getLinkedValue().getString());
+				assignments.put(phrase, phrase.getLinkedValue());
+			} else if (SQLLexer.matchesTypePattern(sqlStatement.subList(0, i + 1), PhraseType.COLUMN_NAME, KeywordType.DATA_TYPE)) {
+				assignments.put(phrase.getLinkedColumn(), phrase);
 			}
 		}
 		List<SQLPhrase> unlinkedColumns = new ArrayList<>();
@@ -109,7 +111,7 @@ public final class SQLInterpreter {
 		if (unlinkedColumns.size() > 0) {
 			if (unlinkedColumns.size() == unlinkedValues.size()) {
 				for(int i = 0; i < unlinkedColumns.size(); i++) {
-					assignments.put(unlinkedColumns.get(i).getString(), unlinkedValues.get(i).getString());
+					assignments.put(unlinkedColumns.get(i), unlinkedValues.get(i));
 				}
 			}
 			else {
@@ -133,7 +135,8 @@ public final class SQLInterpreter {
 		else if(unlinkedValues.size() == table.getColumns().size()){
 			List<String> keyList = table.getColumns().keySet().stream().collect(Collectors.toList());
 			for(int i = 0; i < unlinkedValues.size(); i++) {
-				assignments.put(keyList.get(i), unlinkedValues.get(i).getString());
+				SQLPhrase columnName = new SQLPhrase(keyList.get(i), PhraseType.COLUMN_NAME);
+				assignments.put(columnName, unlinkedValues.get(i));
 			}
 		}
 		Map<String, Object> output = new HashMap<>();

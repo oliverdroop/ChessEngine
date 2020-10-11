@@ -481,6 +481,15 @@ public class Table {
 		return rows;
 	}
 	
+	public void addColumn(Column column) {
+		if (columns.get(column.getName()) == null) {
+			columns.put(column.getName(), column);
+			rowLength = 0;
+		} else {
+			LOGGER.warn("Cannot add column {} to table {} : Column of same name already exists!", column.getName(), getName());
+		}
+	}
+	
 	public void setLastGeneratedKey(byte[] lastGeneratedKey) {
 		this.lastGeneratedKey = lastGeneratedKey;
 	}

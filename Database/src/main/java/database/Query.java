@@ -31,7 +31,7 @@ public class Query {
 	
 	private Map<String, Pair<Operator, String>> conditions;
 	
-	private Map<String, String> assignments;
+	private Map<SQLPhrase, SQLPhrase> assignments;
 	
 	private List<String> targets;
 	
@@ -94,7 +94,7 @@ public class Query {
 	
 	private List<String> executeInsert(){
 		List<String> output = new ArrayList<>();
-		int rowsAdded = table.addRow(table.buildRow(assignments));
+		int rowsAdded = table.addRow(table.buildRow(getAssignmentStringMap()));
 		output.add(String.format("Inserted %d row into table %s", rowsAdded, table.getName()));
 		return output;
 	}
@@ -135,13 +135,14 @@ public class Query {
 	private List<String> executeUpdate(){
 		List<String> output = new ArrayList<>();
 		if (!assignments.isEmpty()) {
+			Map<String, String> assignmentStringMap = getAssignmentStringMap();
 			int rowsUpdated = 0;
 			if (!conditions.isEmpty()) {
-				rowsUpdated = table.updateStringMatchedRows(conditions, assignments);
+				rowsUpdated = table.updateStringMatchedRows(conditions, assignmentStringMap);
 			}
 			else {
 				
-				rowsUpdated = table.updateAllRows(assignments);
+				rowsUpdated = table.updateAllRows(assignmentStringMap);
 			}
 			output.add(String.format("Updated %d rows in table %s", rowsUpdated, table.getName()));
 		}
@@ -166,6 +167,20 @@ public class Query {
 		database.addTable(table);
 		List<String> output = new ArrayList<>();
 		output.add(String.format("Created new Table %s", table.getName()));
+		if (assignments != null) {
+			for(SQLPhrase columnNamePhrase : assignments.keySet()) {
+				String columnName = columnNamePhrase.getString();
+				SQLPhrase dataTypePhrase = columnNamePhrase.getLinkedDataType();
+				DataType dataType = DataType.valueOf(dataTypePhrase.getString());
+				int size = dataType.getLength();
+				if (dataTypePhrase.getLinkedValue() != null) {
+					size = Integer.parseInt(dataTypePhrase.getLinkedValue().getString());
+				}
+				Column column = new Column(columnName, dataType, size);
+				table.addColumn(column);
+				LOGGER.info("Added column {} to table {}", column.getName(), table.getName());
+			}
+		}
 		return output;
 	}
 	
@@ -319,6 +334,17 @@ public class Query {
 			}
 		}
 		return targetColumns;
+	}
+	
+	private Map<String, String> getAssignmentStringMap(){
+		if (assignments == null) {
+			return null;
+		}
+		Map<String, String> assignmentStringMap = new HashMap<>();
+		for(SQLPhrase key : assignments.keySet()) {
+			assignmentStringMap.put(key.getString(), assignments.get(key).getString());
+		}
+		return assignmentStringMap;
 	}
 	
 	private String getValuesString(Table table, List<Column> columns, byte[] row) {
