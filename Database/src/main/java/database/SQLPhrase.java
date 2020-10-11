@@ -10,7 +10,7 @@ public class SQLPhrase {
 	}
 	
 	public static enum KeywordType{
-		INSTRUCTION, TABLE_POINTER, EXPRESSION, JOIN, ORDER
+		INSTRUCTION, TABLE_POINTER, EXPRESSION, JOIN, ORDER, DATA_TYPE
 	}
 	
 	private PhraseType type;

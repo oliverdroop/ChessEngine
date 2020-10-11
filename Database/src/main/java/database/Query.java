@@ -4,6 +4,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -82,6 +83,8 @@ public class Query {
 				return executeUpdate();
 			case "DELETE":
 				return executeDelete();
+			case "CREATE":
+				return executeCreate();
 			default:
 				return output;					
 			}
@@ -156,6 +159,13 @@ public class Query {
 		String message = String.format("Deleted %d rows from table %s", count, table.getName());
 		List<String> output = new ArrayList<>();
 		output.add(message);
+		return output;
+	}
+	
+	private List<String> executeCreate(){
+		database.addTable(table);
+		List<String> output = new ArrayList<>();
+		output.add(String.format("Created new Table %s", table.getName()));
 		return output;
 	}
 	

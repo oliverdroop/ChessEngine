@@ -1,27 +1,20 @@
 package database;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
-import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
+import org.assertj.core.api.Assertions;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.BlockJUnit4ClassRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.sun.org.apache.xalan.internal.xsltc.compiler.util.ResultTreeType;
 
 @RunWith(BlockJUnit4ClassRunner.class)
 public class SQLInterpreterTest {
@@ -232,6 +225,39 @@ public class SQLInterpreterTest {
 		
 		result = testSQL("invalid_instruction registration invalid_keyword car where engine_size > '2.8';");
 		softly.assertThat(result).as("Invalid keywords should return no results").hasSize(0);
+	}
+	
+	@Test
+	public void testCreateTable() {
+		String tableName = "ADDRESS";
+		String houseNumber = "HOUSE_NUMBER";
+		String street = "STREET";
+		String town = "TOWN";
+		String postcode = "POSTCODE";
+		
+		List<String> result = testSQL("create table address;");
+		softly.assertThat(database.getTables().keySet()).contains(tableName);
+		softly.assertThat(database.getTables().get(tableName).getName()).isEqualTo(tableName);
+		database.removeTable(tableName);
+		
+		result = testSQL("create table address (id long, house_number varchar(4), street varchar(16), town varchar(16), postcode varchar(4));");
+		softly.assertThat(database.getTables().keySet()).contains(tableName);
+		softly.assertThat(database.getTables().get(tableName).getName()).isEqualTo(tableName);
+		softly.assertThat(database.getTables().get(tableName).getColumns()).hasSize(5);
+		assertThat(database.getTables().get(tableName).getColumns().get("ID")).isNotNull();
+		softly.assertThat(database.getTables().get(tableName).getColumns().get("ID").getDataType()).isEqualTo(DataType.LONG);
+		assertThat(database.getTables().get(tableName).getColumns().get(houseNumber)).isNotNull();
+		softly.assertThat(database.getTables().get(tableName).getColumns().get(houseNumber).getDataType()).isEqualTo(DataType.VARCHAR);
+		softly.assertThat(database.getTables().get(tableName).getColumns().get(houseNumber).getLength()).isEqualTo(8);
+		assertThat(database.getTables().get(tableName).getColumns().get(street)).isNotNull();
+		softly.assertThat(database.getTables().get(tableName).getColumns().get(street).getDataType()).isEqualTo(DataType.VARCHAR);
+		softly.assertThat(database.getTables().get(tableName).getColumns().get(street).getLength()).isEqualTo(32);
+		assertThat(database.getTables().get(tableName).getColumns().get(town)).isNotNull();
+		softly.assertThat(database.getTables().get(tableName).getColumns().get(town).getDataType()).isEqualTo(DataType.VARCHAR);
+		softly.assertThat(database.getTables().get(tableName).getColumns().get(town).getLength()).isEqualTo(32);
+		assertThat(database.getTables().get(tableName).getColumns().get(postcode)).isNotNull();
+		softly.assertThat(database.getTables().get(tableName).getColumns().get(postcode).getDataType()).isEqualTo(DataType.VARCHAR);
+		softly.assertThat(database.getTables().get(tableName).getColumns().get(postcode).getLength()).isEqualTo(8);
 	}
 	
 	private List<String> testSQL(String queryString){

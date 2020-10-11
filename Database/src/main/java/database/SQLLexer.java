@@ -20,9 +20,9 @@ public class SQLLexer {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(SQLLexer.class);
 	
-	private static final Set<String> INSTRUCTION_KEYWORDS = new HashSet<>(Arrays.asList("INSERT", "SELECT DISTINCT", "SELECT", "UPDATE", "DELETE", "SET", "ORDER BY"));
+	private static final Set<String> INSTRUCTION_KEYWORDS = new HashSet<>(Arrays.asList("INSERT", "SELECT DISTINCT", "SELECT", "UPDATE", "DELETE", "SET", "ORDER BY", "CREATE"));
 	
-	private static final Set<String> TABLE_POINTER_KEYWORDS = new HashSet<>(Arrays.asList("FROM", "INTO", "UPDATE", "ON", "LEFT JOIN", "RIGHT JOIN", "FULL JOIN", "INNER JOIN"));
+	private static final Set<String> TABLE_POINTER_KEYWORDS = new HashSet<>(Arrays.asList("FROM", "INTO", "UPDATE", "ON", "LEFT JOIN", "RIGHT JOIN", "FULL JOIN", "INNER JOIN", "TABLE"));
 	
 	private static final Set<String> EXPRESSION_KEYWORDS = new HashSet<>(Arrays.asList( "WHERE", "AND", "VALUES"));
 	
@@ -30,13 +30,15 @@ public class SQLLexer {
 	
 	private static final Set<String> ORDER_KEYWORDS = new HashSet<>(Arrays.asList("ASC", "DESC"));
 	
+	private static final Set<String> DATA_TYPE_KEYWORDS = new HashSet<>(getDataTypeKeywords());
+	
 	private static List<String> allKeywords;
 	
 	public static List<SQLPhrase> readQuery(String query){
 		List<SQLPhrase> output = new ArrayList<>();
 		String currentPhrase = "";
 		boolean openQuote = false;
-		boolean openBracket = false;
+		int openBracket = 0;
 		boolean dot = false;
 		boolean numeric = false;
 		Operator operator = null;
@@ -64,14 +66,22 @@ public class SQLLexer {
 			}
 			if (currentCharacter.equals("(") && !openQuote) {
 				newPhrase = splitOffSQLPhrase(currentPhrase, i);
-				openBracket = true;
+				//categorizeColumnModifier(openBracket, newPhrase, output);
+				openBracket++;
 			}
 			if (currentCharacter.equals(")") && !openQuote) {
 				newPhrase = splitOffSQLPhrase(currentPhrase, i);
-				openBracket = false;
+//				if (numeric && openBracket > 1) {
+//					SQLPhrase lastPhrase = getLastPhrase(output);
+//					newPhrase.setLinkedValue(lastPhrase);
+//					lastPhrase.setLinkedValue(newPhrase);
+//					newPhrase.setType(PhraseType.VALUE);
+//				}
+				openBracket--;
 			}
 			if (currentCharacter.equals(",") && !openQuote) {
 				newPhrase = splitOffSQLPhrase(currentPhrase, i);
+				//categorizeColumnModifier(openBracket, newPhrase, output);
 			}
 			if (currentCharacter.equals(".") && !openQuote && !numeric) {
 				newPhrase = splitOffSQLPhrase(currentPhrase, i);
@@ -190,6 +200,17 @@ public class SQLLexer {
 		return null;
 	}
 	
+	private static void categorizeColumnModifier(int openBracket, SQLPhrase newPhrase, List<SQLPhrase> output) {
+		if (openBracket > 0) {
+			SQLPhrase lastPhrase = getLastPhrase(output);
+			if (lastPhrase.hasType(PhraseType.COLUMN_NAME)) {
+				newPhrase.setType(PhraseType.VALUE);
+				newPhrase.setLinkedColumn(lastPhrase);
+				lastPhrase.setLinkedValue(newPhrase);
+			}
+		}
+	}
+	
 	public static SQLPhrase getLastPhrase(List<SQLPhrase> phrases) {
 		return phrases.size() > 0 ? phrases.get(phrases.size() - 1) : null;
 	}
@@ -215,6 +236,10 @@ public class SQLLexer {
 		return null;
 	}
 	
+	private static final List<String> getDataTypeKeywords(){
+		return Arrays.asList(DataType.values()).stream().map(dt -> dt.name()).collect(Collectors.toList());
+	}
+	
 	private static final List<String> getAllKeywords(){
 		if (allKeywords == null) {
 			allKeywords = new ArrayList<>();
@@ -223,6 +248,7 @@ public class SQLLexer {
 			allKeywords.addAll(EXPRESSION_KEYWORDS);
 			allKeywords.addAll(JOIN_KEYWORDS);
 			allKeywords.addAll(ORDER_KEYWORDS);
+			allKeywords.addAll(DATA_TYPE_KEYWORDS);
 		}
 		return allKeywords;
 	}
@@ -234,6 +260,7 @@ public class SQLLexer {
 		keywordGroupMap.put(KeywordType.EXPRESSION, EXPRESSION_KEYWORDS);
 		keywordGroupMap.put(KeywordType.JOIN, JOIN_KEYWORDS);
 		keywordGroupMap.put(KeywordType.ORDER, ORDER_KEYWORDS);
+		keywordGroupMap.put(KeywordType.DATA_TYPE, DATA_TYPE_KEYWORDS);
 		List<KeywordType> keywordTypes = new ArrayList<>();
 		for(KeywordType keywordType : keywordGroupMap.keySet()) {
 			if (keywordGroupMap.get(keywordType).contains(phrase)) {

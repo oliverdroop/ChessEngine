@@ -49,7 +49,11 @@ public final class SQLInterpreter {
 		for(int i = 0; i < sqlStatement.size(); i++) {
 			SQLPhrase phrase = sqlStatement.get(i);
 			if (phrase.getType() == PhraseType.TABLE_NAME) {
-				return database.getTables().get(phrase.getString());
+				Table table = database.getTables().get(phrase.getString());
+				if (table == null) {
+					table = new Table(phrase.getString(), Collections.emptyList());
+				}
+				return table;
 			}
 		}
 		return null;

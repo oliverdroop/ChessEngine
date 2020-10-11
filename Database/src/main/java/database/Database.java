@@ -50,4 +50,17 @@ public class Database {
 	public Map<String, Table> getTables(){
 		return tables;
 	}
+	
+	public void addTable(Table table) {
+		String tableName = table.getName();
+		if (tableName != null && tableName.length() > 0 && tables.get(tableName) == null) {
+			tables.put(table.getName(), table);
+		}
+	}
+	
+	public void removeTable(String tableName) {
+		if (tableName != null && tableName.length() > 0 && tables.get(tableName) != null) {
+			tables.remove(tableName);
+		}
+	}
 }
