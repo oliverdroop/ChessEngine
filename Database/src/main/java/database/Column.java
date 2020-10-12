@@ -4,6 +4,7 @@ public class Column {
 	private String name;
 	private DataType dataType;
 	private int count;
+	private int length = 0;
 	
 	public Column(String[] parameterStrings) {
 		if (parameterStrings.length == 3) {
@@ -26,7 +27,14 @@ public class Column {
 	}
 	
 	public int getLength() {
-		return dataType.getLength() * count;
+		if (length == 0) {
+			length = dataType.getLength() * count; 
+		}
+		return length;
+	}
+	
+	public void setLength(int length) {
+		this.length = length;
 	}
 	
 	public String getName() {

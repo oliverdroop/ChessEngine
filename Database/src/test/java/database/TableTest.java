@@ -305,10 +305,53 @@ public class TableTest {
 				softly.assertThat(table.getData()[iByte]).as("Newly-added data should be blank").isEqualTo(Byte.parseByte("0"));
 			}
 		}
-		setUp();
+		softly.assertThat(table.getValueString(table.getColumns().get("ID"), table.getRowByIndex(3))).isEqualTo("3");
+		softly.assertThat(table.getValueString(table.getColumns().get("REGISTRATION"), table.getRowByIndex(3))).isEqualTo("AF20BGD");
+		softly.assertThat(table.getValueString(table.getColumns().get("MANUFACTURER"), table.getRowByIndex(3))).isEqualTo("Ford");
+		softly.assertThat(table.getValueString(table.getColumns().get("MODEL"), table.getRowByIndex(3))).isEqualTo("Fiesta");
+		softly.assertThat(table.getValueString(table.getColumns().get("COLOUR"), table.getRowByIndex(3))).isEqualTo("Blue");
+		softly.assertThat(table.getValueString(table.getColumns().get("YEAR_OF_REGISTRATION"), table.getRowByIndex(3))).isEqualTo("2020");
+		softly.assertThat(table.getValueString(table.getColumns().get("SEATS"), table.getRowByIndex(3))).isEqualTo("5");
+		softly.assertThat(table.getValueString(table.getColumns().get("ENGINE_SIZE"), table.getRowByIndex(3))).isEqualTo("1.6");
+		softly.assertThat(table.getValueString(table.getColumns().get("TAXED"), table.getRowByIndex(3))).isEqualTo("true");
+	}
+	
+	@Test
+	public void testResizeColumn() {
+		Table table = setUpMatchedRowsTestTable();
+		Column column = table.getColumns().get("REGISTRATION");
+		table.resizeColumn(column.getName(), 4);
+		
+		byte[] row = table.getRowByIndex(3);
+		softly.assertThat(table.getValueString(table.getColumns().get("ID"), row)).isEqualTo("3");
+		softly.assertThat(table.getValueString(table.getColumns().get("REGISTRATION"), row)).isEqualTo("AF20");
+		softly.assertThat(table.getValueString(table.getColumns().get("MANUFACTURER"), row)).isEqualTo("Ford");
+		softly.assertThat(table.getValueString(table.getColumns().get("MODEL"), row)).isEqualTo("Fiesta");
+		softly.assertThat(table.getValueString(table.getColumns().get("COLOUR"), row)).isEqualTo("Blue");
+		softly.assertThat(table.getValueString(table.getColumns().get("YEAR_OF_REGISTRATION"), row)).isEqualTo("2020");
+		softly.assertThat(table.getValueString(table.getColumns().get("SEATS"), row)).isEqualTo("5");
+		softly.assertThat(table.getValueString(table.getColumns().get("ENGINE_SIZE"), row)).isEqualTo("1.6");
+		softly.assertThat(table.getValueString(table.getColumns().get("TAXED"), row)).isEqualTo("true");
+		
+		table = setUpMatchedRowsTestTable();
+		column = table.getColumns().get("REGISTRATION");
+		table.resizeColumn(column.getName(), 12);
+		
+		row = table.getRowByIndex(3);
+		softly.assertThat(table.getValueString(table.getColumns().get("ID"), row)).isEqualTo("3");
+		softly.assertThat(table.getValueString(column, row)).isEqualTo("AF20BGD");
+		softly.assertThat(table.getValueBytes(column, row)).isEqualTo(new byte[] {65, 70, 50, 48, 66, 71, 68, 0, 0, 0, 0, 0});
+		softly.assertThat(table.getValueString(table.getColumns().get("MANUFACTURER"), row)).isEqualTo("Ford");
+		softly.assertThat(table.getValueString(table.getColumns().get("MODEL"), row)).isEqualTo("Fiesta");
+		softly.assertThat(table.getValueString(table.getColumns().get("COLOUR"), row)).isEqualTo("Blue");
+		softly.assertThat(table.getValueString(table.getColumns().get("YEAR_OF_REGISTRATION"), row)).isEqualTo("2020");
+		softly.assertThat(table.getValueString(table.getColumns().get("SEATS"), row)).isEqualTo("5");
+		softly.assertThat(table.getValueString(table.getColumns().get("ENGINE_SIZE"), row)).isEqualTo("1.6");
+		softly.assertThat(table.getValueString(table.getColumns().get("TAXED"), row)).isEqualTo("true");
 	}
 	
 	private Table setUpMatchedRowsTestTable() {
+		setUp();
 		int year = 2020;
 		ObjectParser parser = new ObjectParser(database);
 		Car car1 = createCar("LR20PNM", "Ford", "Fiesta", "Black", year, (byte)5, 1.4, true);

@@ -486,20 +486,80 @@ public class Table {
 	
 	public void addColumn(Column column) {
 		if (columns.get(column.getName()) == null) {
-			int oldRowLength = getRowLength();
-			int rowCount = countRows();
 			columns.put(column.getName(), column);
-			rowLength = 0;
-			if (rowCount > 0) {
-				byte[] newData = new byte[rowCount * (oldRowLength + column.getLength())];
-				for(int i = 0; i < rowCount; i++) {
-					System.arraycopy(data, i * oldRowLength, newData, i * getRowLength(), oldRowLength);
-				}
-				data = newData;
-			}
+			extendRows(getRowLength(), column.getLength());			
 			LOGGER.info("Added column {} to table {}", column.getName(), getName());
 		} else {
 			LOGGER.warn("Cannot add column {} to table {} : Column of same name already exists!", column.getName(), getName());
+		}
+	}
+	
+	public void resizeColumn(String columnName, int newByteCount) {
+		Column column = columns.get(columnName);
+		if (column != null && newByteCount != column.getLength()) {
+			if (newByteCount < column.getDataType().getLength()) {
+				LOGGER.warn("Cannot resize column {} in table {} : Length {} is shorter than minimum for DataType {}", columnName, getName(), newByteCount, column.getDataType().name());
+				return;
+			}
+			int lengthDifference = newByteCount - column.getLength();
+			if (lengthDifference > 0) {
+				extendRows(getIndexInRow(column) + column.getLength(), lengthDifference);
+			} else {
+				shortenRows(getIndexInRow(column) + newByteCount, -lengthDifference);
+			}
+			column.setLength(newByteCount);
+		} else {
+			LOGGER.warn("Cannot resize column {} in table {} : Column doesn't exist!", columnName, getName());
+		}
+	}
+	
+	private void extendRows(int startIndex, int additionLength) {
+		if (startIndex > getRowLength() || startIndex < 0) {
+			LOGGER.warn("Cannot extend rows in table {} : Index {} is not in or directly after first row.");
+			return;
+		}
+		int oldRowLength = getRowLength();
+		int rowCount = countRows();
+		rowLength = 0;
+		if (rowCount > 0) {
+			byte[] newData = new byte[rowCount * (oldRowLength + additionLength)];
+			for(int i = 0; i < rowCount; i++) {				
+				if (startIndex == oldRowLength) {
+					System.arraycopy(data, i * oldRowLength, newData, i * (oldRowLength + additionLength), oldRowLength);
+				} else {
+					System.arraycopy(data, i * oldRowLength, newData, i * (oldRowLength + additionLength), startIndex);
+					int srcPos = (i * oldRowLength) + startIndex;
+					int destPos = (i * (oldRowLength + additionLength)) + startIndex + additionLength;
+					System.arraycopy(data, srcPos, newData, destPos, oldRowLength - startIndex);
+				}
+			}
+			data = newData;
+		}
+	}
+	
+	private void shortenRows(int startIndex, int removalLength) {
+		if (startIndex >= getRowLength() || startIndex < 0) {
+			LOGGER.warn("Cannot shorten rows in table {} : Index {} is not in first row.");
+			return;
+		}
+		if (startIndex + removalLength > getRowLength()) {
+			LOGGER.warn("Cannot shorten rows in table {} : Removal goes beyond first row.");
+			return;
+		}
+		int oldRowLength = getRowLength();
+		int rowCount = countRows();
+		rowLength = 0;
+		if (rowCount > 0) {
+			byte[] newData = new byte[rowCount * (oldRowLength - removalLength)];
+			for(int i = 0; i < rowCount; i++) {				
+				System.arraycopy(data, i * oldRowLength, newData, i * (oldRowLength - removalLength), startIndex);
+				if (startIndex + removalLength < oldRowLength) {
+					int srcPos = (i * oldRowLength) + startIndex + removalLength;
+					int destPos = (i * (oldRowLength - removalLength)) + startIndex;
+					System.arraycopy(data, srcPos, newData, destPos, oldRowLength - (startIndex + removalLength));
+				}
+			}
+			data = newData;
 		}
 	}
 	
