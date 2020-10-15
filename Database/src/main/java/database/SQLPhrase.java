@@ -28,6 +28,8 @@ public class SQLPhrase {
 	
 	private SQLPhrase linkedDataType;
 	
+	private SQLPhrase linkedInstruction;
+	
 	private Operator linkedOperator;
 	
 	public SQLPhrase(String string) {
@@ -116,6 +118,14 @@ public class SQLPhrase {
 
 	public void setLinkedDataType(SQLPhrase linkedDataType) {
 		this.linkedDataType = linkedDataType;
+	}
+
+	public SQLPhrase getLinkedInstruction() {
+		return linkedInstruction;
+	}
+
+	public void setLinkedInstruction(SQLPhrase linkedInstruction) {
+		this.linkedInstruction = linkedInstruction;
 	}
 
 	@Override

@@ -260,6 +260,16 @@ public class SQLInterpreterTest {
 		softly.assertThat(database.getTables().get(tableName).getColumns().get(postcode).getLength()).isEqualTo(8);
 	}
 	
+	@Test
+	public void testModifyColumn() {
+		loadData();
+		List<String> result = testSQL("alter table car modify registration varchar(4);");
+		softly.assertThat(database.getTables().get("CAR").getColumns().get("REGISTRATION").getLength()).isEqualTo(4);
+		result = testSQL("select registration from car where colour = 'Orange' and year_of_registration = 2002 and model = 'Mondeo';");
+		softly.assertThat(result.get(1)).isEqualTo("BK52");
+		softly.assertThat(database.getTables().get("CAR").getData()).hasSize(74000);
+	}
+	
 	private List<String> testSQL(String queryString){
 		LOGGER.info("SQL Test : {}", queryString);
 		Query query = new Query(SQLInterpreter.interpret(SQLLexer.readQuery(queryString), database));

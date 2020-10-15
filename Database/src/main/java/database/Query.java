@@ -85,6 +85,8 @@ public class Query {
 				return executeDelete();
 			case "CREATE":
 				return executeCreate();
+			case "ALTER":
+				return executeAlter();
 			default:
 				return output;					
 			}
@@ -178,6 +180,32 @@ public class Query {
 				}
 				Column column = new Column(columnName, dataType, size);
 				table.addColumn(column);
+			}
+		}
+		return output;
+	}
+	
+	private List<String> executeAlter(){
+		List<String> output = new ArrayList<>();
+		if (assignments != null && table != null) {
+			for(SQLPhrase columnNamePhrase : assignments.keySet()) {
+				if (columnNamePhrase.getLinkedInstruction() == null || !columnNamePhrase.getLinkedInstruction().getString().equals("MODIFY")) {
+					continue;
+				}
+				String columnName = columnNamePhrase.getString();
+				Column column = table.getColumns().get(columnName);
+				SQLPhrase dataTypePhrase = columnNamePhrase.getLinkedDataType();
+				DataType dataType = DataType.valueOf(dataTypePhrase.getString());
+				int size = dataType.getLength();
+				if (dataTypePhrase.getLinkedValue() != null) {
+					size = Integer.parseInt(dataTypePhrase.getLinkedValue().getString());
+				}
+				if (size != column.getLength()) {
+					table.resizeColumn(columnName, size);
+				}
+				if (dataType != column.getDataType()) {
+					column.setDataType(dataType);
+				}
 			}
 		}
 		return output;

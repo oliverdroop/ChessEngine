@@ -44,4 +44,8 @@ public class Column {
 	public DataType getDataType() {
 		return dataType;
 	}
+
+	public void setDataType(DataType dataType) {
+		this.dataType = dataType;
+	}
 }
