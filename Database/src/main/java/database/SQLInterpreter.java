@@ -30,7 +30,7 @@ public final class SQLInterpreter {
 		parameters.setOrderBy(extractOrderBy(sqlStatement));
 		Map<String, Object> assignmentsAndTargets = extractAssignmentsAndTargets(sqlStatement, database, table);		
 		parameters.setAssignments((Map<SQLPhrase, SQLPhrase>) assignmentsAndTargets.get("assignments"));
-		parameters.setTargets((List<String>) assignmentsAndTargets.get("targets"));
+		parameters.setTargets((List<SQLPhrase>) assignmentsAndTargets.get("targets"));
 		SQLPhrase joinType = extractJoinType(sqlStatement);
 		parameters.setJoinType(joinType);
 		parameters.setJoinCondition(extractJoinCondition(sqlStatement, joinType));
@@ -84,7 +84,7 @@ public final class SQLInterpreter {
 			return Collections.emptyMap();
 		}
 		Map<SQLPhrase, SQLPhrase> assignments = new LinkedHashMap<>();
-		List<String> targets = null;
+		List<SQLPhrase> targets = null;
 		for (int i = 0; i < sqlStatement.size(); i++) {
 			SQLPhrase phrase = sqlStatement.get(i);
 			SQLPhrase previousKeyword = SQLLexer.getPreviousKeyword(phrase, sqlStatement);
@@ -117,7 +117,10 @@ public final class SQLInterpreter {
 			else {
 				if (unlinkedValues.size() == 0) {
 					if (unlinkedColumns.get(0).getString().equals("*") && table != null) {
-						targets = table.getColumns().keySet().stream().collect(Collectors.toList());
+						targets = table.getColumns().keySet()
+								.stream()
+								.map(columnName -> new SQLPhrase(columnName, PhraseType.COLUMN_NAME))
+								.collect(Collectors.toList());
 					}
 					else {
 						targets = unlinkedColumns
@@ -126,7 +129,6 @@ public final class SQLInterpreter {
 								.filter(p -> SQLLexer.getPreviousKeyword(p, sqlStatement).hasKeywordType(KeywordType.INSTRUCTION))
 								.filter(p -> !SQLLexer.getPreviousKeyword(p, sqlStatement).hasKeywordType(KeywordType.ORDER))
 								.filter(p -> !SQLLexer.getPreviousKeyword(p, sqlStatement).getString().equals("ORDER BY"))
-								.map(p -> p.getString())
 								.collect(Collectors.toList());
 					}
 				}

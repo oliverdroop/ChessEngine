@@ -20,7 +20,7 @@ public class SQLLexer {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(SQLLexer.class);
 	
-	private static final Set<String> INSTRUCTION_KEYWORDS = new HashSet<>(Arrays.asList("INSERT", "SELECT DISTINCT", "SELECT", "UPDATE", "DELETE", "SET", "ORDER BY", "CREATE", "ALTER", "MODIFY"));
+	private static final Set<String> INSTRUCTION_KEYWORDS = new HashSet<>(Arrays.asList("INSERT", "SELECT DISTINCT", "SELECT", "UPDATE", "DELETE", "SET", "ORDER BY", "CREATE", "ALTER", "MODIFY", "DROP COLUMN"));
 	
 	private static final Set<String> TABLE_POINTER_KEYWORDS = new HashSet<>(Arrays.asList("FROM", "INTO", "UPDATE", "ON", "LEFT JOIN", "RIGHT JOIN", "FULL JOIN", "INNER JOIN", "TABLE"));
 	

@@ -33,7 +33,7 @@ public class Query {
 	
 	private Map<SQLPhrase, SQLPhrase> assignments;
 	
-	private List<String> targets;
+	private List<SQLPhrase> targets;
 	
 	private SQLPhrase joinType;
 	
@@ -70,7 +70,10 @@ public class Query {
 		
 		if (joinType != null && joinCondition.size() == 2) {
 			table = getJoinTable();
-			targets = getTargetColumns(targets, table).stream().map(c -> c.getName()).collect(Collectors.toList());
+			targets = getTargetColumns(targets, table)
+					.stream()
+					.map(c -> new SQLPhrase(c.getName(), PhraseType.COLUMN_NAME))
+					.collect(Collectors.toList());
 		}
 		
 		if (table != null && instruction != null) {
@@ -187,24 +190,35 @@ public class Query {
 	
 	private List<String> executeAlter(){
 		List<String> output = new ArrayList<>();
-		if (assignments != null && table != null) {
+		if (assignments != null) {
 			for(SQLPhrase columnNamePhrase : assignments.keySet()) {
-				if (columnNamePhrase.getLinkedInstruction() == null || !columnNamePhrase.getLinkedInstruction().getString().equals("MODIFY")) {
-					continue;
-				}
 				String columnName = columnNamePhrase.getString();
 				Column column = table.getColumns().get(columnName);
-				SQLPhrase dataTypePhrase = columnNamePhrase.getLinkedDataType();
-				DataType dataType = DataType.valueOf(dataTypePhrase.getString());
-				int size = dataType.getLength();
-				if (dataTypePhrase.getLinkedValue() != null) {
-					size = Integer.parseInt(dataTypePhrase.getLinkedValue().getString());
+				SQLPhrase linkedInstruction = columnNamePhrase.getLinkedInstruction();
+				if (linkedInstruction != null) {
+					if (linkedInstruction.getString().equals("MODIFY")) {
+						SQLPhrase dataTypePhrase = columnNamePhrase.getLinkedDataType();
+						DataType dataType = DataType.valueOf(dataTypePhrase.getString());
+						int size = dataType.getLength();
+						if (dataTypePhrase.getLinkedValue() != null) {
+							size = Integer.parseInt(dataTypePhrase.getLinkedValue().getString());
+						}
+						if (size != column.getLength()) {
+							table.resizeColumn(columnName, size);
+						}
+						if (dataType != column.getDataType()) {
+							column.setDataType(dataType);
+						}
+					}
 				}
-				if (size != column.getLength()) {
-					table.resizeColumn(columnName, size);
-				}
-				if (dataType != column.getDataType()) {
-					column.setDataType(dataType);
+			}
+		} 
+		if (targets != null) {
+			for(SQLPhrase phrase : targets) {
+				SQLPhrase linkedInstruction = phrase.getLinkedInstruction();
+				if (linkedInstruction != null && linkedInstruction.getString().equals("DROP COLUMN")) {
+					Column column = table.getColumns().get(phrase.getString());
+					table.removeColumn(column);
 				}
 			}
 		}
@@ -215,7 +229,7 @@ public class Query {
 		if (targets != null && !targets.isEmpty()) {
 			StringBuilder header = new StringBuilder();
 			for(int index = 0; index < targets.size(); index++) {
-				header.append(targets.get(index));
+				header.append(targets.get(index).getString());
 				if (index < targets.size() - 1) {
 					header.append("\t");
 				}
@@ -350,14 +364,14 @@ public class Query {
 		return output;
 	}
 	
-	private List<Column> getTargetColumns(List<String> targets, Table table){
+	private List<Column> getTargetColumns(List<SQLPhrase> targets, Table table){
 		List<Column> targetColumns = null;
-		for(String target : targets) {
-			if (table.getColumns().keySet().contains(target)) {
+		for(SQLPhrase target : targets) {
+			if (table.getColumns().keySet().contains(target.getString())) {
 				if (targetColumns == null) {
 					targetColumns = new ArrayList<>();
 				}
-				targetColumns.add(table.getColumns().get(target));
+				targetColumns.add(table.getColumns().get(target.getString()));
 			}
 		}
 		return targetColumns;

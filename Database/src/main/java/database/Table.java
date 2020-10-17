@@ -494,23 +494,32 @@ public class Table {
 		}
 	}
 	
+	public void removeColumn(Column column) {
+		resizeColumn(column.getName(), 0);
+		columns.remove(column.getName());
+	}
+	
 	public void resizeColumn(String columnName, int newByteCount) {
 		Column column = columns.get(columnName);
-		if (column != null && newByteCount != column.getLength()) {
-			if (newByteCount < column.getDataType().getLength()) {
-				LOGGER.warn("Cannot resize column {} in table {} : Length {} is shorter than minimum for DataType {}", columnName, getName(), newByteCount, column.getDataType().name());
-				return;
-			}
-			int lengthDifference = newByteCount - column.getLength();
-			if (lengthDifference > 0) {
-				extendRows(getIndexInRow(column) + column.getLength(), lengthDifference);
-			} else {
-				shortenRows(getIndexInRow(column) + newByteCount, -lengthDifference);
-			}
-			column.setLength(newByteCount);
-		} else {
+		if (column == null) {
 			LOGGER.warn("Cannot resize column {} in table {} : Column doesn't exist!", columnName, getName());
+			return;
 		}
+		if (newByteCount == column.getLength()) {
+			LOGGER.info("Resize column {} in table {} : No operation : Length {} would be unchanged", columnName, getName(), newByteCount);
+			return;
+		}
+		if (newByteCount > 0 && newByteCount < column.getDataType().getLength()) {
+			LOGGER.warn("Cannot resize column {} in table {} : Length {} is shorter than minimum for DataType {}", columnName, getName(), newByteCount, column.getDataType().name());
+			return;
+		}
+		int lengthDifference = newByteCount - column.getLength();
+		if (lengthDifference > 0) {
+			extendRows(getIndexInRow(column) + column.getLength(), lengthDifference);
+		} else {
+			shortenRows(getIndexInRow(column) + newByteCount, -lengthDifference);
+		}
+		column.setLength(newByteCount);		
 	}
 	
 	private void extendRows(int startIndex, int additionLength) {

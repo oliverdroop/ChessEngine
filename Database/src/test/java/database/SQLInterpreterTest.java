@@ -241,23 +241,24 @@ public class SQLInterpreterTest {
 		database.removeTable(tableName);
 		
 		result = testSQL("create table address (id long, house_number varchar(4), street varchar(16), town varchar(16), postcode varchar(4));");
-		softly.assertThat(database.getTables().keySet()).contains(tableName);
-		softly.assertThat(database.getTables().get(tableName).getName()).isEqualTo(tableName);
-		softly.assertThat(database.getTables().get(tableName).getColumns()).hasSize(5);
-		assertThat(database.getTables().get(tableName).getColumns().get("ID")).isNotNull();
-		softly.assertThat(database.getTables().get(tableName).getColumns().get("ID").getDataType()).isEqualTo(DataType.LONG);
-		assertThat(database.getTables().get(tableName).getColumns().get(houseNumber)).isNotNull();
-		softly.assertThat(database.getTables().get(tableName).getColumns().get(houseNumber).getDataType()).isEqualTo(DataType.VARCHAR);
-		softly.assertThat(database.getTables().get(tableName).getColumns().get(houseNumber).getLength()).isEqualTo(8);
-		assertThat(database.getTables().get(tableName).getColumns().get(street)).isNotNull();
-		softly.assertThat(database.getTables().get(tableName).getColumns().get(street).getDataType()).isEqualTo(DataType.VARCHAR);
-		softly.assertThat(database.getTables().get(tableName).getColumns().get(street).getLength()).isEqualTo(32);
-		assertThat(database.getTables().get(tableName).getColumns().get(town)).isNotNull();
-		softly.assertThat(database.getTables().get(tableName).getColumns().get(town).getDataType()).isEqualTo(DataType.VARCHAR);
-		softly.assertThat(database.getTables().get(tableName).getColumns().get(town).getLength()).isEqualTo(32);
-		assertThat(database.getTables().get(tableName).getColumns().get(postcode)).isNotNull();
-		softly.assertThat(database.getTables().get(tableName).getColumns().get(postcode).getDataType()).isEqualTo(DataType.VARCHAR);
-		softly.assertThat(database.getTables().get(tableName).getColumns().get(postcode).getLength()).isEqualTo(8);
+		assertThat(database.getTables().keySet()).contains(tableName);
+		Table table = database.getTables().get(tableName);
+		softly.assertThat(table.getName()).isEqualTo(tableName);
+		softly.assertThat(table.getColumns()).hasSize(5);
+		assertThat(table.getColumns().get("ID")).isNotNull();
+		softly.assertThat(table.getColumns().get("ID").getDataType()).isEqualTo(DataType.LONG);
+		assertThat(table.getColumns().get(houseNumber)).isNotNull();
+		softly.assertThat(table.getColumns().get(houseNumber).getDataType()).isEqualTo(DataType.VARCHAR);
+		softly.assertThat(table.getColumns().get(houseNumber).getLength()).isEqualTo(8);
+		assertThat(table.getColumns().get(street)).isNotNull();
+		softly.assertThat(table.getColumns().get(street).getDataType()).isEqualTo(DataType.VARCHAR);
+		softly.assertThat(table.getColumns().get(street).getLength()).isEqualTo(32);
+		assertThat(table.getColumns().get(town)).isNotNull();
+		softly.assertThat(table.getColumns().get(town).getDataType()).isEqualTo(DataType.VARCHAR);
+		softly.assertThat(table.getColumns().get(town).getLength()).isEqualTo(32);
+		assertThat(table.getColumns().get(postcode)).isNotNull();
+		softly.assertThat(table.getColumns().get(postcode).getDataType()).isEqualTo(DataType.VARCHAR);
+		softly.assertThat(table.getColumns().get(postcode).getLength()).isEqualTo(8);
 	}
 	
 	@Test
@@ -268,6 +269,30 @@ public class SQLInterpreterTest {
 		result = testSQL("select registration from car where colour = 'Orange' and year_of_registration = 2002 and model = 'Mondeo';");
 		softly.assertThat(result.get(1)).isEqualTo("BK52");
 		softly.assertThat(database.getTables().get("CAR").getData()).hasSize(74000);
+	}
+	
+	@Test
+	public void testDropColumn() {
+		loadData();
+		assertThat(database.getTables().keySet()).contains("CAR");
+		Table table = database.getTables().get("CAR");
+		String removalColumnName = "YEAR_OF_REGISTRATION";
+		String seatsQueryString = "select seats from car where registration = 'YP05UYK';";
+		String engineSizeQueryString = "select engine_size from car where registration = 'YP05UYK';";
+		String taxedQueryString = "select taxed from car where registration = 'YP05UYK';";
+		byte seats = Byte.parseByte(testSQL(seatsQueryString).get(1));
+		double engineSize = Double.parseDouble(testSQL(engineSizeQueryString).get(1));
+		boolean taxed = Boolean.parseBoolean(testSQL(taxedQueryString).get(1));
+		
+		List<String> result = testSQL("alter table car drop column year_of_registration;");
+		softly.assertThat(table.getData()).hasSize(74000);
+		softly.assertThat(table.getColumns().get(removalColumnName))
+				.as("Column %s should have been removed from table CAR", removalColumnName)
+				.isNull();
+		
+		softly.assertThat(Byte.parseByte(testSQL(seatsQueryString).get(1))).as("Number of seats shouldn't have changed").isEqualTo(seats);
+		softly.assertThat(Double.parseDouble(testSQL(engineSizeQueryString).get(1))).as("Engine size shouldn't have changed").isEqualTo(engineSize);
+		softly.assertThat(Boolean.parseBoolean(testSQL(taxedQueryString).get(1))).as("Taxed value shouldn't have changed").isEqualTo(taxed);
 	}
 	
 	private List<String> testSQL(String queryString){

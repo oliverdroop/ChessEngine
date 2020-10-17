@@ -18,7 +18,7 @@ public class QueryParameters {
 	
 	private Map<SQLPhrase, SQLPhrase> assignments;
 	
-	private List<String> targets;
+	private List<SQLPhrase> targets;
 	
 	private SQLPhrase joinType;
 	
@@ -66,11 +66,11 @@ public class QueryParameters {
 		this.assignments = assignments;
 	}
 
-	public List<String> getTargets() {
+	public List<SQLPhrase> getTargets() {
 		return targets;
 	}
 
-	public void setTargets(List<String> targets) {
+	public void setTargets(List<SQLPhrase> targets) {
 		this.targets = targets;
 	}
 
