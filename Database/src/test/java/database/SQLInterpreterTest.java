@@ -266,6 +266,7 @@ public class SQLInterpreterTest {
 		loadData();
 		List<String> result = testSQL("alter table car modify registration varchar(4);");
 		softly.assertThat(database.getTables().get("CAR").getColumns().get("REGISTRATION").getLength()).isEqualTo(4);
+		softly.assertThat(result).containsOnly("Modified column REGISTRATION in table CAR");
 		result = testSQL("select registration from car where colour = 'Orange' and year_of_registration = 2002 and model = 'Mondeo';");
 		softly.assertThat(result.get(1)).isEqualTo("BK52");
 		softly.assertThat(database.getTables().get("CAR").getData()).hasSize(74000);
@@ -293,6 +294,15 @@ public class SQLInterpreterTest {
 		softly.assertThat(Byte.parseByte(testSQL(seatsQueryString).get(1))).as("Number of seats shouldn't have changed").isEqualTo(seats);
 		softly.assertThat(Double.parseDouble(testSQL(engineSizeQueryString).get(1))).as("Engine size shouldn't have changed").isEqualTo(engineSize);
 		softly.assertThat(Boolean.parseBoolean(testSQL(taxedQueryString).get(1))).as("Taxed value shouldn't have changed").isEqualTo(taxed);
+		softly.assertThat(result).containsOnly("Dropped column YEAR_OF_REGISTRATION from table CAR");
+	}
+	
+	@Test
+	public void testDropTable() {
+		loadData();
+		List<String> result = testSQL("drop table car;");
+		softly.assertThat(database.getTables().get("CAR")).as("Expected table CAR to have been dropped from database").isNull();
+		softly.assertThat(result).containsOnly("Dropped table CAR");
 	}
 	
 	private List<String> testSQL(String queryString){

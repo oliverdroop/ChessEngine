@@ -90,6 +90,8 @@ public class Query {
 				return executeCreate();
 			case "ALTER":
 				return executeAlter();
+			case "DROP":
+				return executeDrop();
 			default:
 				return output;					
 			}
@@ -209,6 +211,7 @@ public class Query {
 						if (dataType != column.getDataType()) {
 							column.setDataType(dataType);
 						}
+						output.add(String.format("Modified column %s in table %s", column.getName(), table.getName()));
 					}
 				}
 			}
@@ -219,10 +222,16 @@ public class Query {
 				if (linkedInstruction != null && linkedInstruction.getString().equals("DROP COLUMN")) {
 					Column column = table.getColumns().get(phrase.getString());
 					table.removeColumn(column);
+					output.add(String.format("Dropped column %s from table %s", column.getName(), table.getName()));
 				}
 			}
 		}
 		return output;
+	}
+	
+	private List<String> executeDrop() {
+		database.getTables().remove(table.getName());
+		return Arrays.asList(String.format("Dropped table %s", table.getName()));
 	}
 	
 	private List<String> getResultsWithHeader(List<String> results){
