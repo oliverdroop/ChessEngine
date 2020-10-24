@@ -497,6 +497,7 @@ public class Table {
 	public void removeColumn(Column column) {
 		resizeColumn(column.getName(), 0);
 		columns.remove(column.getName());
+		LOGGER.info("Removed column {} from table {}", column.getName(), getName());
 	}
 	
 	public void resizeColumn(String columnName, int newByteCount) {
@@ -519,7 +520,8 @@ public class Table {
 		} else {
 			shortenRows(getIndexInRow(column) + newByteCount, -lengthDifference);
 		}
-		column.setLength(newByteCount);		
+		column.setLength(newByteCount);
+		LOGGER.info("Resized column {} in table {}", column.getName(), getName());
 	}
 	
 	private void extendRows(int startIndex, int additionLength) {
