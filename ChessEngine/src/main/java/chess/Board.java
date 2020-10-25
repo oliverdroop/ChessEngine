@@ -1,6 +1,7 @@
 package chess;
 import java.awt.Point;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -62,6 +63,9 @@ public class Board {
 	
 	public boolean check(Team team, List<Piece> allPieces) {
 		Piece king = getKing(team, allPieces);
+		if (king == null) {
+			return false;
+		}
 		Team otherTeam = Team.values()[1 - team.ordinal()];
 		for(Piece piece : getTeamPieces(otherTeam, allPieces)) {
 			if (piece.threatens(king.getSquare(), allPieces)) {
@@ -115,10 +119,44 @@ public class Board {
 		List<Move> moves = new ArrayList<>();
 		for(Piece piece : getTeamPieces(turnTeam, pieces)) {
 			for(Square square : piece.getAvailableMoves(pieces)) {
-				moves.add(new Move(piece, piece.getSquare(), square));
+				if (piece.getType() == PieceType.PAWN && square.getY() == 7 * (1 - piece.getTeam().ordinal())) {
+					getPawnUpgrades(piece).forEach(p -> moves.add(new Move(p, piece.getSquare(), square)));
+				} else {
+					moves.add(new Move(piece, piece.getSquare(), square));
+				}				
 			}
 		}
 		return moves;
+	}
+	
+	private List<Piece> getPawnUpgrades(Piece piece){
+		int x = piece.getX();
+		int y = piece.getY();
+		Team team = piece.getTeam();
+		List<PieceType> pawnUpgradeTypes = Arrays.asList(PieceType.BISHOP, PieceType.ROOK, PieceType.KNIGHT, PieceType.QUEEN);
+		List<Piece> upgradePieces = new ArrayList<>();
+		for(PieceType type : pawnUpgradeTypes) {
+			upgradePieces.add(new PieceBuilder()
+					.withX(x)
+					.withY(y)
+					.withTeam(team)
+					.withBoard(this)
+					.withHasMoved(true)
+					.withType(type)
+					.build());
+		}
+		return upgradePieces;
+	}
+	
+	public Piece copyPiece(Piece piece) {
+		return new PieceBuilder()
+				.withBoard(this)
+				.withTeam(piece.getTeam())
+				.withType(piece.getType())
+				.withHasMoved(piece.getHasMoved())
+				.withX(piece.getX())
+				.withY(piece.getY())
+				.build();
 	}
 	
 	public int compareTo(Object board) {
@@ -155,6 +193,14 @@ public class Board {
 
 	public void setPieces(List<Piece> pieces) {
 		this.pieces = pieces;
+	}
+	
+	public void addPiece(Piece piece) {
+		pieces.add(piece);
+	}
+	
+	public void removePiece(Piece piece) {
+		pieces.remove(piece);
 	}
 
 	public Piece getEnPassantable() {

@@ -179,13 +179,7 @@ public class Move implements Comparable {
 		newBoard.setTurnTeam(board.getTurnTeam());
 		Piece pieceToMove = null;
 		for(Piece existingPiece : board.getPieces()){
-			Piece newPiece = new PieceBuilder()
-					.withBoard(newBoard)
-					.withTeam(existingPiece.getTeam())
-					.withType(existingPiece.getType())
-					.withHasMoved(existingPiece.getHasMoved())
-					.withX(existingPiece.getX())
-					.withY(existingPiece.getY()).build();
+			Piece newPiece = newBoard.copyPiece(existingPiece);
 			newBoard.getPieces().add(newPiece);
 			if (existingPiece.equals(piece)) {
 				pieceToMove = newPiece;
@@ -193,6 +187,12 @@ public class Move implements Comparable {
 			if (board.getEnPassantable() != null && board.getEnPassantable().equals(existingPiece)) {
 				newBoard.setEnPassantable(newPiece);
 			}
+		}
+		if (pieceToMove == null) {
+			Piece pieceToRemove = newBoard.getPiece(piece.getX(), piece.getY(), newBoard.getPieces());
+			newBoard.removePiece(pieceToRemove);
+			pieceToMove = newBoard.copyPiece(piece);
+			newBoard.addPiece(pieceToMove);
 		}
 		pieceToMove.move(newBoard.getSquare(endSquare.x, endSquare.y));
 		return newBoard;

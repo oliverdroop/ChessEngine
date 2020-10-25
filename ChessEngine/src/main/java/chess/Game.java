@@ -15,6 +15,7 @@ public class Game {
 	private static final Logger LOGGER = LoggerFactory.getLogger(Game.class);
 	private Board board;
 	private GameState gameState = GameState.IN_PROGRESS;
+	private int turnsAheadToLook = 3;
 	public static enum GameState {
 		WON_BY_WHITE, WON_BY_BLACK, DRAWN, IN_PROGRESS;
 	}
@@ -31,12 +32,7 @@ public class Game {
 	
 	public boolean wins(Team team){
 		int availableMoves = 0;
-		for(int i = 0; i < board.pieces.size(); i++){
-			Piece piece = board.pieces.get(i);
-			if (piece.team != team){
-				availableMoves += piece.getAvailableMoves(board.pieces).size();
-			}
-		}
+		availableMoves = board.getAvailableMoves().size();
 		if (availableMoves == 0){
 			if (board.check(Team.values()[1 - team.ordinal()], board.pieces)){
 				gameState = GameState.values()[team.ordinal()];
@@ -74,8 +70,6 @@ public class Game {
 	}
 	
 	public Move getAIMove() {
-		Random rnd = new Random();
-		Map<Move,Double> evaluationMap = new HashMap<>();
 		List<Move> availableMoves = board.getAvailableMoves();
 		MoveEvaluator moveEvaluator = null;
 		if (moveEvaluators.size() == 2) {
@@ -86,10 +80,9 @@ public class Game {
 				Collections.shuffle(availableMoves);
 				for(Move move : availableMoves) {
 					moveEvaluator.setMove(move);
-					moveEvaluator.evaluate(3);
+					moveEvaluator.evaluate(turnsAheadToLook);
 				}
 				availableMoves.sort(null);
-				//return availableMoves.get(rnd.nextInt(availableMoves.size()));
 				return availableMoves.get(availableMoves.size() - 1);
 			}
 		}

@@ -6,7 +6,9 @@ import org.junit.Test;
 
 import chess.Board;
 import chess.FENReader;
+import chess.FENWriter;
 import chess.Game;
+import chess.Move;
 
 public class AITest {
 	
@@ -35,6 +37,20 @@ public class AITest {
 		softly.assertThat(game.getAIMove().toString()).as("White bishop should force checkmate").contains("WHITE BISHOP true 1 7 [1 7] [4 4]");
 		setupTest("k7/7R/6R1/8/8/8/p3K3/8 w - - 0 1");
 		softly.assertThat(game.getAIMove().toString()).as("White rook should force checkmate").contains("WHITE ROOK true 1 5 [1 5] [1 7]");
+	}
+	
+	@Test
+	public void testAIUpgradesPawn() {
+		setupTest("8/kBPN4/8/8/8/8/8/KR6 w - - 0 1");
+		String expectedFEN = "2N5/kB1N4/8/8/8/8/8/KR6";
+		softly.assertThat(board.getAvailableMoves()).extracting("toString").contains("WHITE BISHOP true 5 6 [5 6] [5 7] 1.0");
+		softly.assertThat(board.getAvailableMoves()).extracting("toString").contains("WHITE ROOK true 5 6 [5 6] [5 7] 1.0");
+		softly.assertThat(board.getAvailableMoves()).extracting("toString").contains("WHITE KNIGHT true 5 6 [5 6] [5 7] 1.0");
+		softly.assertThat(board.getAvailableMoves()).extracting("toString").contains("WHITE QUEEN true 5 6 [5 6] [5 7] 1.0");
+		Move chosenMove = game.getAIMove();
+		Board resultantBoard = chosenMove.getResultantBoard();
+		FENWriter fenWriter = new FENWriter();
+		softly.assertThat(fenWriter.write(resultantBoard)).as("Upgrading white pawn should avoid stalemate").contains(expectedFEN);
 	}
 	
 	private void setupTest(String fen) {

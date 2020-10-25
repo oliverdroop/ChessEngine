@@ -49,10 +49,10 @@ public class MoveEvaluator {
 		}
 		else {
 			if (resultantBoard.check(move.getPiece().getOpposingTeam(), resultantBoard.getPieces())) {
-				return Double.MAX_VALUE;
+				return 1000000 + halfmovesAhead;
 			}
 			else {
-				return Double.MIN_VALUE;
+				return -1000000;
 			}
 		}
 	}
