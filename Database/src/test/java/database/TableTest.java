@@ -22,6 +22,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.BlockJUnit4ClassRunner;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,18 +48,18 @@ public class TableTest {
 	@Rule
 	public JUnitSoftAssertions softly = new JUnitSoftAssertions();
 	
-	@BeforeClass
-	public static void setUp() {
+	public static void setUp(PersistenceType persistenceType) {
 		String directory = rootDirectory;
 		directory += File.separator;
 		directory += "src" + File.separator;
 		directory += "test" + File.separator;
 		directory += "resources" + File.separator;
-		database = new Database(directory, false);
+		database = new Database(directory, false, persistenceType);
 	}
 	
 	@Test
 	public void testSequentialWrite() {
+		setUp(PersistenceType.NEVER);
 		int count = 1000;
 		ObjectParser parser = new ObjectParser(database);
 		Table table = null;
@@ -94,7 +95,7 @@ public class TableTest {
 	
 	@Test
 	public void testGetByteMatchedRows() {		
-		Table table = setUpMatchedRowsTestTable();
+		Table table = setUpMatchedRowsTestTable(PersistenceType.NEVER);
 		
 		Map<String, Pair<Operator, byte[]>> propertyValueMap = new HashMap<>();
 		propertyValueMap.put("COLOUR", Operator.EQUAL.pairWith("Black".getBytes()));
@@ -123,7 +124,7 @@ public class TableTest {
 	
 	@Test
 	public void testGetStringMatchedRows() {
-		Table table = setUpMatchedRowsTestTable();
+		Table table = setUpMatchedRowsTestTable(PersistenceType.NEVER);
 		
 		Map<String, Pair<Operator, String>> propertyStringMap = new HashMap<>();
 		propertyStringMap.put("COLOUR", Operator.EQUAL.pairWith("Black"));
@@ -152,7 +153,7 @@ public class TableTest {
 	
 	@Test
 	public void testAddDuplicatePrimaryKey() {
-		setUp();
+		setUp(PersistenceType.NEVER);
 		Car car = createCar("D730DAV", "Ford", "Sierra", "Blue", 1986, (byte) 5, 1.4, false);
 		car.setId(0L);
 		ObjectParser parser = new ObjectParser(database);		
@@ -179,7 +180,7 @@ public class TableTest {
 	
 	@Test
 	public void testDeleteRows() {
-		Table table = setUpMatchedRowsTestTable();
+		Table table = setUpMatchedRowsTestTable(PersistenceType.NEVER);
 		Map<String, Pair<Operator, String>> propertyStringMap = new HashMap<>();
 		propertyStringMap.put("MODEL", Operator.EQUAL.pairWith("Focus"));
 		ObjectParser parser = new ObjectParser(database);
@@ -207,7 +208,7 @@ public class TableTest {
 	
 	@Test
 	public void testUpdateRows() {
-		Table table = setUpMatchedRowsTestTable();
+		Table table = setUpMatchedRowsTestTable(PersistenceType.NEVER);
 		Map<String, Pair<Operator, String>> propertyStringMap = new HashMap<>();
 		propertyStringMap.put("MODEL", Operator.EQUAL.pairWith("Focus"));
 		
@@ -234,7 +235,7 @@ public class TableTest {
 	
 	@Test
 	public void testSortRows() {
-		Table table = setUpMatchedRowsTestTable();
+		Table table = setUpMatchedRowsTestTable(PersistenceType.NEVER);
 		Column columnReg = table.getColumns().get("REGISTRATION");
 		List<byte[]> rows = table.sortRows(columnReg, true, Arrays.asList(table.getAllRows()));
 		
@@ -252,7 +253,7 @@ public class TableTest {
 	
 	@Test
 	public void testOperators() {
-		Table table = setUpMatchedRowsTestTable();
+		Table table = setUpMatchedRowsTestTable(PersistenceType.NEVER);
 		Map<String, Pair<Operator, String>> propertyStringMap = new HashMap<>();
 
 		propertyStringMap.put("ENGINE_SIZE", Operator.GREATER.pairWith("0.9"));
@@ -285,7 +286,7 @@ public class TableTest {
 	
 	@Test
 	public void testAddColumn() {
-		Table table = setUpMatchedRowsTestTable();
+		Table table = setUpMatchedRowsTestTable(PersistenceType.NEVER);
 		int newColumnLength = 16;
 		int dataLength = table.getData().length;
 		int rowCount = table.countRows();
@@ -318,7 +319,7 @@ public class TableTest {
 	
 	@Test
 	public void testResizeColumn() {
-		Table table = setUpMatchedRowsTestTable();
+		Table table = setUpMatchedRowsTestTable(PersistenceType.NEVER);
 		Column column = table.getColumns().get("REGISTRATION");
 		table.resizeColumn(column.getName(), 4);
 		
@@ -333,7 +334,7 @@ public class TableTest {
 		softly.assertThat(table.getValueString(table.getColumns().get("ENGINE_SIZE"), row)).isEqualTo("1.6");
 		softly.assertThat(table.getValueString(table.getColumns().get("TAXED"), row)).isEqualTo("true");
 		
-		table = setUpMatchedRowsTestTable();
+		table = setUpMatchedRowsTestTable(PersistenceType.NEVER);
 		column = table.getColumns().get("REGISTRATION");
 		table.resizeColumn(column.getName(), 12);
 		
@@ -350,8 +351,13 @@ public class TableTest {
 		softly.assertThat(table.getValueString(table.getColumns().get("TAXED"), row)).isEqualTo("true");
 	}
 	
-	private Table setUpMatchedRowsTestTable() {
-		setUp();
+	//@Test
+	public void testPersistenceType() {
+		Table table = setUpMatchedRowsTestTable(PersistenceType.NEVER);
+	}
+	
+	private Table setUpMatchedRowsTestTable(PersistenceType persistenceType) {
+		setUp(persistenceType);
 		int year = 2020;
 		ObjectParser parser = new ObjectParser(database);
 		Car car1 = createCar("LR20PNM", "Ford", "Fiesta", "Black", year, (byte)5, 1.4, true);

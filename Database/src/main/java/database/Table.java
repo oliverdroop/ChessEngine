@@ -5,8 +5,11 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,6 +20,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,18 +31,21 @@ import javafx.util.Pair;
 public class Table {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(Table.class);
-	private File schemaFile;
+	private String parentDirectory;
 	private String name;
 	private String className;
 	private String databaseName;
 	private Map<String, Column> columns;
 	private String primaryKey;
+	private PersistenceType persistenceType = PersistenceType.IMMEDIATE;
 	private boolean autoGenerateKey = false;
 	private byte[] lastGeneratedKey;
 	private int rowLength = 0;
 	private byte[] data = new byte[0];
+	private Timer persistenceTimer;
 	
 	public Table(File schemaFile) {
+		this.parentDirectory = schemaFile.getParent();
 		try {
 			FileReader fileReader = new FileReader(schemaFile.getPath());
 			BufferedReader br = new BufferedReader(fileReader);
@@ -76,6 +84,8 @@ public class Table {
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
@@ -249,13 +259,13 @@ public class Table {
 	
 	public int addRow(byte[] row) {
 		if (data == null) {
-			data = new byte[0];
+			setData(new byte[0]);
 		}
 		if (isAddableRow(row)) {
 			byte[] newData = new byte[data.length + row.length];
 			System.arraycopy(data, 0, newData, 0, data.length);
 			System.arraycopy(row, 0, newData, data.length, row.length);
-			data = newData;
+			setData(newData);
 			LOGGER.info("Added data row. New length: {}", data.length);
 			LOGGER.info(getRowString(row));
 			return 1;
@@ -278,7 +288,7 @@ public class Table {
 		if (end <= newLength) {
 			System.arraycopy(data, end, newData, start, newLength - start);
 		}
-		data = newData;
+		setData(newData);
 		LOGGER.info("Deleted row with id {} from table {}", columns.get(primaryKey).getDataType().getValueString(id), name);
 		return 1;
 	}
@@ -302,7 +312,7 @@ public class Table {
 	
 	public int deleteAllRows() {
 		int rowCount = countRows();
-		data = new byte[0];
+		setData(new byte[0]);
 		return rowCount;
 	}
 	
@@ -325,6 +335,7 @@ public class Table {
 			System.arraycopy(newProperty, 0, data, (index * getRowLength()) + propertyIndex, propertyLength);
 			LOGGER.info("Successfully updated property {} of row {} in table {}", key, columns.get(primaryKey).getDataType().getValueString(id), name);
 		}
+		tryPersist();
 		return 1;
 	}
 	
@@ -401,8 +412,31 @@ public class Table {
 		}
 		catch(IOException e) {
     		e.printStackTrace();
-    		LOGGER.warn(e.getMessage());
+    		LOGGER.warn("Unable to save table data : {}", e.getMessage());
     	}
+	}
+	
+	public void save() {
+		String separator = File.separator;
+		StringBuilder pathBuilder = new StringBuilder();
+		if (parentDirectory == null) {
+			pathBuilder.append(System.getProperty("user.dir"));
+			pathBuilder.append(separator);
+			pathBuilder.append(databaseName);
+			
+			String directory = pathBuilder.toString();
+			File dirFile = new File(directory);
+			if (!Files.isDirectory(dirFile.toPath(), LinkOption.NOFOLLOW_LINKS)) {
+				dirFile.mkdir();
+				LOGGER.info("Created directory {}", directory);
+			}
+		} else {
+			pathBuilder.append(parentDirectory);
+		}
+		pathBuilder.append(separator);
+		pathBuilder.append(name);
+		pathBuilder.append(".ddbt");
+		save(pathBuilder.toString());
 	}
 	
 	public void load(String path) {
@@ -416,6 +450,43 @@ public class Table {
     		e.printStackTrace();
     		LOGGER.warn(e.getMessage());
     	}
+	}
+	
+	private void tryPersist() {
+		if (persistenceType == null) {
+			LOGGER.warn("No persistence type associated with table");
+		}
+		if (persistenceType == PersistenceType.IMMEDIATE) {
+			save();
+		}
+		if (persistenceType == PersistenceType.DELAYED) {
+			final class PersistenceTask extends TimerTask{
+				
+				private Table table;
+				
+				private PersistenceTask(Table table) {
+					this.table = table;
+				}
+
+				@Override
+				public void run() {
+					try {
+						try {
+							table.getClass().getMethod("save", null).invoke(table, null);
+						} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+							e.printStackTrace();
+						}
+					} catch (NoSuchMethodException | SecurityException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+			if (persistenceTimer != null) {
+				persistenceTimer.cancel();
+			}
+			persistenceTimer = new Timer();
+			persistenceTimer.schedule(new PersistenceTask(this), persistenceType.getDelay());
+		}
 	}
 	
 	public String getValueString(Column column, byte[] row) {
@@ -544,7 +615,7 @@ public class Table {
 					System.arraycopy(data, srcPos, newData, destPos, oldRowLength - startIndex);
 				}
 			}
-			data = newData;
+			setData(newData);
 		}
 	}
 	
@@ -570,7 +641,7 @@ public class Table {
 					System.arraycopy(data, srcPos, newData, destPos, oldRowLength - (startIndex + removalLength));
 				}
 			}
-			data = newData;
+			setData(newData);
 		}
 	}
 	
@@ -592,6 +663,9 @@ public class Table {
 	
 	public void setData(byte[] data) {
 		this.data = data;
+		if (data != null) {
+			tryPersist();
+		}
 	}
 
 	public boolean isAutoGenerateKey() {
@@ -608,5 +682,13 @@ public class Table {
 
 	public void setClassName(String className) {
 		this.className = className;
+	}
+
+	public PersistenceType getPersistenceType() {
+		return persistenceType;
+	}
+
+	public void setPersistenceType(PersistenceType persistenceType) {
+		this.persistenceType = persistenceType;
 	}
 }

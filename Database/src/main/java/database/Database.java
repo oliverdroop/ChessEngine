@@ -17,7 +17,7 @@ public class Database {
 	
 	private Map<String, Table> tables;
 	
-	public Database(String rootDirectory, boolean loadData) {
+	public Database(String rootDirectory, boolean loadData, PersistenceType persistenceType) {
 		LOGGER.info("Started database");
 		File directory = new File(rootDirectory);
     	File[] files = directory.listFiles();
@@ -25,6 +25,7 @@ public class Database {
 		for(File file : files) {
     		if (file.getName().endsWith(".dbtd")) {
     			Table table = new Table(file);
+    			table.setPersistenceType(persistenceType);
     			tables.put(table.getName(), table);
     			LOGGER.info("Created new table: {}", table.getName());
     		}    		
@@ -42,8 +43,16 @@ public class Database {
 	}
 	
 	public static void main(String[] args) {
-		String path = System.getProperty("user.dir");		
-		Database database = new Database(path, true);	
+		String path = System.getProperty("user.dir");
+		PersistenceType persistenceType = PersistenceType.IMMEDIATE;
+		for(String arg : args) {
+			for(PersistenceType pType : PersistenceType.values()) {
+				if (arg.equals(pType.name())) {
+					persistenceType = pType;
+				}
+			}
+		}
+		Database database = new Database(path, true, persistenceType);	
 		database.listen();
 	}
 	

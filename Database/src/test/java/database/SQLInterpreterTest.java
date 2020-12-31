@@ -30,7 +30,7 @@ public class SQLInterpreterTest {
 	
 	@Before
 	public void setUp(){
-		database = new Database(getDataDirectory(), false);		
+		database = new Database(getDataDirectory(), false, PersistenceType.NEVER);		
 	}
 	
 	@Test

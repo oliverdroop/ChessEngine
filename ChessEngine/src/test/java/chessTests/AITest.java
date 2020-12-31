@@ -51,6 +51,8 @@ public class AITest {
 		Board resultantBoard = chosenMove.getResultantBoard();
 		FENWriter fenWriter = new FENWriter();
 		softly.assertThat(fenWriter.write(resultantBoard)).as("Upgrading white pawn should avoid stalemate").contains(expectedFEN);
+		chosenMove.getPiece().move(chosenMove.getEndSquare());
+		softly.assertThat(fenWriter.write(game.getBoard())).as("Move did not result in expected FEN").contains(expectedFEN);
 	}
 	
 	private void setupTest(String fen) {
