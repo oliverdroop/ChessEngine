@@ -1,0 +1,194 @@
+<!--
+Copyright (c) 2020 Oliver Droop
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+-->
+<html>
+<head>
+</head>
+<body>
+<canvas id="myCanvas" style="position:absolute; left:0px; top:0px"></canvas>
+<script>
+var canv = document.getElementById("myCanvas");
+canv.width = window.innerWidth;
+canv.height = window.innerHeight;
+var ctx = canv.getContext("2d");
+var movers = [];
+generateMovers();
+setInterval(moveMovers, 10);
+setInterval(drawMovers, 10);
+function generateMovers(){
+	var count = 20;
+	for(var i = 0; i < count; i++){
+		var radius = 20;
+		var speed = 2;
+		var angle = Math.random() * Math.PI * 2;
+		var mover = {
+			x:Math.random() * (canv.width - (2 * radius)) + radius,
+			y:Math.random() * (canv.height - (2 * radius)) + radius,
+			radius:radius,
+			speedX:Math.sin(angle) * speed,
+			speedY:-Math.cos(angle) * speed
+		}
+		var add = true;
+		for(mover2 of movers){
+			if (findDistance(mover.x, mover.y, mover2.x, mover2.y) < mover.radius + mover2.radius){
+				i--;
+				add = false;
+				break;
+			}
+		}
+		if (add){
+			movers.push(mover);
+		}
+	}
+}
+function drawMovers(){
+	ctx.fillStyle = "rgb(255,255,255)";
+	ctx.fillRect(0,0,canv.width, canv.height);
+	var mover;
+	for(mover of movers){
+		ctx.beginPath();
+		ctx.arc(mover.x, mover.y, mover.radius, 0, Math.PI * 2);
+		ctx.stroke();
+	}
+}
+function moveMovers(){
+	for(mover of movers){
+		mover.x += mover.speedX;
+		mover.y -= mover.speedY;
+	}
+	bounceMovers();
+}
+function bounceMovers(){
+	var alreadyBounced = [];
+	for(mover of movers){
+		//mover.speedY -= 0.05;
+		if (mover.x < mover.radius || mover.x > canv.width - mover.radius){
+			mover.speedX = -mover.speedX;
+		}
+		if (mover.y < mover.radius || mover.y > canv.height - mover.radius){
+			mover.speedY = -mover.speedY;
+		}
+		for(mover2 of movers){
+			if (mover2 == mover){
+				continue;
+			}
+			if (alreadyBounced.includes(mover2) || alreadyBounced.includes(mover)){
+				continue;
+			}
+			var dist = findDistance(mover.x, mover.y, mover2.x, mover2.y);
+			if (dist < mover.radius + mover2.radius){
+				var travelAngle1 = findAngle(0, 0, mover.speedX, mover.speedY);
+				var travelAngle2 = findAngle(0, 0, mover2.speedX, mover2.speedY);
+				var speed1 = findDistance(0, 0, mover.speedX, mover.speedY);
+				var speed2 = findDistance(0, 0, mover2.speedX, mover2.speedY);				
+				var collisionAngle1 = findAngle(mover.x, mover.y, mover2.x, mover2.y);
+				var collisionAngle2 = findAngle(mover2.x, mover2.y, mover.x, mover.y);
+				
+				var diffAngle1 = travelAngle1 - collisionAngle1;
+				var diffAngle2 = travelAngle2 - collisionAngle2;
+				
+				var addAngle1 = (diffAngle2) + Math.PI;
+				var addAngle2 = (diffAngle1) + Math.PI;
+				
+				var resultantSpeedX1 = Math.sin(collisionAngle1 + addAngle1) * speed1;
+				var resultantSpeedY1 = -Math.cos(collisionAngle1 + addAngle1) * speed1;
+				var resultantSpeedX2 = Math.sin(collisionAngle2 + addAngle2) * speed2;
+				var resultantSpeedY2 = -Math.cos(collisionAngle2 + addAngle2) * speed2;
+				
+				//var resultantSpeedX1 = Math.sin(collisionAngle2) * speed1;
+				//var resultantSpeedY1 = -Math.cos(collisionAngle2) * speed1;
+				//var resultantSpeedX2 = Math.sin(collisionAngle1) * speed2;
+				//var resultantSpeedY2 = -Math.cos(collisionAngle1) * speed2;
+				
+				mover.speedX = resultantSpeedX1;
+				mover.speedY = resultantSpeedY1;
+				mover2.speedX = resultantSpeedX2;
+				mover2.speedY = resultantSpeedY2;
+				
+				alreadyBounced.push(mover);
+				alreadyBounced.push(mover2);
+			}
+		}
+	}
+}
+
+function isBetween2D(ptst, p0, p1, p2){
+	var out = false;
+	var a1 = findAngle2D(p0, p1);
+	var a2 = findAngle2D(p0, p2);
+	if (a2 - a1 > Math.PI || (a1 - a2 < Math.PI) && (a1 - a2) > 0){
+		return isBetween2D(ptst, p0, p2, p1);
+	}
+	var atst = findAngle2D(p0, ptst);
+	if (a1 > a2){
+		a1 -= (Math.PI * 2);
+	}
+	if (atst >= a1 && atst <= a2){
+		out = true;
+	}
+	else{
+		atst -= (Math.PI * 2);
+		if (atst >= a1 && atst <= a2){
+			out = true;
+		}
+	}
+	return out;
+}
+function isWithin2D(p, poly){
+	var out = true;
+	var p0 = {x: poly.v0.screenX, y: poly.v0.screenY};
+	var p1 = {x: poly.v1.screenX, y: poly.v1.screenY};
+	var p2 = {x: poly.v2.screenX, y: poly.v2.screenY};
+	if (isBetween2D(p, p0, p2, p1) == false){
+		out = false;
+	}
+	if (isBetween2D(p, p1, p0, p2) == false){
+		out = false;
+	}
+	if (isBetween2D(p, p2, p1, p0) == false){
+		out = false;
+	}
+	return out;
+}
+function findAngle(x0, y0, x1, y1){
+	var a = 0;
+	if (y0 - y1 != 0){
+		a = Math.atan((x1 - x0) / (y0 - y1));
+	}else{
+		a = Math.PI / (2 * Math.sign(x1 - x0));
+	}
+	if (x1 - x0 >= 0 && y1 - y0 > 0) {
+		a += Math.PI;
+	}
+	if (x1 - x0 < 0 && y1 - y0 > 0) {
+        a += Math.PI;
+    }
+	if (x1 - x0 < 0 && y1 - y0 <= 0) {
+        a += Math.PI * 2;
+    }
+	return a;
+}
+function findDistance(x0, y0, x1, y1){
+	return Math.sqrt(Math.pow(x1 - x0, 2) + Math.pow(y1 - y0, 2));
+}
+</script>
+</body>
+</html>
