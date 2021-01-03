@@ -34,7 +34,7 @@ generateMovers();
 setInterval(moveMovers, 10);
 setInterval(drawMovers, 10);
 function generateMovers(){
-	var count = 20;
+	var count = 100;
 	for(var i = 0; i < count; i++){
 		var radius = 20;
 		var speed = 2;
@@ -105,6 +105,16 @@ function bounceMovers(){
 				var diffAngle1 = travelAngle1 - collisionAngle1;
 				var diffAngle2 = travelAngle2 - collisionAngle2;
 				
+				var closingSpeed1 = Math.cos(diffAngle1) * speed1;
+				var closingSpeed2 = Math.cos(diffAngle2) * speed2;
+				var closingDiff = closingSpeed1 - closingSpeed2;
+				
+				var resultantSpeedX1 = mover2.speedX + (closingDiff * Math.sin(collisionAngle2));
+				var resultantSpeedY1 = mover2.speedY - (closingDiff * Math.cos(collisionAngle2));
+				var resultantSpeedX2 = mover.speedX + (closingDiff * Math.sin(collisionAngle2));
+				var resultantSpeedY2 = mover.speedY - (closingDiff * Math.cos(collisionAngle2));
+				
+				/*
 				var addAngle1 = (diffAngle2) + Math.PI;
 				var addAngle2 = (diffAngle1) + Math.PI;
 				
@@ -112,11 +122,7 @@ function bounceMovers(){
 				var resultantSpeedY1 = -Math.cos(collisionAngle1 + addAngle1) * speed1;
 				var resultantSpeedX2 = Math.sin(collisionAngle2 + addAngle2) * speed2;
 				var resultantSpeedY2 = -Math.cos(collisionAngle2 + addAngle2) * speed2;
-				
-				//var resultantSpeedX1 = Math.sin(collisionAngle2) * speed1;
-				//var resultantSpeedY1 = -Math.cos(collisionAngle2) * speed1;
-				//var resultantSpeedX2 = Math.sin(collisionAngle1) * speed2;
-				//var resultantSpeedY2 = -Math.cos(collisionAngle1) * speed2;
+				*/
 				
 				mover.speedX = resultantSpeedX1;
 				mover.speedY = resultantSpeedY1;
