@@ -31,8 +31,8 @@ canv.height = window.innerHeight;
 var ctx = canv.getContext("2d");
 var movers = [];
 generateMovers();
-setInterval(moveMovers, 10);
-setInterval(drawMovers, 10);
+setInterval(moveMovers, 100);
+setInterval(drawMovers, 100);
 function generateMovers(){
 	var count = 100;
 	for(var i = 0; i < count; i++){
@@ -109,20 +109,52 @@ function bounceMovers(){
 				var closingSpeed2 = Math.cos(diffAngle2) * speed2;
 				var closingDiff = closingSpeed1 - closingSpeed2;
 				
-				var resultantSpeedX1 = mover2.speedX + (closingDiff * Math.sin(collisionAngle2));
-				var resultantSpeedY1 = mover2.speedY - (closingDiff * Math.cos(collisionAngle2));
-				var resultantSpeedX2 = mover.speedX + (closingDiff * Math.sin(collisionAngle2));
-				var resultantSpeedY2 = mover.speedY - (closingDiff * Math.cos(collisionAngle2));
+				//Considering mover2 as stationary
+				var speedX1 = mover.speedX - mover2.speedX;
+				var speedY1 = mover.speedY - mover2.speedY;
+				var travelAngle1 = findAngle(0, 0, speedX1, speedY1);
+				var diffAngle1 = travelAngle1 - collisionAngle1;
+				var resultantAngle1;
+				if (Math.sin(diffAngle1) > 0){
+					resultantAngle1 = collisionAngle1 + (Math.PI / 2);
+				} else{
+					resultantAngle1 = collisionAngle1 - (Math.PI / 2);
+				}
+				var u1 = findDistance(0, 0, speedX1, speedY1);
+				var v2 = u1 * Math.cos(diffAngle1);
+				var v1 = u1 * Math.sin(diffAngle1);
+				v2 = Math.sign(v2) * v2;
+				v1 = Math.sign(v1) * v1;
 				
-				/*
-				var addAngle1 = (diffAngle2) + Math.PI;
-				var addAngle2 = (diffAngle1) + Math.PI;
+				var v2X = v2 * Math.sin(collisionAngle1);
+				var v2Y = v2 * -Math.cos(collisionAngle1);
+				var v1X = v1 * Math.sin(resultantAngle1);
+				var v1Y	= v1 * -Math.cos(resultantAngle1);
+				//Adjusting back by adding mover2 speed components
+				v2X += mover2.speedX;
+				v2Y += mover2.speedY;
+				v1X += mover2.speedX;
+				v1Y += mover2.speedY;
 				
-				var resultantSpeedX1 = Math.sin(collisionAngle1 + addAngle1) * speed1;
-				var resultantSpeedY1 = -Math.cos(collisionAngle1 + addAngle1) * speed1;
-				var resultantSpeedX2 = Math.sin(collisionAngle2 + addAngle2) * speed2;
-				var resultantSpeedY2 = -Math.cos(collisionAngle2 + addAngle2) * speed2;
-				*/
+				var resultantSpeedX1 = v1X;
+				var resultantSpeedY1 = v1Y;
+				var resultantSpeedX2 = v2X;
+				var resultantSpeedY2 = v2Y;
+				
+				//var closingSpeedX1 = closingDiff * Math.sin(collisionAngle1);
+				//var closingSpeedY1 = closingDiff * -Math.cos(collisionAngle1);
+				//var closingSpeedX2 = closingDiff * Math.sin(collisionAngle2);
+				//var closingSpeedY2 = closingDiff * -Math.cos(collisionAngle2);
+				
+				//var resultantSpeedX1 = mover2.speedX - closingSpeedX1;
+				//var resultantSpeedY1 = mover2.speedY + closingSpeedY1;
+				//var resultantSpeedX2 = mover.speedX + closingSpeedX2;
+				//var resultantSpeedY2 = mover.speedY - closingSpeedY2;
+				
+				//var resultantSpeedX1 = mover2.speedX + (closingDiff * Math.sin(collisionAngle2));
+				//var resultantSpeedY1 = mover2.speedY - (closingDiff * Math.cos(collisionAngle2));
+				//var resultantSpeedX2 = mover.speedX - (closingDiff * Math.sin(collisionAngle1));
+				//var resultantSpeedY2 = mover.speedY + (closingDiff * Math.cos(collisionAngle1));
 				
 				mover.speedX = resultantSpeedX1;
 				mover.speedY = resultantSpeedY1;
