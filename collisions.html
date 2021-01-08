@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2020 Oliver Droop
+Copyright (c) 2021 Oliver Droop
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -31,8 +31,8 @@ canv.height = window.innerHeight;
 var ctx = canv.getContext("2d");
 var movers = [];
 generateMovers();
-setInterval(moveMovers, 100);
-setInterval(drawMovers, 100);
+setInterval(moveMovers, 10);
+setInterval(drawMovers, 10);
 function generateTestMovers(){
 	for(var i = 0; i < 8; i++){
 		var angle = 0;
@@ -61,10 +61,7 @@ function generateMovers(){
 	var count = 100;
 	for(var i = 0; i < count; i++){
 		var radius = 20;
-		var speed = 0;
-		if (i == 0){
-			speed = 2;
-		}
+		var speed = 2;
 		var angle = Math.random() * Math.PI * 2;
 		var mover = {
 			x:Math.random() * (canv.width - (2 * radius)) + radius,
@@ -144,22 +141,22 @@ function bounceMovers(){
 				var perpendicularAngleRight = incomingAngle + (Math.PI / 2);
 				
 				var connectionAngle = findAngle(faster.x, faster.y, slower.x, slower.y) - incomingAngle;
-				var resultantAngle = perpendicularAngleLeft;
+				var resultantAngle1 = perpendicularAngleLeft;
 				
 				var v2ResultantSpeed = incomingSpeed * Math.cos(connectionAngle);
 				
 				var v2yComponent = v2ResultantSpeed * Math.cos(connectionAngle);
 				var v2xComponent = v2ResultantSpeed * Math.sin(connectionAngle);
 				var v1ResultantSpeed = Math.sqrt(Math.pow(incomingSpeed, 2) - Math.pow(v2ResultantSpeed, 2));
-				var v1yComponent = v1ResultantSpeed * Math.cos(resultantAngle);
-				var v1xComponent = v1ResultantSpeed * Math.sin(resultantAngle);
+				var v1yComponent = v1ResultantSpeed * Math.cos(resultantAngle1);
+				var v1xComponent = v1ResultantSpeed * Math.sin(resultantAngle1);
 				
 				//Adjust back 
 				var adjustmentAngle = incomingAngle;
 				v1yComponent = v1yComponent * -Math.cos(adjustmentAngle);
 				v2yComponent = v2yComponent * -Math.cos(adjustmentAngle);
 				v1xComponent = v1xComponent * Math.sin(adjustmentAngle);
-				v2xComponent = v2xComponent * Math.sin(adjustmentAngle);
+				v2xComponent = v2xComponent * -Math.sin(adjustmentAngle);
 				
 				faster.speedX = v1xComponent + slower.speedX;
 				faster.speedY = v1yComponent + slower.speedY;
