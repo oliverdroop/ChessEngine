@@ -1,42 +1,46 @@
 package crossword;
 
-import java.util.Optional;
+import java.util.Random;
 
 public class TemplateGenerator {
 	
-	public static Template generateTemplate() {
-		Grid grid = new Grid(5);
+	private static final int MIN_CLUE_LENGTH = 3;
+	
+	public static Template generateTemplate(int size) {
+		Grid grid = new Grid(size);
 		Template template = new Template(grid);
+		int blackoutCount = (int)Math.round(Math.pow(size, 2) / 10);
+		blackOutRandomSquares(template, blackoutCount);
+		template.setClues(template.generateClues());
+//		if (template.getClues().stream().filter(clue -> clue.getLength() < 2).count() > 0) {
+//			template = generateTemplate(size);
+//		}
 		TemplateFiller.fillTemplate(template, new Dictionary());
 		return template;
 	}
 	
-	public static void printTemplate(Template template) {
-		int w = template.getGrid().getWidth();
-		int h = template.getGrid().getHeight();
-		for(int y = 0; y < h + 2; y++) {
-			int gridY = y - 1;
-			for(int x = 0; x < w + 2; x++) {
-				int gridX = x - 1;
-				String placeholder = "██";
-				if (x > 0 && x < w + 1 && y > 0 && y < h + 1) {
-					Optional<Integer> clueNumber = template.getClueNumber(gridX, gridY);
-					String clueNumberString = clueNumber.isPresent() ? String.valueOf(clueNumber.get()) : " ";
-					
-					Optional<Character> optChar = template.getCharacter(gridX, gridY);
-					char charString = optChar.isPresent() ? optChar.get() : ' ';
-					
-					String square = clueNumberString + charString;
-					placeholder = template.isBlack(gridX, gridY) ? "██" : square.toUpperCase();
+	private static void blackOutRandomSquares(Template template, int blackouts) {
+		Grid grid = template.getGrid();
+		Random rnd = new Random();
+		for(int i = 0; i < blackouts; i++) {
+			Integer x = null;
+			Integer y = null;
+			int minClueLength = 0;
+			while(x == null || !template.isBlack(x, y)) {
+				x = rnd.nextInt(grid.getWidth());
+				y = rnd.nextInt(grid.getHeight());
+				template.setBlack(x, y);
+				int xR = grid.getWidth() - x - 1;
+				int yR = grid.getHeight() - y - 1;
+				template.setBlack(xR, yR);
+				minClueLength = template.generateClues().stream().min(new ClueLengthComparator()).get().getLength();
+				if (minClueLength < MIN_CLUE_LENGTH) {
+					template.setWhite(x, y);
+					template.setWhite(xR, yR);
+					x = rnd.nextInt(grid.getWidth());
+					y = rnd.nextInt(grid.getHeight());
 				}
-				System.out.print(placeholder);
-			}			
-			System.out.println();
+			}
 		}
-	}
-	
-	public static void main(String[] args) {
-		Template template = generateTemplate();
-		printTemplate(template);
 	}
 }

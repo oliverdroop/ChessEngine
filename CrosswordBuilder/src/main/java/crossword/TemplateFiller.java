@@ -10,7 +10,7 @@ public class TemplateFiller {
 	public static void fillTemplate(Template template, Dictionary dictionary) {
 		List<Clue> sortedClues = template.getClues();
 		Collections.shuffle(sortedClues);
-		sortedClues.sort(new TemplateFiller.ClueLengthComparator());
+		sortedClues.sort(new ClueLengthComparator());
 		
 		boolean filled = true;
 		List<String> usedWords = new ArrayList<>();
@@ -22,7 +22,7 @@ public class TemplateFiller {
 					answer = dictionary.getRandomWordToFit(clue.getLength(), template.getCheckers(clue));
 				}
 				catch(NoWordFoundException e) {
-					System.out.println(e.getMessage());
+					//System.out.println(e.getMessage());
 					filled = false;
 					break;
 				}
@@ -34,16 +34,5 @@ public class TemplateFiller {
 			template.clearClueAnswers();
 			fillTemplate(template, dictionary);
 		}
-	}
-	
-	private static class ClueLengthComparator implements Comparator<Clue> {
-
-		@Override
-		public int compare(Clue clue1, Clue clue2) {
-			Integer length1 = clue1.getLength();
-			Integer length2 = clue2.getLength();
-			return length1.compareTo(length2);
-		}
-	}
-	
+	}	
 }

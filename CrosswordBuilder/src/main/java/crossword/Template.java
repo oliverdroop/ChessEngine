@@ -2,6 +2,7 @@ package crossword;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -30,15 +31,11 @@ public class Template {
 				if (y % 2 == 0) {
 					blackSquares[x][y] = false;
 				}
-				if (x == 2 && y == 2) {
-					blackSquares[x][y] = true;
-				}
 			}
 		}
-		clues = generateClues();
 	}
 	
-	private List<Clue> generateClues(){
+	public List<Clue> generateClues(){
 		List<Clue> clues = new ArrayList<>();
 		int nextClueNumber = 0;
 		for(int y = 0; y < grid.getHeight(); y++) {			
@@ -131,6 +128,17 @@ public class Template {
 		return directionLengths;
 	}
 	
+	public int getHighestClueNumber() {
+		return clues.stream().max(new ClueNumberComparator()).get().getNumber();
+	}
+	
+	private class ClueNumberComparator implements Comparator<Clue> {
+		@Override
+		public int compare(Clue clue1, Clue clue2) {
+			return Integer.compare(clue1.getNumber(), clue2.getNumber());
+		}
+	}
+	
 	public void clearClueAnswers() {
 		clues.forEach(clue -> clue.setAnswer(null));
 	}
@@ -146,6 +154,14 @@ public class Template {
 	public boolean isBlack(int x, int y) {
 		return blackSquares[x][y];
 	}
+	
+	public void setBlack(int x, int y) {
+		blackSquares[x][y] = true;
+	}
+	
+	public void setWhite(int x, int y) {
+		blackSquares[x][y] = false;
+	}
 
 	public void setBlackSquares(boolean[][] blackSquares) {
 		this.blackSquares = blackSquares;
@@ -154,4 +170,9 @@ public class Template {
 	public List<Clue> getClues() {
 		return clues;
 	}
+
+	public void setClues(List<Clue> clues) {
+		this.clues = clues;
+	}
+	
 }
