@@ -1,6 +1,8 @@
 package crossword;
 
+import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 public class TemplateGenerator {
 	
@@ -33,8 +35,12 @@ public class TemplateGenerator {
 				int xR = grid.getWidth() - x - 1;
 				int yR = grid.getHeight() - y - 1;
 				template.setBlack(xR, yR);
-				minClueLength = template.generateClues().stream().min(new ClueLengthComparator()).get().getLength();
-				if (minClueLength < MIN_CLUE_LENGTH) {
+				List<Clue> possibleClues = template.generateClues();
+				minClueLength = possibleClues.stream().min(new ClueLengthComparator()).get().getLength();
+				if (minClueLength < MIN_CLUE_LENGTH || possibleClues.stream()
+						.filter(clue -> Template.countIntersections(clue, possibleClues) < 2)
+						.collect(Collectors.toList())
+						.size() > 0) {
 					template.setWhite(x, y);
 					template.setWhite(xR, yR);
 					x = rnd.nextInt(grid.getWidth());

@@ -1,5 +1,8 @@
 package crossword;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class Clue {
 	
 	private int number;
@@ -22,6 +25,18 @@ public class Clue {
 		this.number = number;
 		this.direction = direction;
 		this.length = length;
+	}
+	
+	public Map<Direction, Integer> getCoordinatesAtPosition(int position) {
+		Map<Direction, Integer> coordinates = new HashMap<>();
+		if (direction == Direction.ACROSS) {
+			coordinates.put(Direction.ACROSS, startX + position);
+			coordinates.put(Direction.DOWN, startY);
+		} else {
+			coordinates.put(Direction.ACROSS, startX);
+			coordinates.put(Direction.DOWN, startY + position);
+		}
+		return coordinates;
 	}
 
 	public int getNumber() {

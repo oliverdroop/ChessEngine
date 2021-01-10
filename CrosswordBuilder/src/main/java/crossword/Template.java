@@ -104,6 +104,27 @@ public class Template {
 		return Optional.empty();
 	}
 	
+	public static int countIntersections(Clue clue, List<Clue> clues) {
+		int count = 0;
+		for(int i = 0; i < clue.getLength(); i++) {
+			Map<Direction, Integer> coordinates = clue.getCoordinatesAtPosition(i);
+			for(Clue clue2 : clues) {
+				if (clue2 == clue) {
+					continue;
+				}
+				for(int i2 = 0; i2 < clue.getLength(); i2++) {
+					Map<Direction, Integer> coordinates2 = clue2.getCoordinatesAtPosition(i2);
+					if (coordinates.get(Direction.ACROSS).equals(coordinates2.get(Direction.ACROSS))
+							&& coordinates.get(Direction.DOWN).equals(coordinates2.get(Direction.DOWN))) {
+						count++;
+					}
+				}
+			}
+		}
+		return count;
+		
+	}
+	
 	private Map<Direction, Integer> getClueDirectionLengths(int x, int y){
 		Map<Direction, Integer> directionLengths = new LinkedHashMap<>();
 		if (blackSquares[x][y]) {
