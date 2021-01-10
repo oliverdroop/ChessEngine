@@ -84,13 +84,15 @@ function generateMovers(){
 	}
 }
 function drawMovers(){
-	ctx.fillStyle = "rgb(255,255,255)";
+	ctx.fillStyle = "rgb(0,0,0)";
 	ctx.fillRect(0,0,canv.width, canv.height);
 	var mover;
 	for(mover of movers){
+		ctx.fillStyle = "rgb(255,255,255)";
 		ctx.beginPath();
 		ctx.arc(mover.x, mover.y, mover.radius, 0, Math.PI * 2);
 		ctx.stroke();
+		ctx.fill();
 	}
 }
 function moveMovers(){
