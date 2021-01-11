@@ -176,12 +176,8 @@ public class Template {
 		return blackSquares[x][y];
 	}
 	
-	public void setBlack(int x, int y) {
-		blackSquares[x][y] = true;
-	}
-	
-	public void setWhite(int x, int y) {
-		blackSquares[x][y] = false;
+	public void setColour(int x, int y, boolean isBlack) {
+		blackSquares[x][y] = isBlack;
 	}
 
 	public void setBlackSquares(boolean[][] blackSquares) {

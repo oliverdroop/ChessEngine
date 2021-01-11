@@ -17,17 +17,11 @@ public class TemplateFiller {
 		for(int i = sortedClues.size() - 1; i >= 0 ; i--) {
 			Clue clue = sortedClues.get(i);
 			String answer = null;
-			long startSearch = System.currentTimeMillis();
 			while(answer == null || usedWords.contains(answer) == false) {
-//				if (System.currentTimeMillis() > startSearch + 1000) {
-//					template.clearClueAnswers();
-//					fillTemplate(template, dictionary);
-//				}
 				try {
 					answer = dictionary.getRandomWordToFit(clue.getLength(), template.getCheckers(clue));
 				}
 				catch(NoWordFoundException e) {
-					//System.out.println(e.getMessage());
 					filled = false;
 					break;
 				}
