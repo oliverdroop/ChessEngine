@@ -11,12 +11,13 @@ public class TemplateGenerator {
 	public static Template generateTemplate(int size) {
 		Grid grid = new Grid(size);
 		Template template = new Template(grid);
-		int blackoutCount = (int)Math.round(Math.pow(size, 2) / 10);
+		int blackoutCount = (int)Math.round(Math.pow(size, 2) / 8);
 		blackOutRandomSquares(template, blackoutCount);
 		template.setClues(template.generateClues());
 //		if (template.getClues().stream().filter(clue -> clue.getLength() < 2).count() > 0) {
 //			template = generateTemplate(size);
 //		}
+		TemplatePrinter.printTemplate(template);
 		TemplateFiller.fillTemplate(template, new Dictionary());
 		return template;
 	}
@@ -43,8 +44,8 @@ public class TemplateGenerator {
 						.size() > 0) {
 					template.setWhite(x, y);
 					template.setWhite(xR, yR);
-					x = rnd.nextInt(grid.getWidth());
-					y = rnd.nextInt(grid.getHeight());
+					x = null;
+					y = null;
 				}
 			}
 		}
