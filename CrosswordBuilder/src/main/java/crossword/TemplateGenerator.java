@@ -1,8 +1,13 @@
 package crossword;
 
+import java.awt.Point;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 import java.util.stream.Collectors;
+import javafx.util.Pair;
 
 public class TemplateGenerator {
 	
@@ -11,44 +16,93 @@ public class TemplateGenerator {
 	public static Template generateTemplate(int size) {
 		Grid grid = new Grid(size);
 		Template template = new Template(grid);
-		int blackoutCount = (int)Math.round(Math.pow(size, 2) / 10);
-		blackOutRandomSquares(template, blackoutCount);
+		blackOutEverything(template);
+		
+		Random rnd = new Random();
+		int count = 0;
+		while(count < (grid.getWidth() * grid.getHeight()) / 2) {
+			int x = rnd.nextInt(grid.getWidth() - MIN_CLUE_LENGTH);
+			int y = rnd.nextInt(grid.getHeight() - MIN_CLUE_LENGTH);
+			int xR = grid.getWidth() - x - 1;
+			int yR = grid.getHeight() - y - 1;
+			int dir = (int) Math.round(rnd.nextDouble());
+			Direction direction = dir == 0 ? Direction.ACROSS : Direction.DOWN;
+			
+			List<Point> newlyWhitened = new ArrayList<>();
+			if (direction == Direction.ACROSS) {
+				int length = rnd.nextInt(grid.getWidth() - MIN_CLUE_LENGTH - x) + 2;
+				while(length > 0) {
+					if (template.isBlack(x, y)) {
+						newlyWhitened.add(new Point(x, y));
+						newlyWhitened.add(new Point(xR, yR));
+					}
+					template.setColour(x, y, false);
+					template.setColour(xR, yR, false);
+					x++;
+					xR--;
+					length--;
+				}
+			}
+			
+			if (direction == Direction.DOWN) {
+				int length = rnd.nextInt(grid.getHeight() - MIN_CLUE_LENGTH - y) + 2;
+				while(length > 0) {
+					if (template.isBlack(x, y)) {
+						newlyWhitened.add(new Point(x, y));
+						newlyWhitened.add(new Point(xR, yR));
+					}
+					template.setColour(x, y, false);
+					template.setColour(xR, yR, false);
+					y++;
+					yR--;
+					length--;
+				}
+			}
+			
+			if (validateMinimumClueLength(template) && validateAdjacency(template)) {
+				count++;
+			} else {
+				newlyWhitened.forEach(point -> template.setColour(point.x, point.y, true));
+			}
+		}
 		template.setClues(template.generateClues());
 		TemplatePrinter.printTemplate(template);
 		TemplateFiller.fillTemplate(template, new Dictionary());
+		
 		return template;
 	}
 	
-	private static void blackOutRandomSquares(Template template, int blackouts) {
+	private static void blackOutEverything(Template template) {
 		Grid grid = template.getGrid();
-		Random rnd = new Random();
-		for(int i = 0; i < blackouts; i++) {
-			Integer x = null;
-			Integer y = null;
-			while(x == null) {
-				x = rnd.nextInt(grid.getWidth());
-				y = rnd.nextInt(grid.getHeight());
-				int xR = grid.getWidth() - x - 1;
-				int yR = grid.getHeight() - y - 1;
-				boolean isBlack = template.isBlack(x, y);
-				template.setColour(x, y, !isBlack);
-				template.setColour(xR, yR, !isBlack);
-				if (!isValidTemplate(template)) {
-					template.setColour(x, y, isBlack);
-					template.setColour(xR, yR, isBlack);
-					x = null;
-					y = null;
-				}
+		template.setBlackSquares(new boolean[grid.getWidth()][grid.getHeight()]);
+		for(int x = 0; x < grid.getWidth(); x++) {
+			for(int y = 0; y < grid.getHeight(); y++) {
+				template.setColour(x, y, true);
 			}
 		}
 	}
 	
 	private static boolean isValidTemplate(Template template) {
+		return validateMinimumClueLength(template) 
+				&& validateIntersections(template) 
+				&& validateAdjacency(template);
+	}
+	
+	private static boolean validateMinimumClueLength(Template template) {
 		List<Clue> possibleClues = template.generateClues();
-		int minClueLength = possibleClues.stream().min(new ClueLengthComparator()).get().getLength();
-		return minClueLength >= MIN_CLUE_LENGTH && possibleClues.stream()
-				.filter(clue -> Template.countIntersections(clue, possibleClues) < 2)
-				.collect(Collectors.toList())
-				.size() == 0;
+		return !possibleClues.stream()
+				.anyMatch(clue -> clue.getLength() < MIN_CLUE_LENGTH);
+	}
+	
+	private static boolean validateIntersections(Template template) {
+		List<Clue> possibleClues = template.generateClues();
+		return !possibleClues.stream()
+				.anyMatch(clue -> Template.countIntersections(clue, possibleClues) < Math.floor(clue.getLength() / 2));
+	}
+	
+	private static boolean validateAdjacency(Template template) {
+		List<Clue> possibleClues = template.generateClues();
+		return !possibleClues.stream()
+				.anyMatch(clue -> clue.isParallelAndAdjacentToAny(possibleClues));
 	}
 }

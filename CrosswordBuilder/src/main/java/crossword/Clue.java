@@ -1,6 +1,7 @@
 package crossword;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class Clue {
@@ -37,6 +38,39 @@ public class Clue {
 			coordinates.put(Direction.DOWN, startY + position);
 		}
 		return coordinates;
+	}
+	
+	public boolean isParallelAndAdjacentTo(Clue clue) {
+		if (this == clue || direction != clue.getDirection()) {
+			return false;
+		}
+		if (direction == Direction.ACROSS) {
+			int distPerpendicular = Math.abs(clue.getStartY() - startY);
+			//return distPerpendicular < 2;
+			if (distPerpendicular > 1) {
+				return false;
+			}
+			if (startX == clue.getStartX()) {
+				return true;
+			}
+			return (startX > clue.getStartX() && startX < clue.getStartX() + clue.getLength() - 1) 
+					|| (startX < clue.getStartX() && startX + length - 1 > clue.getStartX());
+		} else {
+			int distPerpendicular = Math.abs(clue.getStartX() - startX);
+			//return distPerpendicular < 2;
+			if (distPerpendicular > 1) {
+				return false;
+			}
+			if (startY == clue.getStartY()) {
+				return true;
+			}
+			return (startY > clue.getStartY() && startY < clue.getStartY() + clue.getLength() - 1) 
+					|| (startY < clue.getStartY() && startY + length - 1 > clue.getStartY());
+		}
+	}
+	
+	public boolean isParallelAndAdjacentToAny(List<Clue> clues) {
+		return clues.stream().anyMatch(clue -> isParallelAndAdjacentTo(clue));
 	}
 
 	public int getNumber() {

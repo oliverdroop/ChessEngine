@@ -17,7 +17,7 @@ public class TemplateFiller {
 		for(int i = sortedClues.size() - 1; i >= 0 ; i--) {
 			Clue clue = sortedClues.get(i);
 			String answer = null;
-			while(answer == null || usedWords.contains(answer) == false) {
+			while(answer == null || usedWords.contains(answer)) {
 				try {
 					answer = dictionary.getRandomWordToFit(clue.getLength(), template.getCheckers(clue));
 				}
@@ -25,8 +25,8 @@ public class TemplateFiller {
 					filled = false;
 					break;
 				}
-				usedWords.add(answer);
 			}
+			usedWords.add(answer);
 			clue.setAnswer(answer);
 		}
 		if (!filled) {

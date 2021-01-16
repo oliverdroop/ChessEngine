@@ -21,18 +21,6 @@ public class Template {
 	
 	public Template(Grid grid) {
 		this.grid = grid;
-		blackSquares = new boolean[grid.getWidth()][grid.getHeight()];
-		for(int x = 0; x < grid.getWidth(); x++) {
-			for(int y = 0; y < grid.getHeight(); y++) {
-				blackSquares[x][y] = true;
-				if (x % 2 == 0) {
-					blackSquares[x][y] = false;
-				}
-				if (y % 2 == 0) {
-					blackSquares[x][y] = false;
-				}
-			}
-		}
 	}
 	
 	public List<Clue> generateClues(){
@@ -58,6 +46,9 @@ public class Template {
 	}
 	
 	public Optional<Integer> getClueNumber(int x, int y) {
+		if (clues == null) {
+			return Optional.empty();
+		}
 		for(Clue clue : clues) {
 			if (clue.getStartX() != x || clue.getStartY() != y) {
 				continue;
@@ -86,6 +77,9 @@ public class Template {
 	}
 	
 	public Optional<Character> getCharacter(int x, int y) {
+		if (clues == null) {
+			return Optional.empty();
+		}
 		for(Clue clue : clues) {
 			int clueX = clue.getStartX();
 			int clueY = clue.getStartY();
@@ -150,7 +144,14 @@ public class Template {
 	}
 	
 	public int getHighestClueNumber() {
-		return clues.stream().max(new ClueNumberComparator()).get().getNumber();
+		if (clues == null) {
+			return 0;
+		}
+		Optional<Clue> highestNumberedClue = clues.stream().max(new ClueNumberComparator());
+		if (!highestNumberedClue.isPresent()) {
+			return 0;
+		}
+		return highestNumberedClue.get().getNumber();
 	}
 	
 	private class ClueNumberComparator implements Comparator<Clue> {
