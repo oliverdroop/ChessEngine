@@ -40,13 +40,12 @@ public class Clue {
 		return coordinates;
 	}
 	
-	public boolean isParallelAndAdjacentTo(Clue clue) {
+	private boolean isParallelAndAdjacentTo(Clue clue) {
 		if (this == clue || direction != clue.getDirection()) {
 			return false;
 		}
 		if (direction == Direction.ACROSS) {
 			int distPerpendicular = Math.abs(clue.getStartY() - startY);
-			//return distPerpendicular < 2;
 			if (distPerpendicular > 1) {
 				return false;
 			}
@@ -57,7 +56,6 @@ public class Clue {
 					|| (startX < clue.getStartX() && startX + length - 1 > clue.getStartX());
 		} else {
 			int distPerpendicular = Math.abs(clue.getStartX() - startX);
-			//return distPerpendicular < 2;
 			if (distPerpendicular > 1) {
 				return false;
 			}

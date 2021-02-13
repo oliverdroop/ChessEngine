@@ -1,17 +1,17 @@
-package mainpackage;
+package numbertester;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
+import java.util.Collections;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.sun.net.httpserver.HttpServer;
 
 public class MainClass {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(MainClass.class);
+	
     public static void main(String[] args){
-    	
+    	PrimeFinder pf = new PrimeFinder();
+    	pf.findMersennePrimes();
     }
     
     public void expressBaseNNumbers() {
@@ -32,7 +32,8 @@ public class MainClass {
         Visualizer v = new Visualizer();
         
         PrimeFinder primeFinder = new PrimeFinder();
-        List<Integer> primes = primeFinder.findPrimes(upperLimit);
+        //List<Integer> primes = primeFinder.findPrimes(upperLimit);
+        List<Integer> primes = Collections.emptyList();
         v.drawBlock(primes, primeFinder.getClass());
         v.drawSquareSpiral(primes, primeFinder.getClass());
         

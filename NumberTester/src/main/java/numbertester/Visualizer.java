@@ -1,4 +1,4 @@
-package mainpackage;
+package numbertester;
 
 import java.awt.Graphics;
 import java.awt.Point;

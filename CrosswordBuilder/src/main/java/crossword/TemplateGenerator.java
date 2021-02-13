@@ -17,6 +17,7 @@ public class TemplateGenerator {
 		Grid grid = new Grid(size);
 		Template template = new Template(grid);
 		blackOutEverything(template);
+		//makeCornerClues(template);
 		
 		Random rnd = new Random();
 		int count = 0;
@@ -70,6 +71,31 @@ public class TemplateGenerator {
 		TemplateFiller.fillTemplate(template, new Dictionary());
 		
 		return template;
+	}
+	
+	private static void makeCornerClues(Template template) {
+		int width = template.getGrid().getWidth();
+		int height = template.getGrid().getHeight();
+		if (width > 6) {
+			for(int y = 0; y < height; y += height - 1) {
+				for(int x = 0; x < 3; x++) {
+					template.setColour(x, y, false);
+				}
+				for(int x = width - 1; x > width - 4; x--) {
+					template.setColour(x, y, false);
+				}
+			}
+		}
+		if (height > 6) {
+			for(int x = 0; x < width; x += width - 1) {
+				for(int y = 0; y < 3; y++) {
+					template.setColour(x, y, false);
+				}
+				for(int y = height - 1; y > height - 4; y--) {
+					template.setColour(x, y, false);
+				}
+			}
+		}
 	}
 	
 	private static void blackOutEverything(Template template) {
