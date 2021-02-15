@@ -66,7 +66,6 @@ int lucasLehmer(unsigned long int p){
 	mpz_clear(one);
 	mpz_clear(two);
 	mpz_clear(s);
-	mpz_clear(zero);
 	mpz_clear(twoToP);
 	mpz_clear(m);
 	mpz_clear(pEq);
@@ -74,10 +73,11 @@ int lucasLehmer(unsigned long int p){
 	return rtrn;
 }
 
-int main() {
+int main(int argc, char **argv) {
 	clock_t start = clock(), diff;
 	int primeTest;
-	int upperLimit = 5000;
+	int upperLimit;
+	sscanf(argv[1], "%d", &upperLimit);
 	int count = 0;
 	unsigned long int num = 1;
 	while(num < upperLimit){
