@@ -2,8 +2,9 @@
 #include <time.h>
 #include <math.h>
 #include <inttypes.h>
+#include "gmp-impl.h"
 
-int isPrime(int test){
+int isPrime(unsigned long int test){
 	if (test == 1){
 		return 1;
 	}
@@ -15,27 +16,70 @@ int isPrime(int test){
 	return 1;
 }
 
-int lucasLehmer(int p){
-	int64_t s = 4;
-	int64_t m = pow(2, p) - 1;
-	int64_t count = p - 2;
-	while(count > 0) {
-		s = ((s * s) - 2) % m;
-		count--;
+int lucasLehmer(unsigned long int p){
+	//initialize the number 0
+	mpz_t zero;
+	mpz_init_set_ui(zero, 0);
+	//initialize the number 1
+	mpz_t one;
+	mpz_init_set_ui(one, 1);
+	//initialize the number 2
+	mpz_t two;
+	mpz_init_set_ui(two, 2);
+	
+	//initialize the number s = 4
+	mpz_t s;
+	mpz_init_set_ui(s, 4);
+	
+	//initialize and calculate the number m
+	mpz_t twoToP;
+	mpz_init(twoToP);
+	mpz_pow_ui(twoToP, two, p);
+	mpz_t m;
+	mpz_init(m);
+	mpz_sub(m, twoToP, one);
+	
+	//initialize the number count
+	mpz_t pEq;
+	mpz_init_set_ui(pEq, p);
+	mpz_t count;
+	mpz_init(count);
+	mpz_sub(count, pEq, two);
+	
+	int countZComp = mpz_cmp(count, zero);
+	while(countZComp > 0) {
+		mpz_mul(s, s, s);
+		mpz_sub(s, s, two);
+		mpz_mod(s, s, m);
+		
+		mpz_sub(count, count, one);
+		countZComp = mpz_cmp(count, zero);
 	}
-	if (s == 0) {
-		printf("%d is a Mersenne prime generated from prime %d\n", m, p);
-		return 1;
+	int zeroComp = mpz_cmp(s, zero);
+	int rtrn = 0;
+	if (zeroComp == 0) {
+		gmp_printf("%Zd is a Mersenne prime generated from prime ", m);
+		printf("%d\n", p);
+		rtrn = 1;
 	}
-	return 0;
+	mpz_clear(zero);
+	mpz_clear(one);
+	mpz_clear(two);
+	mpz_clear(s);
+	mpz_clear(zero);
+	mpz_clear(twoToP);
+	mpz_clear(m);
+	mpz_clear(pEq);
+	mpz_clear(count);
+	return rtrn;
 }
 
 int main() {
 	clock_t start = clock(), diff;
 	int primeTest;
-	int upperLimit = 1000;
+	int upperLimit = 5000;
 	int count = 0;
-	int num = 1;
+	unsigned long int num = 1;
 	while(num < upperLimit){
 		primeTest = isPrime(num);
 		if (primeTest == 1){
@@ -45,9 +89,8 @@ int main() {
 		}
 		num++;
 	}
-	printf("Found %d Mersenne primes in the region 1 to %d", count, upperLimit);
+	printf("Found %d Mersenne primes in the region 1 to %d\n", count, upperLimit);
 	diff = clock() - start;
-	int msec = diff * 1000 / CLOCKS_PER_SEC;
-	printf("Time taken %d seconds %d milliseconds", msec/1000, msec%1000);
+	printf("Time taken %d milliseconds", diff);
 	return 0;
 }

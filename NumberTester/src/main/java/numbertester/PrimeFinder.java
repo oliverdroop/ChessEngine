@@ -32,7 +32,7 @@ public class PrimeFinder {
     	LOGGER.info("Starting Mersenne prime search");
     	long startTime = System.currentTimeMillis();
 		long split = startTime;
-		int upperLimit = 1000;
+		int upperLimit = 5000;
     	for(int i = 1; i < upperLimit; i++) {
     		if (!isPrime(i)) {
     			continue;
