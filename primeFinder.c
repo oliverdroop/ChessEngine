@@ -4,18 +4,6 @@
 #include <inttypes.h>
 #include "gmp-impl.h"
 
-int isPrime(unsigned long int test){
-	if (test == 1){
-		return 1;
-	}
-	for(int i = 2; i <= test / 2; i++){
-		if (test % i == 0){
-			return 0;
-		}
-	}
-	return 1;
-}
-
 int lucasLehmer(unsigned long int p){
 	//initialize the number 0
 	mpz_t zero;
@@ -32,19 +20,15 @@ int lucasLehmer(unsigned long int p){
 	mpz_init_set_ui(s, 4);
 	
 	//initialize and calculate the number m
-	mpz_t twoToP;
-	mpz_init(twoToP);
-	mpz_pow_ui(twoToP, two, p);
 	mpz_t m;
 	mpz_init(m);
-	mpz_sub(m, twoToP, one);
+	mpz_pow_ui(m, two, p);
+	mpz_sub(m, m, one);
 	
 	//initialize the number count
-	mpz_t pEq;
-	mpz_init_set_ui(pEq, p);
 	mpz_t count;
-	mpz_init(count);
-	mpz_sub(count, pEq, two);
+	mpz_init_set_ui(count, p);
+	mpz_sub(count, count, two);
 	
 	int countZComp = mpz_cmp(count, zero);
 	while(countZComp > 0) {
@@ -58,17 +42,15 @@ int lucasLehmer(unsigned long int p){
 	int zeroComp = mpz_cmp(s, zero);
 	int rtrn = 0;
 	if (zeroComp == 0) {
-		gmp_printf("%Zd is a Mersenne prime generated from prime ", m);
-		printf("%d\n", p);
+		gmp_printf("%Zd is a Mersenne prime generated from (2 ^ ", m);
+		printf("%d) - 1\n", p);
 		rtrn = 1;
 	}
 	mpz_clear(zero);
 	mpz_clear(one);
 	mpz_clear(two);
 	mpz_clear(s);
-	mpz_clear(twoToP);
 	mpz_clear(m);
-	mpz_clear(pEq);
 	mpz_clear(count);
 	return rtrn;
 }
@@ -76,18 +58,23 @@ int lucasLehmer(unsigned long int p){
 int main(int argc, char **argv) {
 	clock_t start = clock(), diff;
 	int primeTest;
-	int upperLimit;
-	sscanf(argv[1], "%d", &upperLimit);
+	unsigned long int upperLimit = 1000;
+	
+	if (argc > 1) {
+		sscanf(argv[1], "%d", &upperLimit);
+	}
+	printf("Starting primeFinder with upper limit %d\n", upperLimit);
 	int count = 0;
-	unsigned long int num = 1;
-	while(num < upperLimit){
-		primeTest = isPrime(num);
-		if (primeTest == 1){
-			if (lucasLehmer(num) == 1){
-				count++;
-			}
+	mpz_t num;
+	mpz_init_set_ui(num, 1);
+	int numComp = mpz_cmp_ui(num, upperLimit);
+	while(numComp < 0){
+		unsigned long int nTest = mpz_get_ui(num);
+		if (lucasLehmer(nTest) == 1){
+			count++;
 		}
-		num++;
+		mpz_nextprime(num, num);
+		numComp = mpz_cmp_ui(num, upperLimit);
 	}
 	printf("Found %d Mersenne primes in the region 1 to %d\n", count, upperLimit);
 	diff = clock() - start;
