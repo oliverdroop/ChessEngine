@@ -52,10 +52,11 @@ public class Compressor {
 	}
 	
 	public static byte[] compress(byte[] bytes, byte[] fileExtension) {
-		
+		int originalLength = bytes.length;
 		Map<byte[], byte[]> palette = new HashMap<>();
 		boolean compressing = true;
-		while(compressing) {
+		int passes = 0;
+		while(compressing && passes < 256) {
 			//find a short key to use for replacing a pattern
 			byte[] lowestUnfeaturedSequence = getLowestUnfeaturedSequence(bytes);
 			LOGGER.debug("Lowest unfeatured sequence is {}", getByteString(lowestUnfeaturedSequence));
@@ -123,6 +124,7 @@ public class Compressor {
 				output[index] = outputList.get(index);
 			}
 			bytes = output;
+			passes++;
 		}
 		byte[] paletteDefinition = getPalette(palette);
 		byte[] fileBytes = new byte[paletteDefinition.length + bytes.length + fileExtension.length + 1];
@@ -133,6 +135,8 @@ public class Compressor {
 		System.arraycopy(paletteDefinition, 0, fileBytes, currentPos, paletteDefinition.length);
 		currentPos += paletteDefinition.length;
 		System.arraycopy(bytes, 0, fileBytes, currentPos, bytes.length);
+		double roundedCompressionFactor = Math.round((originalLength / (double)fileBytes.length) * 100) / (double) 100;
+		LOGGER.info("File compressed by a factor of {}", roundedCompressionFactor);
 		return fileBytes;
 	}
 	
@@ -145,6 +149,9 @@ public class Compressor {
 		String fileExtension = getFileExtension(fileExtensionBytes);
 		
 		int patternCount = (int) bytes[currentPos];
+		if (patternCount < 0) {
+			patternCount += 256;
+		}
 		currentPos++;
 		LOGGER.info("Palette contains {} patterns", patternCount);
 		//first build the palette
