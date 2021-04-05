@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,25 +26,36 @@ public class Compressor {
 		long t1 = System.currentTimeMillis();
 		LOGGER.info("Starting Compressor");
 		if (args != null && args.length > 0) {
-			String path = args[0];
-			byte[] bytes = loadFile(path);
-			bytes = compress(bytes);
-			writeBytes(getPathWithNewExtension(path), bytes);
-			
-			bytes = uncompress(bytes);
-			writeBytes(path, bytes);
+			String arg0 = args[0];
+			if (arg0.equals("-h") || arg0.equals("--help")) {
+				LOGGER.info("Use arguments -c <file path> to compress your file into {} format", FILE_EXTENSION);
+				LOGGER.info("Use arguments -u <file path> to uncompress your file from {} format", FILE_EXTENSION);
+			} else if (arg0.equals("-c") && args.length == 2) {
+				String path = args[1];
+				byte[] bytes = loadFile(path);
+				byte[] fileExtension = getFileExtension(path);
+				bytes = compress(bytes, fileExtension);
+				writeBytes(getPathWithoutExtension(path).concat(FILE_EXTENSION), bytes);
+			} else if (arg0.equals("-u") && args.length == 2) {
+				String path = args[1];
+				byte[] bytes = loadFile(path);
+				Map<byte[], String> uncompressedFile = uncompress(bytes);
+				byte[] uncompressedBytes = uncompressedFile.keySet().stream().findFirst().get();
+				String extension = uncompressedFile.values().stream().findFirst().get();
+				writeBytes(getPathWithoutExtension(path).concat(extension), uncompressedBytes);
+			}
 		} else {
-			LOGGER.warn("No file to compress");
+			LOGGER.warn("No file to compress or uncompress");
 		}
 		long t2 = System.currentTimeMillis();
 		LOGGER.info("Compressor finished in {} milliseconds", t2 - t1);
 	}
 	
-	public static byte[] compress(byte[] bytes) {
+	public static byte[] compress(byte[] bytes, byte[] fileExtension) {
 		
 		Map<byte[], byte[]> palette = new HashMap<>();
-		int passes = 4;
-		while(passes > 0) {
+		boolean compressing = true;
+		while(compressing) {
 			//find a short key to use for replacing a pattern
 			byte[] lowestUnfeaturedSequence = getLowestUnfeaturedSequence(bytes);
 			LOGGER.debug("Lowest unfeatured sequence is {}", getByteString(lowestUnfeaturedSequence));
@@ -66,18 +78,11 @@ public class Compressor {
 					}
 					
 					List<Integer> patternLocations = getPatternLocations(pattern, bytes);
-					//find out what percentage of the file each pattern constitutes
-					double percentageOfFile = 0;
-					if (!patternLocations.isEmpty()) {
-						percentageOfFile = (pattern.length * patternLocations.size()) / (double)bytes.length;
-						double roundedPercentage = Math.round(percentageOfFile * 10000) / (double)100;
-						LOGGER.debug("Found pattern {} at {} location(s) ({}%)", getByteString(pattern), patternLocations.size(), roundedPercentage);
-					}
 					
-					//assign a value to each pattern: high values are more compressible
-					double patternCompressionFactor = pattern.length / (double)lowestUnfeaturedSequence.length;
+					//assign a bytes saved value to each pattern: high values are more compressible
 					int bytesSavedPerPattern = pattern.length - lowestUnfeaturedSequence.length;
-					int totalBytesSavedForPattern = patternLocations.size() * bytesSavedPerPattern;
+					int patternDefinitionLength = 2 + lowestUnfeaturedSequence.length + pattern.length;
+					int totalBytesSavedForPattern = (patternLocations.size() * bytesSavedPerPattern) - patternDefinitionLength;
 					if (totalBytesSavedForPattern <= 0) {
 						continue;
 					}
@@ -89,6 +94,11 @@ public class Compressor {
 			
 			//get the pattern with the highest value and add it to the palette
 			byte[] majorityPattern = getMajorityPattern(patternsSearched);
+			if (majorityPattern == null) {
+				compressing = false;
+				LOGGER.info("Finished compressing");
+				break;
+			}
 			palette.put(majorityPattern, lowestUnfeaturedSequence);
 			LOGGER.info("Added to palette : {} maps to {}", getByteString(majorityPattern), getByteString(lowestUnfeaturedSequence));
 			
@@ -113,22 +123,32 @@ public class Compressor {
 				output[index] = outputList.get(index);
 			}
 			bytes = output;
-			passes--;
 		}
 		byte[] paletteDefinition = getPalette(palette);
-		byte[] fileBytes = new byte[paletteDefinition.length + bytes.length];
-		System.arraycopy(paletteDefinition, 0, fileBytes, 0, paletteDefinition.length);
-		System.arraycopy(bytes, 0, fileBytes, paletteDefinition.length, bytes.length);
+		byte[] fileBytes = new byte[paletteDefinition.length + bytes.length + fileExtension.length + 1];
+		fileBytes[0] = (byte)fileExtension.length;
+		int currentPos = 1;
+		System.arraycopy(fileExtension, 0, fileBytes, currentPos, fileExtension.length);
+		currentPos += fileExtension.length;
+		System.arraycopy(paletteDefinition, 0, fileBytes, currentPos, paletteDefinition.length);
+		currentPos += paletteDefinition.length;
+		System.arraycopy(bytes, 0, fileBytes, currentPos, bytes.length);
 		return fileBytes;
 	}
 	
-	public static byte[] uncompress(byte[] bytes) {
+	public static Map<byte[], String> uncompress(byte[] bytes) {
 		LOGGER.info("Rebuilding file from compressed file of length {}", bytes.length);
-		int patternCount = (int) bytes[0];
+		int fileExtensionLength = (int) bytes[0];
+		int currentPos = 1;
+		byte[] fileExtensionBytes = Arrays.copyOfRange(bytes, currentPos, currentPos + fileExtensionLength);
+		currentPos += fileExtensionLength;
+		String fileExtension = getFileExtension(fileExtensionBytes);
+		
+		int patternCount = (int) bytes[currentPos];
+		currentPos++;
 		LOGGER.info("Palette contains {} patterns", patternCount);
 		//first build the palette
 		Map<byte[], byte[]> palette = new HashMap<>();
-		int currentPos = 1;
 		for(int pidx = 0; pidx < patternCount; pidx++) {
 			int placeholderLength = (int)bytes[currentPos];
 			currentPos++;
@@ -169,10 +189,12 @@ public class Compressor {
 			}
 		}
 		//convert output list to array
-		byte[] output = new byte[outputList.size()];
+		byte[] outputBytes = new byte[outputList.size()];
 		for(int i = 0; i < outputList.size(); i++) {
-			output[i] = outputList.get(i);
+			outputBytes[i] = outputList.get(i);
 		}
+		Map<byte[], String> output = new HashMap<>();
+		output.put(outputBytes, fileExtension);
 		return output;
 	}
 	
@@ -319,7 +341,7 @@ public class Compressor {
 		return data;
 	}
 	
-	private static String getPathWithNewExtension(String path) {
+	private static String getPathWithoutExtension(String path) {
 		if (path == null || path.isEmpty()) {
 			LOGGER.warn("No existing path");
 			return null;
@@ -327,9 +349,24 @@ public class Compressor {
 		int dotPosition = path.lastIndexOf(".");
 		if (dotPosition < 0) {
 			LOGGER.warn("No existing file extension found in path {}", path);
-			return path.concat(FILE_EXTENSION);
+			return path;
 		}
-		return path.substring(0, dotPosition).concat(FILE_EXTENSION);
+		return path.substring(0, dotPosition);
+	}
+	
+	private static byte[] getFileExtension(String path) {
+		int dotPosition = path.lastIndexOf('.');
+		String extension = path.substring(dotPosition + 1);
+		return extension.getBytes();
+	}
+	
+	private static String getFileExtension(byte[] extensionBytes) {
+		StringBuilder extensionBuilder = new StringBuilder();
+		extensionBuilder.append('.');
+		for(byte b : extensionBytes) {
+			extensionBuilder.append((char) b);
+		}
+		return extensionBuilder.toString();
 	}
 	
 	public static void logBytes(byte[] bytes) {
