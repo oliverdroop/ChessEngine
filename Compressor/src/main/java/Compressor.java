@@ -6,11 +6,15 @@ import java.io.OutputStreamWriter;
 import java.nio.BufferOverflowException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.AbstractCollection;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -52,92 +56,152 @@ public class Compressor {
 	}
 	
 	public static byte[] compress(byte[] bytes, byte[] fileExtension) {
-		int originalLength = bytes.length;
 		Map<byte[], byte[]> palette = new HashMap<>();
-		boolean compressing = true;
-		int passes = 0;
-		while(compressing && passes < 256) {
-			//find a short key to use for replacing a pattern
-			byte[] lowestUnfeaturedSequence = getLowestUnfeaturedSequence(bytes);
-			LOGGER.debug("Lowest unfeatured sequence is {}", getByteString(lowestUnfeaturedSequence));
+		int maxPatternLength = 16;
+		Map<byte[], List<Integer>> patternLocations = new HashMap<>();
+		Map<byte[], Integer> patternValues = new HashMap<>();
+		//Search for patterns
+		for(int pl = 2; pl <= maxPatternLength; pl++) {
+			for(int i = 0; i <= bytes.length - pl; i++) {
+				byte[] pattern = Arrays.copyOfRange(bytes, i, i + pl);
+				if (isContained(pattern, patternLocations.keySet())) {
+					continue;
+				}
+				List<Integer> locations = getPatternLocations(pattern, bytes);
+				if (locations.size() < 2) {
+					continue;
+				}
+				patternValues.put(pattern, pattern.length * locations.size());
+				patternLocations.put(pattern, locations);
+			}
+		}
+
+		//Build a palette of patterns and placeholders
+		int passes = 128;
+		List<byte[]> consideredPatterns = new ArrayList<>();
+		while(passes > 0) {
+			byte[] pattern = getMajorityPattern(patternValues, consideredPatterns);
+			passes--;
+			if (pattern == null) {
+				continue;
+			}
+			consideredPatterns.add(pattern);
+			LOGGER.debug("Found pattern {} at {} locations", getByteString(pattern), patternLocations.get(pattern).size());
 			
-			//find patterns
-			int patternLengthLimit = 16;
-			patternLengthLimit = Math.min(patternLengthLimit, bytes.length);
-			Map<byte[], Integer> patternsSearched = new HashMap<>();
-			for(int pl = 2; pl <= patternLengthLimit; pl++) {
-				for(int i = 0; i <= bytes.length - pl; i++) {
-					//define pattern
-					byte[] pattern = Arrays.copyOfRange(bytes, i, i + pl);
-					//make sure we're not searching for the same pattern more than once
-					if (patternsSearched.keySet().stream().anyMatch(ar -> Arrays.equals(ar, pattern))) {
-						continue;
-					}
-					//make sure the pattern we're counting doesn't contain any sequences already in the palette
-					if (palette.values().stream().anyMatch(ar -> isPatternContained(ar, pattern))) {
-						continue;
-					}
-					
-					List<Integer> patternLocations = getPatternLocations(pattern, bytes);
-					
-					//assign a bytes saved value to each pattern: high values are more compressible
-					int bytesSavedPerPattern = pattern.length - lowestUnfeaturedSequence.length;
-					int patternDefinitionLength = 2 + lowestUnfeaturedSequence.length + pattern.length;
-					int totalBytesSavedForPattern = (patternLocations.size() * bytesSavedPerPattern) - patternDefinitionLength;
-					if (totalBytesSavedForPattern <= 0) {
-						continue;
-					}
-					LOGGER.debug("Replacing pattern {} with {} at {} locations saves {} bytes", getByteString(pattern), 
-							getByteString(lowestUnfeaturedSequence), patternLocations.size(), totalBytesSavedForPattern);
-					patternsSearched.put(pattern, totalBytesSavedForPattern);
+			//Define a placeholder for the pattern and calculate the number of bytes saved
+			byte[] placeholder = getLowestUnfeaturedSequence(bytes, palette.values());
+			int bytesSavedPerPattern = pattern.length - placeholder.length;
+			int patternDefinitionLength = 2 + placeholder.length + pattern.length;
+			int totalBytesSavedForPattern = (patternLocations.get(pattern).size() * bytesSavedPerPattern) - patternDefinitionLength;
+			if (totalBytesSavedForPattern <= 0) {
+				continue;
+			}
+			LOGGER.info("Replacing pattern {} with {} at {} locations saves {} bytes", getByteString(pattern), 
+					getByteString(placeholder), patternLocations.get(pattern).size(), totalBytesSavedForPattern);
+			
+			//Remove overlapping patterns
+			for(byte[] unusablePattern : getUnusablePatterns(patternLocations, pattern, patternLocations.get(pattern))) {
+				if (!isContained(unusablePattern, palette.keySet())) {
+					patternLocations.remove(unusablePattern);
+					patternValues.remove(unusablePattern);
+					LOGGER.debug("Removed overlapping pattern {}", getByteString(unusablePattern));
+				} else {
+					LOGGER.warn("Tried to remove palette contained in pattern");
 				}
 			}
+			palette.put(pattern, placeholder);
+		}
+		
+		//Validate by checking for inadvertent placeholder usage
+		List<byte[]> consideredPlaceholders = new ArrayList<>();
+		consideredPlaceholders.addAll(palette.values());
+		byte[] output = null;
+		boolean validating = true;
+		loop:
+		while (validating) {
+			List<Byte> outputBytes = new ArrayList<>();
 			
-			//get the pattern with the highest value and add it to the palette
-			byte[] majorityPattern = getMajorityPattern(patternsSearched);
-			if (majorityPattern == null) {
-				compressing = false;
-				LOGGER.info("Finished compressing");
-				break;
-			}
-			palette.put(majorityPattern, lowestUnfeaturedSequence);
-			LOGGER.info("Added to palette : {} maps to {}", getByteString(majorityPattern), getByteString(lowestUnfeaturedSequence));
-			
-			//rebuild file data using palette
-			List<Byte> outputList = new ArrayList<>();
-			List<Integer> patternLocations = getPatternLocations(majorityPattern, bytes);
+			//Build an output list of bytes
 			int i = 0;
 			while(i < bytes.length) {
-				if (patternLocations.contains(i)) {
-					for(byte b : lowestUnfeaturedSequence) {
-						outputList.add(b);
+				boolean isPatternLocation = false;
+				//Replace patterns with their placeholders
+				for(byte[] pattern : palette.keySet()) {
+					List<Integer> locations = patternLocations.get(pattern);
+					if (locations.contains(i)) {
+						isPatternLocation = true;
+						for(byte b : palette.get(pattern)) {
+							outputBytes.add(b);
+						}
+						i += pattern.length;
+						break;
 					}
-					i += majorityPattern.length;
-				} else {
-					outputList.add(bytes[i]);
+				}
+				//Copy non-pattern bytes like-for-like
+				if (!isPatternLocation) {
+					outputBytes.add(bytes[i]);
 					i++;
 				}
 			}
-			//convert the output list of bytes to a byte array
-			byte[] output = new byte[outputList.size()];
-			for(int index = 0; index < outputList.size(); index++) {
-				output[index] = outputList.get(index);
+			output = new byte[outputBytes.size()];
+			for(int j = 0; j < output.length; j++) {
+				output[j] = outputBytes.get(j);
 			}
-			bytes = output;
-			passes++;
+
+			//Check for inadvertent placeholder usage
+			for(byte[] pattern : palette.keySet()) {
+				byte[] placeholder = palette.get(pattern);
+				int placeholderCount = getPatternLocations(placeholder, output).size();
+				int patternCount = patternLocations.get(pattern).size();
+				if (placeholderCount != patternCount) {
+					LOGGER.info("Couldn't use placholder {} because use count {} didn't match pattern count {}", 
+							getByteString(placeholder), placeholderCount, patternCount);
+					placeholder = getLowestUnfeaturedSequence(bytes, consideredPlaceholders);
+					consideredPlaceholders.add(placeholder);
+					palette.put(pattern, placeholder);
+					continue loop;
+				}
+			}
+			validating = false;
 		}
+		
+		//Define the palette
 		byte[] paletteDefinition = getPalette(palette);
-		byte[] fileBytes = new byte[paletteDefinition.length + bytes.length + fileExtension.length + 1];
+		byte[] fileBytes = new byte[paletteDefinition.length + output.length + fileExtension.length + 1];
+		//Define the file extension
 		fileBytes[0] = (byte)fileExtension.length;
 		int currentPos = 1;
 		System.arraycopy(fileExtension, 0, fileBytes, currentPos, fileExtension.length);
 		currentPos += fileExtension.length;
+		//Add the palette definition
 		System.arraycopy(paletteDefinition, 0, fileBytes, currentPos, paletteDefinition.length);
 		currentPos += paletteDefinition.length;
-		System.arraycopy(bytes, 0, fileBytes, currentPos, bytes.length);
-		double roundedCompressionFactor = Math.round((originalLength / (double)fileBytes.length) * 100) / (double) 100;
+		//Add the compressed data
+		System.arraycopy(output, 0, fileBytes, currentPos, output.length);
+		//Report the compression factor
+		double roundedCompressionFactor = Math.round((bytes.length / (double)fileBytes.length) * 100) / (double) 100;
 		LOGGER.info("File compressed by a factor of {}", roundedCompressionFactor);
 		return fileBytes;
+	}
+	
+	private static List<byte[]> getUnusablePatterns(Map<byte[], List<Integer>> patternLocations, byte[] pattern, List<Integer> locations) {
+		List<byte[]> unusablePatterns = new ArrayList<>();
+		for(byte[] otherPattern : patternLocations.keySet()) {
+			if (Arrays.equals(otherPattern, pattern)) {
+				continue;
+			}
+			loop:
+			for(int location : patternLocations.get(otherPattern)) {
+				for(int location2 : locations) {
+					if ((location >= location2 && location < location2 + pattern.length)
+							|| (location2 >= location && location2 < location + otherPattern.length)) {
+						unusablePatterns.add(otherPattern);
+						break loop;
+					}
+				}
+			}
+		}
+		return unusablePatterns;
 	}
 	
 	public static Map<byte[], String> uncompress(byte[] bytes) {
@@ -209,6 +273,9 @@ public class Compressor {
 		if (index > bytes.length - pattern.length) {
 			return false;
 		}
+		if (pattern[0] != bytes[index]) {
+			return false;
+		}
 		return Arrays.equals(pattern, Arrays.copyOfRange(bytes, index, index + pattern.length));
 	}
 	
@@ -241,13 +308,15 @@ public class Compressor {
 		return false;
 	}
 	
-	private static byte[] getLowestUnfeaturedSequence(byte[] bytes) {
+	private static byte[] getLowestUnfeaturedSequence(byte[] bytes, Collection<byte[]> placeholders) {
+		//Find the shortest and lowest unused sequence of bytes for use as a placeholder
 		boolean result = false;
 		int length = 1;
 		byte[] test = new byte[length];
 		Arrays.fill(test, Byte.MIN_VALUE);
 		while(!result) {
-			if(isPatternContained(test, bytes)) {
+			byte[] testCopy = Arrays.copyOf(test, test.length);
+			if(isPatternContained(test, bytes) || placeholders.stream().anyMatch(p -> Arrays.equals(p, testCopy))) {
 				try {
 					LOGGER.debug("Attempting increment of {}", getByteString(test));
 					test = increment(test);
@@ -287,15 +356,18 @@ public class Compressor {
 		throw new BufferOverflowException();
 	}
 	
-	private static byte[] getMajorityPattern(Map<byte[], Integer> patterns) {
+	private static byte[] getMajorityPattern(Map<byte[], Integer> patterns, Collection<byte[]> existingPatterns) {
 		double highest = 0;
 		byte[] majorityPattern = null;
 		for(byte[] pattern : patterns.keySet()) {
 			double value = patterns.get(pattern);
-			if (value > highest) {
+			if (value > highest && existingPatterns.stream().noneMatch(pat -> Arrays.equals(pattern, pat))) {
 				highest = value;
 				majorityPattern = pattern;
 			}
+		}
+		if (majorityPattern != null) {
+			LOGGER.debug("Found majority pattern {} with score {}", getByteString(majorityPattern), highest);
 		}
 		return majorityPattern;
 	}
@@ -321,6 +393,10 @@ public class Compressor {
 			output[i] = outputList.get(i);
 		}
 		return output;
+	}
+	
+	private static boolean isContained(byte[] byteArray, Collection<byte[]> byteArrays) {
+		return byteArrays.stream().anyMatch(ba -> Arrays.equals(ba, byteArray));
 	}
 	
 	public static void writeBytes(String path, byte[] bytes) {
