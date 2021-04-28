@@ -1,6 +1,11 @@
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.BufferOverflowException;
@@ -12,9 +17,11 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -36,6 +43,7 @@ public class Compressor {
 				LOGGER.info("Use arguments -u <file path> to uncompress your file from {} format", FILE_EXTENSION);
 			} else if (arg0.equals("-c") && args.length == 2) {
 				String path = args[1];
+				//Map<Long, Byte> longBytes = loadFile2(path);
 				byte[] bytes = loadFile(path);
 				byte[] fileExtension = getFileExtension(path);
 				bytes = compress(bytes, fileExtension);
@@ -60,25 +68,71 @@ public class Compressor {
 		int maxPatternLength = 16;
 		Map<byte[], List<Integer>> patternLocations = new HashMap<>();
 		Map<byte[], Integer> patternValues = new HashMap<>();
+		List<byte[]> consideredPatterns = new ArrayList<>();
 		//Search for patterns
-		for(int pl = 2; pl <= maxPatternLength; pl++) {
-			for(int i = 0; i <= bytes.length - pl; i++) {
+		int searchPercentage = 0;
+		int blockSize = (int)Math.round((bytes.length) / (double) 100);
+		int count = 0;
+		System.out.print("Searching : 0%\r");
+
+		for(int i = 0; i <= bytes.length - 2; i++) {
+			
+			count++;
+			if (count > blockSize) {
+				count = 0;
+				searchPercentage++;
+				System.out.print(String.format("Searching : %d%%\r", searchPercentage));
+			}
+			
+			int pl = 2;
+			List<Integer> locations = new ArrayList<>();
+			while (pl < maxPatternLength) {
 				byte[] pattern = Arrays.copyOfRange(bytes, i, i + pl);
-				if (isContained(pattern, patternLocations.keySet())) {
+				if (isContained(pattern, patternValues.keySet())) {
+					pl++;
 					continue;
 				}
-				List<Integer> locations = getPatternLocations(pattern, bytes);
+				if (locations.size() <= 0) {
+					//Find locations for shortest pattern at i
+					locations = getPatternLocations(pattern, bytes, i);
+				} else if (locations.size() > 1) {
+					//Filter locations for longer versions of the short pattern
+					List<Integer> filteredLocations = new ArrayList<>(locations);
+					locations = locations
+							.stream()
+							.filter(loc -> testDifferenceFromPrevious(filteredLocations, loc, pattern.length))
+							.filter(loc -> patternAppearsAt(pattern, bytes, loc))
+							.collect(Collectors.toList());
+				}
 				if (locations.size() < 2) {
-					continue;
+					break;
 				}
-				patternValues.put(pattern, pattern.length * locations.size());
-				patternLocations.put(pattern, locations);
+				//Assign a value to each pattern (high values mean more compression)
+				int value = pl * (locations.size() - 1);
+				//Add pattern, value and locations to the map(s)
+				int maxPatternValues = 4096;
+				if (patternValues.size() < maxPatternValues) {
+					patternValues.put(pattern, value);
+					patternLocations.put(pattern, locations);
+				} else  {
+					//Trim out patterns with low values to keep maps and memory usage small
+					byte[] trimmablePattern = getMinorityPattern(patternValues);
+					if (value > patternValues.get(trimmablePattern)) {
+						patternValues.remove(trimmablePattern);
+						patternLocations.remove(trimmablePattern);
+						patternValues.put(pattern, value);
+						patternLocations.put(pattern, locations);
+					}
+				}
+				pl++;
 			}
 		}
+		System.out.println();
+		
 
 		//Build a palette of patterns and placeholders
-		int passes = 128;
-		List<byte[]> consideredPatterns = new ArrayList<>();
+		int passes = 256;
+		consideredPatterns = new ArrayList<>();
 		while(passes > 0) {
 			byte[] pattern = getMajorityPattern(patternValues, consideredPatterns);
 			passes--;
@@ -151,10 +205,10 @@ public class Compressor {
 			//Check for inadvertent placeholder usage
 			for(byte[] pattern : palette.keySet()) {
 				byte[] placeholder = palette.get(pattern);
-				int placeholderCount = getPatternLocations(placeholder, output).size();
+				int placeholderCount = getPatternLocations(placeholder, output, 0).size();
 				int patternCount = patternLocations.get(pattern).size();
 				if (placeholderCount != patternCount) {
-					LOGGER.info("Couldn't use placholder {} because use count {} didn't match pattern count {}", 
+					LOGGER.info("Couldn't use placeholder {} because use count {} didn't match pattern count {}", 
 							getByteString(placeholder), placeholderCount, patternCount);
 					placeholder = getLowestUnfeaturedSequence(bytes, consideredPlaceholders);
 					consideredPlaceholders.add(placeholder);
@@ -166,7 +220,7 @@ public class Compressor {
 		}
 		
 		//Define the palette
-		byte[] paletteDefinition = getPalette(palette);
+		byte[] paletteDefinition = getPaletteDefinition(palette);
 		byte[] fileBytes = new byte[paletteDefinition.length + output.length + fileExtension.length + 1];
 		//Define the file extension
 		fileBytes[0] = (byte)fileExtension.length;
@@ -182,26 +236,6 @@ public class Compressor {
 		double roundedCompressionFactor = Math.round((bytes.length / (double)fileBytes.length) * 100) / (double) 100;
 		LOGGER.info("File compressed by a factor of {}", roundedCompressionFactor);
 		return fileBytes;
-	}
-	
-	private static List<byte[]> getUnusablePatterns(Map<byte[], List<Integer>> patternLocations, byte[] pattern, List<Integer> locations) {
-		List<byte[]> unusablePatterns = new ArrayList<>();
-		for(byte[] otherPattern : patternLocations.keySet()) {
-			if (Arrays.equals(otherPattern, pattern)) {
-				continue;
-			}
-			loop:
-			for(int location : patternLocations.get(otherPattern)) {
-				for(int location2 : locations) {
-					if ((location >= location2 && location < location2 + pattern.length)
-							|| (location2 >= location && location2 < location + otherPattern.length)) {
-						unusablePatterns.add(otherPattern);
-						break loop;
-					}
-				}
-			}
-		}
-		return unusablePatterns;
 	}
 	
 	public static Map<byte[], String> uncompress(byte[] bytes) {
@@ -269,18 +303,40 @@ public class Compressor {
 		return output;
 	}
 	
+	private static List<byte[]> getUnusablePatterns(Map<byte[], List<Integer>> patternLocations, byte[] pattern, List<Integer> locations) {
+		List<byte[]> unusablePatterns = new ArrayList<>();
+		for(byte[] otherPattern : patternLocations.keySet()) {
+			if (Arrays.equals(otherPattern, pattern)) {
+				continue;
+			}
+			loop:
+			for(int location : patternLocations.get(otherPattern)) {
+				for(int location2 : locations) {
+					if ((location >= location2 && location < location2 + pattern.length)
+							|| (location2 >= location && location2 < location + otherPattern.length)) {
+						unusablePatterns.add(otherPattern);
+						break loop;
+					}
+				}
+			}
+		}
+		return unusablePatterns;
+	}
+	
 	private static boolean patternAppearsAt(byte[] pattern, byte[] bytes, int index) {
 		if (index > bytes.length - pattern.length) {
 			return false;
 		}
-		if (pattern[0] != bytes[index]) {
-			return false;
+		for(int i = 0; i < pattern.length; i++) {
+			if (pattern[i] != bytes[index + i]) {
+				return false;
+			}
 		}
-		return Arrays.equals(pattern, Arrays.copyOfRange(bytes, index, index + pattern.length));
+		return true;
 	}
 	
-	private static List<Integer> getPatternLocations(byte[] pattern, byte[] bytes) {
-		int i = 0;
+	private static List<Integer> getPatternLocations(byte[] pattern, byte[] bytes, int startIndex) {
+		int i = startIndex;
 		List<Integer> locations = new ArrayList<>();
 		if (pattern.length > bytes.length) {
 			return locations;
@@ -315,8 +371,7 @@ public class Compressor {
 		byte[] test = new byte[length];
 		Arrays.fill(test, Byte.MIN_VALUE);
 		while(!result) {
-			byte[] testCopy = Arrays.copyOf(test, test.length);
-			if(isPatternContained(test, bytes) || placeholders.stream().anyMatch(p -> Arrays.equals(p, testCopy))) {
+			if(isPatternContained(test, bytes) || isContained(test, placeholders)) {
 				try {
 					LOGGER.debug("Attempting increment of {}", getByteString(test));
 					test = increment(test);
@@ -331,6 +386,14 @@ public class Compressor {
 			}
 		}
 		return null;
+	}
+	
+	private static boolean testDifferenceFromPrevious(List<Integer> integers, int testInteger, int minimumDifference) {
+		int index = integers.indexOf(testInteger);
+		if (index <= 0) {
+			return index == 0;
+		}
+		return testInteger - integers.get(index - 1) >= minimumDifference;
 	}
 	
 	private static byte[] increment(byte[] bytes) throws BufferOverflowException {
@@ -360,8 +423,8 @@ public class Compressor {
 		double highest = 0;
 		byte[] majorityPattern = null;
 		for(byte[] pattern : patterns.keySet()) {
-			double value = patterns.get(pattern);
-			if (value > highest && existingPatterns.stream().noneMatch(pat -> Arrays.equals(pattern, pat))) {
+			int value = patterns.get(pattern);
+			if (value > highest && !isContained(pattern, existingPatterns)) {
 				highest = value;
 				majorityPattern = pattern;
 			}
@@ -372,7 +435,23 @@ public class Compressor {
 		return majorityPattern;
 	}
 	
-	private static byte[] getPalette(Map<byte[], byte[]> palette) {
+	private static byte[] getMinorityPattern(Map<byte[], Integer> patterns) {
+		double lowest = Double.MAX_VALUE;
+		byte[] minorityPattern = null;
+		for(byte[] pattern : patterns.keySet()) {
+			int value = patterns.get(pattern);
+			if (value < lowest) {
+				lowest = value;
+				minorityPattern = pattern;
+			}
+		}
+		if (minorityPattern != null) {
+			LOGGER.debug("Found minority pattern {} with score {}", getByteString(minorityPattern), lowest);
+		}
+		return minorityPattern;
+	}
+	
+	private static byte[] getPaletteDefinition(Map<byte[], byte[]> palette) {
 		List<Byte> outputList = new ArrayList<>();
 		outputList.add((byte)palette.keySet().size());
 		for(byte[] pattern : palette.keySet()) {
@@ -419,6 +498,23 @@ public class Compressor {
     		LOGGER.info("Loaded {} bytes", data.length);
     	}
     	catch(IOException e) {
+    		LOGGER.warn("Unable to load file : {}", e.getMessage());
+    	}
+		return data;
+	}
+	
+	public static Map<Long, Byte> loadFile2(String path) {
+		Map<Long, Byte> data = new HashMap<>();
+		try (InputStream stream = new FileInputStream(path)){
+			long index = 0;
+			int in = 0;
+			while((in = stream.read()) >= 0) {
+				byte b = (byte)in;
+				data.put(index, b);
+				index++;
+			}
+			LOGGER.info("Long loader loaded {} bytes", index);
+		} catch(IOException e) {
     		LOGGER.warn("Unable to load file : {}", e.getMessage());
     	}
 		return data;
