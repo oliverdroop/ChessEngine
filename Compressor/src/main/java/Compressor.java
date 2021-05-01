@@ -10,6 +10,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.AbstractCollection;
@@ -25,6 +26,7 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
+import org.apache.logging.log4j.core.util.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,9 +36,12 @@ public class Compressor {
 	
 	public static final String FILE_EXTENSION = ".dcp";
 	
+	public static final Charset CHARSET = Charset.forName("ISO-8859-1");
+	
 	public static void main(String[] args) {
 		long t1 = System.currentTimeMillis();
 		LOGGER.info("Starting Compressor");
+		System.setProperty("file.encoding", "ISO-8859-1");
 		if (args != null && args.length > 0) {
 			String arg0 = args[0];
 			if (arg0.equals("-h") || arg0.equals("--help")) {
@@ -65,11 +70,11 @@ public class Compressor {
 	}
 	
 	public static byte[] compress(byte[] bytes, byte[] fileExtension) {
-		Map<byte[], byte[]> palette = new HashMap<>();
+		Map<String, byte[]> palette = new HashMap<>();
 		int maxPatternLength = 8;
-		Map<Long, int[]> patternLocations = new HashMap<>();
-		Map<Long, Integer> patternValues = new HashMap<>();
-		List<byte[]> consideredPatterns = new ArrayList<>();
+		Map<String, int[]> patternLocations = new HashMap<>();
+		Map<String, Integer> patternValues = new HashMap<>();
+		List<String> consideredPatterns = new ArrayList<>();
 		//Search for patterns
 		int searchPercentage = 0;
 		int blockSize = (int)Math.round((bytes.length) / (double) 100);
@@ -89,8 +94,8 @@ public class Compressor {
 			int[] locations = new int[0];
 			while (pl < maxPatternLength) {
 				byte[] pattern = Arrays.copyOfRange(bytes, i, i + pl);
-				long patternLong = getLong(pattern);
-				if (patternValues.containsKey(patternLong)) {
+				String patternString = getString(pattern);
+				if (patternValues.containsKey(patternString)) {
 					pl++;
 					continue;
 				}
@@ -113,16 +118,16 @@ public class Compressor {
 				//Add pattern, value and locations to the map(s)
 				int maxPatternValues = 4096;
 				if (patternValues.size() < maxPatternValues) {
-					patternValues.put(patternLong, value);
-					patternLocations.put(patternLong, locations);
+					patternValues.put(patternString, value);
+					patternLocations.put(patternString, locations);
 				} else  {
 					//Trim out patterns with low values to keep maps and memory usage small
-					long trimmablePattern = getMinorityPattern(patternValues);
+					String trimmablePattern = getMinorityPattern(patternValues);
 					if (value > patternValues.get(trimmablePattern)) {
 						patternValues.remove(trimmablePattern);
 						patternLocations.remove(trimmablePattern);
-						patternValues.put(patternLong, value);
-						patternLocations.put(patternLong, locations);
+						patternValues.put(patternString, value);
+						patternLocations.put(patternString, locations);
 					}
 				}
 				pl++;
@@ -136,13 +141,13 @@ public class Compressor {
 		consideredPatterns = new ArrayList<>();
 		byte[] placeholder = getLowestUnfeaturedSequence(bytes, palette.values());
 		while(passes > 0) {
-			Long pattern = getMajorityPattern(patternValues, consideredPatterns);
+			String pattern = getMajorityPattern(patternValues, consideredPatterns);
 			passes--;
 			if (pattern == null) {
 				continue;
 			}
 			byte[] patternBytes = getBytes(pattern);
-			consideredPatterns.add(patternBytes);
+			consideredPatterns.add(pattern);
 			LOGGER.debug("Found pattern {} at {} locations", getByteString(patternBytes), patternLocations.get(pattern).length);
 			
 			//Define a placeholder for the pattern and calculate the number of bytes saved
@@ -156,16 +161,17 @@ public class Compressor {
 					getByteString(placeholder), patternLocations.get(pattern).length, totalBytesSavedForPattern);
 			
 			//Remove overlapping patterns
-			for(byte[] unusablePattern : getUnusablePatterns(patternLocations, patternBytes, patternLocations.get(pattern))) {
-				if (!isContained(unusablePattern, palette.keySet())) {
-					patternLocations.remove(getLong(unusablePattern));
-					patternValues.remove(getLong(unusablePattern));
-					LOGGER.debug("Removed overlapping pattern {}", getByteString(unusablePattern));
+			for(String unusablePattern : getUnusablePatterns(patternLocations, patternBytes, patternLocations.get(pattern))) {
+				byte[] unusablePatternBytes = getBytes(unusablePattern);
+				if (!palette.containsKey(unusablePattern)) {
+					patternLocations.remove(unusablePattern);
+					patternValues.remove(unusablePattern);
+					LOGGER.debug("Removed overlapping pattern {}", getByteString(unusablePatternBytes));
 				} else {
 					LOGGER.warn("Tried to remove palette contained in pattern");
 				}
 			}
-			palette.put(patternBytes, placeholder);
+			palette.put(pattern, placeholder);
 			placeholder = getLowestUnfeaturedSequence(bytes, palette.values());
 		}
 		
@@ -183,14 +189,14 @@ public class Compressor {
 			while(i < bytes.length) {
 				boolean isPatternLocation = false;
 				//Replace patterns with their placeholders
-				for(byte[] pattern : palette.keySet()) {
-					int[] locations = patternLocations.get(getLong(pattern));
+				for(String pattern : palette.keySet()) {
+					int[] locations = patternLocations.get(pattern);
 					if (Arrays.binarySearch(locations, i) >= 0) {
 						isPatternLocation = true;
 						for(byte b : palette.get(pattern)) {
 							outputBytes.add(b);
 						}
-						i += pattern.length;
+						i += pattern.length();
 						break;
 					}
 				}
@@ -206,10 +212,10 @@ public class Compressor {
 			}
 
 			//Check for inadvertent placeholder usage
-			for(byte[] pattern : palette.keySet()) {
+			for(String pattern : palette.keySet()) {
 				placeholder = palette.get(pattern);
 				int placeholderCount = getPatternLocations(placeholder, output, 0).length;
-				int patternCount = patternLocations.get(getLong(pattern)).length;
+				int patternCount = patternLocations.get(pattern).length;
 				if (placeholderCount != patternCount) {
 					LOGGER.info("Couldn't use placeholder {} because use count {} didn't match pattern count {}", 
 							getByteString(placeholder), placeholderCount, patternCount);
@@ -306,19 +312,18 @@ public class Compressor {
 		return output;
 	}
 	
-	private static List<byte[]> getUnusablePatterns(Map<Long, int[]> patternLocations, byte[] pattern, int[] locations) {
-		List<byte[]> unusablePatterns = new ArrayList<>();
-		for(long otherPattern : patternLocations.keySet()) {
-			if (otherPattern == getLong(pattern)) {
+	private static List<String> getUnusablePatterns(Map<String, int[]> patternLocations, byte[] pattern, int[] locations) {
+		List<String> unusablePatterns = new ArrayList<>();
+		for(String otherPattern : patternLocations.keySet()) {
+			if (otherPattern.equals(getString(pattern))) {
 				continue;
 			}
 			loop:
 			for(int location : patternLocations.get(otherPattern)) {
 				for(int location2 : locations) {
-					byte[] bytes = getBytes(otherPattern);
 					if ((location >= location2 && location < location2 + pattern.length)
-							|| (location2 >= location && location2 < location + bytes.length)) {
-						unusablePatterns.add(bytes);
+							|| (location2 >= location && location2 < location + otherPattern.length())) {
+						unusablePatterns.add(otherPattern);
 						break loop;
 					}
 				}
@@ -423,12 +428,12 @@ public class Compressor {
 		throw new BufferOverflowException();
 	}
 	
-	private static Long getMajorityPattern(Map<Long, Integer> patterns, Collection<byte[]> existingPatterns) {
+	private static String getMajorityPattern(Map<String, Integer> patterns, Collection<String> existingPatterns) {
 		double highest = 0;
-		Long majorityPattern = null;
-		for(long pattern : patterns.keySet()) {
+		String majorityPattern = null;
+		for(String pattern : patterns.keySet()) {
 			int value = patterns.get(pattern);
-			if (value > highest && !isContained(getBytes(pattern), existingPatterns)) {
+			if (value > highest && !existingPatterns.contains(pattern)) {
 				highest = value;
 				majorityPattern = pattern;
 			}
@@ -439,10 +444,10 @@ public class Compressor {
 		return majorityPattern;
 	}
 	
-	private static Long getMinorityPattern(Map<Long, Integer> patterns) {
+	private static String getMinorityPattern(Map<String, Integer> patterns) {
 		double lowest = Double.MAX_VALUE;
-		Long minorityPattern = null;
-		for(long pattern : patterns.keySet()) {
+		String minorityPattern = null;
+		for(String pattern : patterns.keySet()) {
 			int value = patterns.get(pattern);
 			if (value < lowest) {
 				lowest = value;
@@ -455,19 +460,19 @@ public class Compressor {
 		return minorityPattern;
 	}
 	
-	private static byte[] getPaletteDefinition(Map<byte[], byte[]> palette) {
+	private static byte[] getPaletteDefinition(Map<String, byte[]> palette) {
 		List<Byte> outputList = new ArrayList<>();
 		outputList.add((byte)palette.keySet().size());
-		for(byte[] pattern : palette.keySet()) {
+		for(String pattern : palette.keySet()) {
 			byte[] placeholder = palette.get(pattern);
-			byte patternLength = (byte) pattern.length;
+			byte patternLength = (byte) pattern.length();
 			byte placeholderLength = (byte) placeholder.length;
 			outputList.add(placeholderLength);
 			for(byte b : placeholder) {
 				outputList.add(b);
 			}
 			outputList.add(patternLength);
-			for(byte b : pattern) {
+			for(byte b : getBytes(pattern)) {
 				outputList.add(b);
 			}
 		}
@@ -579,6 +584,15 @@ public class Compressor {
 			stringBuilder.append(String.format("%02X ", b));
 		}
 		return stringBuilder.toString();
+	}
+	
+	private static String getString(byte[] bytes) {
+		//return ByteBuffer.wrap(bytes).asCharBuffer().toString();
+		return CHARSET.decode(ByteBuffer.wrap(bytes)).toString();
+	}
+	
+	private static byte[] getBytes(String string) {
+		return CHARSET.encode(string).array();
 	}
 	
 	private static long getLong(byte[] bytes) {
