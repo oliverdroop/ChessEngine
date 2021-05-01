@@ -67,7 +67,7 @@ public class Compressor {
 	public static byte[] compress(byte[] bytes, byte[] fileExtension) {
 		Map<byte[], byte[]> palette = new HashMap<>();
 		int maxPatternLength = 8;
-		Map<Long, List<Integer>> patternLocations = new HashMap<>();
+		Map<Long, int[]> patternLocations = new HashMap<>();
 		Map<Long, Integer> patternValues = new HashMap<>();
 		List<byte[]> consideredPatterns = new ArrayList<>();
 		//Search for patterns
@@ -86,35 +86,30 @@ public class Compressor {
 			}
 			
 			int pl = 2;
-			List<Integer> locations = new ArrayList<>();
+			int[] locations = new int[0];
 			while (pl < maxPatternLength) {
 				byte[] pattern = Arrays.copyOfRange(bytes, i, i + pl);
 				long patternLong = getLong(pattern);
-//				if (isContained(pattern, patternValues.keySet())) {
-//					pl++;
-//					continue;
-//				}
 				if (patternValues.containsKey(patternLong)) {
 					pl++;
 					continue;
 				}
-				if (locations.size() <= 0) {
+				if (locations.length <= 0) {
 					//Find locations for shortest pattern at i
 					locations = getPatternLocations(pattern, bytes, i);
-				} else if (locations.size() > 1) {
+				} else if (locations.length > 1) {
 					//Filter locations for longer versions of the short pattern
-					List<Integer> filteredLocations = new ArrayList<>(locations);
-					locations = locations
-							.stream()
+					int[] filteredLocations = Arrays.copyOf(locations, locations.length);
+					locations = Arrays.stream(locations)
 							.filter(loc -> testDifferenceFromPrevious(filteredLocations, loc, pattern.length))
 							.filter(loc -> patternAppearsAt(pattern, bytes, loc))
-							.collect(Collectors.toList());
+							.toArray();
 				}
-				if (locations.size() < 2) {
+				if (locations.length < 2) {
 					break;
 				}
 				//Assign a value to each pattern (high values mean more compression)
-				int value = pl * (locations.size() - 1);
+				int value = pl * (locations.length - 1);
 				//Add pattern, value and locations to the map(s)
 				int maxPatternValues = 4096;
 				if (patternValues.size() < maxPatternValues) {
@@ -139,6 +134,7 @@ public class Compressor {
 		//Build a palette of patterns and placeholders
 		int passes = 256;
 		consideredPatterns = new ArrayList<>();
+		byte[] placeholder = getLowestUnfeaturedSequence(bytes, palette.values());
 		while(passes > 0) {
 			Long pattern = getMajorityPattern(patternValues, consideredPatterns);
 			passes--;
@@ -147,18 +143,17 @@ public class Compressor {
 			}
 			byte[] patternBytes = getBytes(pattern);
 			consideredPatterns.add(patternBytes);
-			LOGGER.debug("Found pattern {} at {} locations", getByteString(patternBytes), patternLocations.get(pattern).size());
+			LOGGER.debug("Found pattern {} at {} locations", getByteString(patternBytes), patternLocations.get(pattern).length);
 			
 			//Define a placeholder for the pattern and calculate the number of bytes saved
-			byte[] placeholder = getLowestUnfeaturedSequence(bytes, palette.values());
 			int bytesSavedPerPattern = patternBytes.length - placeholder.length;
 			int patternDefinitionLength = 2 + placeholder.length + patternBytes.length;
-			int totalBytesSavedForPattern = (patternLocations.get(pattern).size() * bytesSavedPerPattern) - patternDefinitionLength;
+			int totalBytesSavedForPattern = (patternLocations.get(pattern).length * bytesSavedPerPattern) - patternDefinitionLength;
 			if (totalBytesSavedForPattern <= 0) {
 				continue;
 			}
 			LOGGER.info("Replacing pattern {} with {} at {} locations saves {} bytes", getByteString(patternBytes), 
-					getByteString(placeholder), patternLocations.get(pattern).size(), totalBytesSavedForPattern);
+					getByteString(placeholder), patternLocations.get(pattern).length, totalBytesSavedForPattern);
 			
 			//Remove overlapping patterns
 			for(byte[] unusablePattern : getUnusablePatterns(patternLocations, patternBytes, patternLocations.get(pattern))) {
@@ -171,6 +166,7 @@ public class Compressor {
 				}
 			}
 			palette.put(patternBytes, placeholder);
+			placeholder = getLowestUnfeaturedSequence(bytes, palette.values());
 		}
 		
 		//Validate by checking for inadvertent placeholder usage
@@ -188,8 +184,8 @@ public class Compressor {
 				boolean isPatternLocation = false;
 				//Replace patterns with their placeholders
 				for(byte[] pattern : palette.keySet()) {
-					List<Integer> locations = patternLocations.get(getLong(pattern));
-					if (locations.contains(i)) {
+					int[] locations = patternLocations.get(getLong(pattern));
+					if (Arrays.binarySearch(locations, i) >= 0) {
 						isPatternLocation = true;
 						for(byte b : palette.get(pattern)) {
 							outputBytes.add(b);
@@ -211,9 +207,9 @@ public class Compressor {
 
 			//Check for inadvertent placeholder usage
 			for(byte[] pattern : palette.keySet()) {
-				byte[] placeholder = palette.get(pattern);
-				int placeholderCount = getPatternLocations(placeholder, output, 0).size();
-				int patternCount = patternLocations.get(getLong(pattern)).size();
+				placeholder = palette.get(pattern);
+				int placeholderCount = getPatternLocations(placeholder, output, 0).length;
+				int patternCount = patternLocations.get(getLong(pattern)).length;
 				if (placeholderCount != patternCount) {
 					LOGGER.info("Couldn't use placeholder {} because use count {} didn't match pattern count {}", 
 							getByteString(placeholder), placeholderCount, patternCount);
@@ -310,7 +306,7 @@ public class Compressor {
 		return output;
 	}
 	
-	private static List<byte[]> getUnusablePatterns(Map<Long, List<Integer>> patternLocations, byte[] pattern, List<Integer> locations) {
+	private static List<byte[]> getUnusablePatterns(Map<Long, int[]> patternLocations, byte[] pattern, int[] locations) {
 		List<byte[]> unusablePatterns = new ArrayList<>();
 		for(long otherPattern : patternLocations.keySet()) {
 			if (otherPattern == getLong(pattern)) {
@@ -343,11 +339,11 @@ public class Compressor {
 		return true;
 	}
 	
-	private static List<Integer> getPatternLocations(byte[] pattern, byte[] bytes, int startIndex) {
+	private static int[] getPatternLocations(byte[] pattern, byte[] bytes, int startIndex) {
 		int i = startIndex;
 		List<Integer> locations = new ArrayList<>();
 		if (pattern.length > bytes.length) {
-			return locations;
+			return new int[0];
 		}
 		while(i <= bytes.length - pattern.length) {
 			if (patternAppearsAt(pattern, bytes, i)) {
@@ -357,7 +353,7 @@ public class Compressor {
 				i++;
 			}
 		}
-		return locations;
+		return locations.stream().mapToInt(n->n).toArray();
 	}
 	
 	private static boolean isPatternContained(byte[] pattern, byte[] bytes) {
@@ -396,12 +392,12 @@ public class Compressor {
 		return null;
 	}
 	
-	private static boolean testDifferenceFromPrevious(List<Integer> integers, int testInteger, int minimumDifference) {
-		int index = integers.indexOf(testInteger);
+	private static boolean testDifferenceFromPrevious(int[] integers, int testInteger, int minimumDifference) {
+		int index = Arrays.binarySearch(integers, testInteger);
 		if (index <= 0) {
 			return index == 0;
 		}
-		return testInteger - integers.get(index - 1) >= minimumDifference;
+		return testInteger - integers[index - 1] >= minimumDifference;
 	}
 	
 	private static byte[] increment(byte[] bytes) throws BufferOverflowException {
