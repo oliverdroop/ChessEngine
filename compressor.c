@@ -157,11 +157,9 @@ void compress(struct charArray input) {
 	struct locationTrie* rootNodePtr = getNewTrieNode();
 	struct charArray pattern;
 	for(unsigned long i = 0; i <= input.length - 2; i++) {
-		//printf("\n");
 		int patternLength = 2;
 		pattern = subCharArray(input, *input.data + i, patternLength);
 		unsigned int index = (pattern.data[0] * CHAR_SIZE) + pattern.data[1];
-		//printChars(pattern, 1);
 		
 		struct locationTrie *triePtr = getNode(rootNodePtr, pattern);
 		struct longArray *locs = triePtr->locations;
