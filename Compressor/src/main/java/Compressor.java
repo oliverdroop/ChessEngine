@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.lang.reflect.Array;
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -24,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.core.util.ArrayUtils;
@@ -75,6 +77,7 @@ public class Compressor {
 		Map<String, int[]> patternLocations = new HashMap<>();
 		Map<String, Integer> patternValues = new HashMap<>();
 		List<String> consideredPatterns = new ArrayList<>();
+		int[][] patternStarts = new int[65536][];
 		//Search for patterns
 		int searchPercentage = 0;
 		int blockSize = (int)Math.round((bytes.length) / (double) 100);
@@ -83,6 +86,7 @@ public class Compressor {
 
 		for(int i = 0; i <= bytes.length - 2; i++) {
 			
+			//Report how far through the file we've searched
 			count++;
 			if (count > blockSize) {
 				count = 0;
@@ -95,6 +99,10 @@ public class Compressor {
 			while (pl < maxPatternLength) {
 				byte[] pattern = Arrays.copyOfRange(bytes, i, i + pl);
 				String patternString = getString(pattern);
+				if (pl == 2 && patternStarts[getUnsignedShort(pattern)] != null) {
+					pl++;
+					continue;
+				}
 				if (patternValues.containsKey(patternString)) {
 					pl++;
 					continue;
@@ -102,12 +110,16 @@ public class Compressor {
 				if (locations.length <= 0) {
 					//Find locations for shortest pattern at i
 					locations = getPatternLocations(pattern, bytes, i);
+					if (pl == 2) {
+						patternStarts[getUnsignedShort(pattern)] = locations;
+					}
 				} else if (locations.length > 1) {
 					//Filter locations for longer versions of the short pattern
 					int[] filteredLocations = Arrays.copyOf(locations, locations.length);
+					int previousPatternLength = pl - 1;
 					locations = Arrays.stream(locations)
 							.filter(loc -> testDifferenceFromPrevious(filteredLocations, loc, pattern.length))
-							.filter(loc -> patternAppearsAt(pattern, bytes, loc))
+							.filter(loc -> patternContinuesAt(pattern, bytes, loc, previousPatternLength))
 							.toArray();
 				}
 				if (locations.length < 2) {
@@ -337,6 +349,18 @@ public class Compressor {
 			return false;
 		}
 		for(int i = 0; i < pattern.length; i++) {
+			if (pattern[i] != bytes[index + i]) {
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	private static boolean patternContinuesAt(byte[] pattern, byte[] bytes, int index, int prefixLength) {
+		if (index > bytes.length - pattern.length || prefixLength >= pattern.length) {
+			return false;
+		}
+		for(int i = prefixLength; i < pattern.length; i++) {
 			if (pattern[i] != bytes[index + i]) {
 				return false;
 			}
@@ -587,12 +611,20 @@ public class Compressor {
 	}
 	
 	private static String getString(byte[] bytes) {
-		//return ByteBuffer.wrap(bytes).asCharBuffer().toString();
 		return CHARSET.decode(ByteBuffer.wrap(bytes)).toString();
 	}
 	
 	private static byte[] getBytes(String string) {
 		return CHARSET.encode(string).array();
+	}
+	
+	private static int getUnsignedShort(byte[] bytes) {
+		if (bytes.length != 2) {
+			return -1;
+		}
+		int ubyte0 = bytes[0] < 0 ? bytes[0] + 256 : bytes[0];
+		int ubyte1 = bytes[1] < 0 ? bytes[1] + 256 : bytes[1];
+		return (ubyte0 * 256) + ubyte1;
 	}
 	
 	private static long getLong(byte[] bytes) {
