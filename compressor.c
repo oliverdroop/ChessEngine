@@ -546,7 +546,6 @@ struct charArray* removeMember(struct charArray* charArrayPtr, int index) {
 }
 
 struct charArray* definePalette(int paletteSize, int maxPatternLength, struct charArray** placeholderPtrsPtr, struct charArray** consideredPatternPtrsPtr) {
-	printf("Defining palette\n");
 	unsigned char paletteArray[paletteSize * maxPatternLength * maxPatternLength];
 	paletteArray[0] = paletteSize;
 	int i = 0;
@@ -555,16 +554,18 @@ struct charArray* definePalette(int paletteSize, int maxPatternLength, struct ch
 		struct charArray* placeholderPtr = placeholderPtrsPtr[i];
 		if (placeholderPtr == 0) {
 			i++;
+			printf("Something has gone wrong if one of the placeholder pointers is 0");
 			paletteArray[0]--;
 			continue;
 		}
-		struct charArray* patternPtr = consideredPatternPtrsPtr[i];
 		paletteArray[iPalette] = placeholderPtr->length;
 		iPalette++;
 		for(int iPlac = 0; iPlac < placeholderPtr->length; iPlac++) {
 			paletteArray[iPalette + iPlac] = placeholderPtr->data[iPlac];
 		}
 		iPalette += placeholderPtr->length;
+
+		struct charArray* patternPtr = consideredPatternPtrsPtr[i];
 		paletteArray[iPalette] = patternPtr->length;
 		iPalette++;
 		for(int iPat = 0; iPat < patternPtr->length; iPat++) {
@@ -579,7 +580,7 @@ struct charArray* definePalette(int paletteSize, int maxPatternLength, struct ch
 		out->data[i2] = paletteArray[i2];
 	}
 	out->length = iPalette;
-	printf("Palette definition contains %d pattern/placeholder pairs in %d bytes\n", paletteSize, iPalette);
+	printf("Palette definition contains %d placeholder/pattern pairs in %d bytes\n", paletteSize, iPalette);
 	return out;
 }
 
@@ -730,12 +731,85 @@ struct charArray* compress(char path[], int maxPatternLength, int maxPaletteSize
 }
 
 struct charArray* uncompress(struct charArray* compressedFile) {
+	printf("Starting uncompress of file of length %d\n", compressedFile->length);
+	int fileExtensionLength = compressedFile->data[0];
+	unsigned long pos = 1;
+	char fileExtension[fileExtensionLength];
+	for(int i = 0; i < fileExtensionLength; i++) {
+		fileExtension[i] = compressedFile->data[pos + i];
+	}
+	pos += fileExtensionLength;
 
+	int paletteSize = compressedFile->data[pos];
+	pos++;
+	struct charArray** placeholderPtrs = malloc(paletteSize * sizeof(struct charArray*));
+	struct charArray** patternPtrs = malloc(paletteSize * sizeof(struct charArray*));
+	int iPalette = 0;
+	while(iPalette < paletteSize) {
+		//Get the placeholder
+		int placeholderLength = compressedFile->data[pos];
+		pos++;
+		struct charArray* placeholderPtr = malloc(sizeof (struct charArray));
+		placeholderPtr->data = malloc(placeholderLength);
+		placeholderPtr->length = placeholderLength;
+		for(int iPlac = 0; iPlac < placeholderLength; iPlac++) {
+			placeholderPtr->data[iPlac] = compressedFile->data[pos + iPlac];
+		}
+		placeholderPtrs[iPalette] = placeholderPtr;
+		pos += placeholderLength;
+
+		//Get the pattern
+		int patternLength = compressedFile->data[pos];
+		pos++;
+		struct charArray* patternPtr = malloc(sizeof (struct charArray));
+		patternPtr->data = malloc(patternLength);
+		patternPtr->length = patternLength;
+		for(int iPat = 0; iPat < patternLength; iPat++) {
+			patternPtr->data[iPat] = compressedFile->data[pos + iPat];
+		}
+		patternPtrs[iPalette] = patternPtr;
+		pos += patternLength;
+
+		iPalette++;
+	}
+	printf("Constructed palette of %d placeholder/pattern pairs. Data starts at %d\n", iPalette, pos);
+
+	//Rebuild file
+	struct charArray* outPtr = malloc(sizeof (struct charArray));
+	outPtr->data = malloc(INT_MAX / 2);
+	int iOut = 0;
+	buildLoop:
+	//printf("Doing this now\n");
+	while(pos < compressedFile->length) {
+		//printf("Position is %d\n", pos);
+		//Check if current position is the beginning of a placeholder
+		for(int iPal = 0; iPal < iPalette; iPal++) {
+			struct charArray* placeholderPtr = placeholderPtrs[iPal];
+			if (patternAppearsAt(placeholderPtr, compressedFile, pos) == 1) {
+				struct charArray* patternPtr = patternPtrs[iPal];
+				for(int iPat = 0; iPat < patternPtr->length; iPat++) {
+					outPtr->data[iOut + iPat] = patternPtr->data[iPat];
+				}
+				iOut += patternPtr->length;
+				pos += placeholderPtr->length;
+				goto buildLoop;
+			}
+		}
+		//printf("Doing this at least once\n");
+		//Regular character ie no placeholder
+		outPtr->data[iOut] = compressedFile->data[pos];
+		iOut++;
+		pos++;
+	}
+	outPtr->length = iOut;
+	printf("Rebuilt file of length %d\n", outPtr->length);
+	return outPtr;
 }
 
 int main()
 {
 	char path[] = "D:\\WebHost\\Cog1.bmp";
-	compress(path, 16, CHAR_SIZE);
+	struct charArray* compressedFile = compress(path, 16, CHAR_SIZE);
+	struct charArray* uncompressedFile = uncompress(compressedFile);
 	return 0;
 }
