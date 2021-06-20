@@ -37,12 +37,12 @@ void printChars(struct charArray chars, unsigned char trailingNewlines) {
 	}
 }
 
-struct charArray loadBytes() {
+struct charArray loadBytes(char path[]) {
 	FILE *fileptr;
 	unsigned char *buffer;
 	long filelen;
 
-	fileptr = fopen("D:\\WebHost\\page2buckminster.html", "rb");  // Open the file in binary mode
+	fileptr = fopen(path, "rb");  // Open the file in binary mode
 	fseek(fileptr, 0, SEEK_END);          // Jump to the end of the file
 	filelen = ftell(fileptr);             // Get the current byte offset in the file
 	rewind(fileptr);                      // Jump back to the beginning of the file
@@ -583,10 +583,40 @@ struct charArray* definePalette(int paletteSize, int maxPatternLength, struct ch
 	return out;
 }
 
-struct charArray* compress(int maxPatternLength) {
-	struct charArray data = loadBytes();
+struct charArray* getFileExtension(unsigned char path[]) {
+	int pathLength = 0;
+	unsigned char currentChar = path[pathLength];
+	while (currentChar != '\0') {
+		pathLength++;
+		currentChar = path[pathLength];
+	}
+	//Find the last dot in the path
+	int i = pathLength - 1;
+	while(path[i] != '.') {
+		i--;
+	}
+	i++;
+	struct charArray* out = malloc(sizeof(struct charArray));
+	out->length = pathLength - i + 1;
+	out->data = malloc(pathLength - i + 1);
+	//Put the length of the file extension first.
+	out->data[0] = pathLength - i;
+	int iOut = 1;
+	//File extension characters
+	while(i < pathLength) {
+		out->data[iOut] = path[i];
+		i++;
+		iOut++;
+	}
+	printf("File extension data : ");
+	printChars(*out, 1);
+	return out;
+}
+
+struct charArray* compress(char path[], int maxPatternLength, int maxPaletteSize) {
+	struct charArray data = loadBytes(path);
 	struct locationTrie* rootPtr = buildLocationTrie(data, maxPatternLength);
-	int paletteSize = CHAR_SIZE;
+	int paletteSize = maxPaletteSize;
 	int passes = paletteSize;
 
 
@@ -659,7 +689,7 @@ struct charArray* compress(int maxPatternLength) {
 				printChars(*placeholderPtr, 0);
 				printf(" with ");
 				printChars(*newPlaceholderPtr, 0);
-				printf(" because placeholder count %d didn't match pattern count %d\n", placeholderCount, patternCount);
+				printf(" because count %d didn't match pattern count %d\n", placeholderCount, patternCount);
 
 				struct charArray** newPlaceholdersList = malloc((paletteSize + discardedPlaceholdersCount + 1) * sizeof (struct charArray*));
 				for(int iPlac = 0; iPlac < paletteSize + discardedPlaceholdersCount; iPlac++) {
@@ -676,15 +706,22 @@ struct charArray* compress(int maxPatternLength) {
 		validating = 0;
 	}
 	
+	struct charArray* extensionPtr = getFileExtension(path);
 	struct charArray* palettePtr = definePalette(paletteSize, maxPatternLength, placeholderPtrsPtr, consideredPatternPtrsPtr);
 	struct charArray* out = malloc(sizeof(struct charArray));
-	out->data = malloc(palettePtr->length + workingOutput.length);
-	out->length = palettePtr->length + workingOutput.length;
-	for(int iOut = 0; iOut < palettePtr->length; iOut++){
-		out->data[iOut] = palettePtr->data[iOut];
+	out->data = malloc(extensionPtr->length + palettePtr->length + workingOutput.length);
+	out->length = extensionPtr->length + palettePtr->length + workingOutput.length;
+	//Write the file extension
+	for(int iOut = 0; iOut < extensionPtr->length; iOut++){
+		out->data[iOut] = extensionPtr->data[iOut];
 	}
-	for(int iOut = palettePtr->length; iOut < palettePtr->length + workingOutput.length; iOut++) {
-		out->data[iOut] = workingOutput.data[iOut - palettePtr->length];
+	//Write the palette
+	for(int iOut = extensionPtr->length; iOut < extensionPtr->length + palettePtr->length; iOut++){
+		out->data[iOut] = palettePtr->data[iOut - extensionPtr->length];
+	}
+	//Write the compressed data
+	for(int iOut = extensionPtr->length + palettePtr->length; iOut < extensionPtr->length + palettePtr->length + workingOutput.length; iOut++) {
+		out->data[iOut] = workingOutput.data[iOut - extensionPtr->length - palettePtr->length];
 	}
 	
 	double compression = data.length / (double)out->length;
@@ -692,14 +729,13 @@ struct charArray* compress(int maxPatternLength) {
 	return out;
 }
 
+struct charArray* uncompress(struct charArray* compressedFile) {
+
+}
+
 int main()
 {
-	compress(16);
-	//struct charArray data = loadBytes();
-	//struct locationTrie* trie = buildLocationTrie(data);
-	//getBestPattern(trie, 8);
-	//printf("Lowest unfeatured sequence is ");
-	//printChars(*getLowestUnfeaturedSequence(trie, 16), 1);
-	//searchTrie(trie, 2);
+	char path[] = "D:\\WebHost\\Cog1.bmp";
+	compress(path, 16, CHAR_SIZE);
 	return 0;
 }
