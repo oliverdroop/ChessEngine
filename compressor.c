@@ -542,7 +542,7 @@ struct charArray* getMajorityPattern(struct locationTrie* rootPtr, int depthLimi
 		printChars(*bestPatternPtr, 0);
 		int patternLength = bestPatternPtr->length;
 		int patternCount = bestNodePtr->locations->length;
-		printf(" : length %d : count %d : value %d\n", patternLength, patternCount, patternLength * patternCount);
+		printf(" : length %d : count %d : value %d\n", patternLength, patternCount, bestValue);
 	}
 	return bestPatternPtr;
 }
@@ -609,7 +609,7 @@ struct charArray* definePalette(int paletteSize, int maxPatternLength, struct ch
 	return out;
 }
 
-int getStringLength(char path[]) {
+int getStringLength(unsigned char path[]) {
 	int pathLength = 0;
 	unsigned char currentChar = path[0];
 	while (currentChar != '\0') {
@@ -620,12 +620,7 @@ int getStringLength(char path[]) {
 }
 
 int getLastDotPosition(unsigned char path[]) {
-	int pathLength = 0;
-	unsigned char currentChar = path[pathLength];
-	while (currentChar != '\0') {
-		pathLength++;
-		currentChar = path[pathLength];
-	}
+	int pathLength = getStringLength(path);
 	//Find the last dot in the path
 	int i = pathLength - 1;
 	while(path[i] != '.') {
@@ -659,26 +654,28 @@ struct charArray* getFileExtensionFromCompressedFile(struct charArray* fileChars
 	int fileExtensionLength = fileCharsPtr->data[0];
 	unsigned long pos = 1;
 	struct charArray* out = malloc(sizeof(struct charArray));
-	out->data = malloc(fileExtensionLength);
-	out->length = fileExtensionLength;
+	out->data = malloc(fileExtensionLength + 1);
+	out->length = fileExtensionLength + 1;
 	for(int i = 0; i < fileExtensionLength; i++) {
 		out->data[i] = fileCharsPtr->data[pos + i];
 	}
+	out->data[fileExtensionLength] = '\0';
 	return out;
 }
 
 struct charArray* getFilePathWithoutExtension(unsigned char path[]) {
-	int pathLength = getStringLength(path);
+	//int pathLength = getStringLength(path);
 	int i = getLastDotPosition(path);
 	struct charArray* out = malloc(sizeof(struct charArray));
-	out->length = i;
-	out->data = malloc(i);
+	out->length = i + 1;
+	out->data = malloc(i + 1);
 
 	int iOut = 0;
 	while(iOut < i) {
 		out->data[iOut] = path[iOut];
 		iOut++;
 	}
+	out->data[i] = '\0';
 	return out;
 }
 
@@ -928,8 +925,13 @@ int main(int argc, char* argv[])
 	struct charArray* compressedFilePtr = 0;
 	struct charArray* uncompressedFilePtr = 0;
 	if (compressing) {
+		printf("Compressing file: %s\n", pathPtr);
 		compressedFilePtr = compress(pathPtr, 16, CHAR_SIZE);
-		pathPtr = strcat(getFilePathWithoutExtension(pathPtr)->data, COMPRESSED_EXTENSION);
+		
+		unsigned char* newPath = getFilePathWithoutExtension(pathPtr)->data;
+		strcat(newPath, COMPRESSED_EXTENSION);
+		pathPtr = newPath;
+		printf("Saving compressed file: %s\n", pathPtr);
 		FILE* filePtr = fopen(pathPtr, "wb");
 		for(int i = 0; i < compressedFilePtr->length; i++) {
 			fputc(compressedFilePtr->data[i], filePtr);
@@ -937,13 +939,17 @@ int main(int argc, char* argv[])
 		fclose(filePtr);
 	}
 	if (uncompressing) {
+		printf("Loading compressed file: %s\n", pathPtr);
 		struct charArray compressedFileChars = loadBytes(pathPtr);
 		compressedFilePtr = &compressedFileChars;
 		struct charArray* fileExtension = getFileExtensionFromCompressedFile(compressedFilePtr);
 		
 		uncompressedFilePtr = uncompress(compressedFilePtr);
 
-		pathPtr = strcat(strcat(getFilePathWithoutExtension(pathPtr)->data, "."), fileExtension->data);
+		unsigned char* newPath = getFilePathWithoutExtension(pathPtr)->data;
+		strcat(newPath, ".");
+		strcat(newPath, fileExtension->data);
+		pathPtr = newPath;
 		FILE* filePtr = fopen(pathPtr, "wb");
 		for(int i = 0; i < uncompressedFilePtr->length; i++) {
 			fputc(uncompressedFilePtr->data[i], filePtr);
