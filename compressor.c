@@ -780,11 +780,15 @@ struct charArray* uncompress(struct charArray* compressedFile) {
 }
 
 void printHelp() {
-	printf("Usage: compressor [option] file...\n");
+	printf("Usage: compressor [mandatory option] file... [optional options]\n");
 	printf("\t--help\t\tDisplay this information\n");
+	printf("------------------------Mandatory Options------------------------\n");
 	printf("\t-c\t\tCompress a file with an extension\n");
 	printf("\t-u\t\tUncompress a valid .dcp file\n");
 	printf("\t-cu\t\tCompress a file and then reconstruct it\n");
+	printf("------------------------Optional Options-------------------------\n");
+	printf("\t-pc <integer>\tSet the maximum pattern count. Lower numbers offer better performance (default/max 255)\n");
+	printf("\t-pl <integer>\tSet the maximum pattern length. Lower numbers offer better performance (default/max 16)\n");
 	printf("Thank you for choosing compressor; a lossless file compressor by Oliver Droop\n");
 }
 
@@ -795,6 +799,8 @@ int main(int argc, char* argv[])
 
 	unsigned char compressing = 0;
 	unsigned char uncompressing = 0;
+	int patternCount = CHAR_SIZE - 1;
+	int patternLength = 16;
 
 	if (argc == 2 && strcmp(argv[1], "--help") == 0) {
 		printHelp();
@@ -824,12 +830,32 @@ int main(int argc, char* argv[])
 	// printf("Full path length : %d\n", getStringLength(pathPtr));
 	// printf("Length of path without extension : %d\n", getFilePathWithoutExtension(pathPtr)->length);
 	// printf("Extension length : %d\n", getFileExtension(pathPtr)->length - 1);
+	int aIndex = 3;
+	while (argc > aIndex + 1) {
+		if (compressing == 0) {
+			printf("Further arguments are not used except when compressing\n");
+		}
+		if (strcmp(argv[aIndex], "-pc") == 0) {
+			sscanf(argv[aIndex + 1], "%i", &patternCount);
+			if (patternCount < 1 || patternCount > 255) {
+				printf("Maximum pattern count must be > 0 and < 256\n");
+				return 1;
+			}
+		} else if (strcmp(argv[aIndex], "-pl") == 0) {
+			sscanf(argv[aIndex + 1], "%i", &patternLength);
+			if (patternLength < 2 || patternLength > 16) {
+				printf("Maximum pattern length must be > 1 and < 17\n");
+				return 1;
+			}
+		}
+		aIndex += 2;
+	}
 
 	struct charArray* compressedFilePtr = 0;
 	struct charArray* uncompressedFilePtr = 0;
 	if (compressing) {
 		printf("Compressing file: %s\n", pathPtr);
-		compressedFilePtr = compress(pathPtr, 16, CHAR_SIZE - 1);
+		compressedFilePtr = compress(pathPtr, patternLength, patternCount);
 
 		unsigned char* newPath = getFilePathWithoutExtension(pathPtr)->data;
 		strcat(newPath, COMPRESSED_EXTENSION);
