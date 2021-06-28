@@ -481,7 +481,7 @@ struct charArray* getLowestUnfeaturedSequence(struct locationTrie* rootPtr, int 
 	return 0;
 }
 
-struct charArray* getMajorityPattern(struct locationTrie* rootPtr, int depthLimit, struct charArray** excludedPatterns, int excludedPatternCount) {
+struct charArray* getMajorityPattern(struct locationTrie* rootPtr, int depthLimit, int placeholderLength, struct charArray** excludedPatterns, int excludedPatternCount) {
 	struct locationTrie* currentNodePtr = rootPtr;
 	unsigned long bestValue = 0;
 	struct locationTrie* bestNodePtr = 0;
@@ -496,7 +496,8 @@ struct charArray* getMajorityPattern(struct locationTrie* rootPtr, int depthLimi
 				i = 0;
 				if (currentNodePtr->locations->length > 0 && currentNodePtr->overlapping == 0) {
 					struct charArray* currentPatternPtr = getPatternFromTrie(currentNodePtr);
-					unsigned long value = currentNodePtr->locations->length * currentPatternPtr->length;
+					int locCount = currentNodePtr->locations->length;
+					unsigned long value = (locCount * currentPatternPtr->length) - (locCount * placeholderLength);
 
 					unsigned char excluded = 0;
 					for(int iEx = 0; iEx < excludedPatternCount; iEx++) {
@@ -678,8 +679,6 @@ struct charArray* getFilePathWithoutExtension(unsigned char path[]) {
 		out->data[iOut] = path[iOut];
 		iOut++;
 	}
-	// printf("File path without extension : ");
-	// printChars(*out, 1);
 	return out;
 }
 
@@ -695,7 +694,7 @@ struct charArray* compress(char* path, int maxPatternLength, int maxPaletteSize)
 	while(passes > 0) {
 		int i = paletteSize - passes;
 		struct charArray* placeholderPtr = getLowestUnfeaturedSequence(rootPtr, maxPatternLength, placeholderPtrsPtr, i);
-		struct charArray* patternPtr = getMajorityPattern(rootPtr, maxPatternLength, consideredPatternPtrsPtr, i);
+		struct charArray* patternPtr = getMajorityPattern(rootPtr, maxPatternLength, placeholderPtr->length, consideredPatternPtrsPtr, i);
 		if (patternPtr == 0 || getNode(rootPtr, patternPtr, 0)->locations->length <= 1) {
 			paletteSize = i;
 			break;
@@ -742,9 +741,9 @@ struct charArray* compress(char* path, int maxPatternLength, int maxPaletteSize)
 				i++;
 				iOut++;
 			}
-
 		}
 
+		//Build a version of the compressed data to validate
 		if (workingOutput == 0) {
 			workingOutput = malloc(sizeof(struct charArray));
 			workingOutput->data = malloc(iOut);
@@ -855,9 +854,7 @@ struct charArray* uncompress(struct charArray* compressedFile) {
 	outPtr->data = malloc(INT_MAX / 2);
 	int iOut = 0;
 	buildLoop:
-	//printf("Doing this now\n");
 	while(pos < compressedFile->length) {
-		//printf("Position is %d\n", pos);
 		//Check if current position is the beginning of a placeholder
 		for(int iPal = 0; iPal < iPalette; iPal++) {
 			struct charArray* placeholderPtr = placeholderPtrs[iPal];
@@ -871,7 +868,6 @@ struct charArray* uncompress(struct charArray* compressedFile) {
 				goto buildLoop;
 			}
 		}
-		//printf("Doing this at least once\n");
 		//Regular character ie no placeholder
 		outPtr->data[iOut] = compressedFile->data[pos];
 		iOut++;
