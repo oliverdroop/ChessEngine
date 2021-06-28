@@ -483,7 +483,7 @@ struct charArray* getLowestUnfeaturedSequence(struct locationTrie* rootPtr, int 
 
 struct charArray* getMajorityPattern(struct locationTrie* rootPtr, int depthLimit, int placeholderLength, struct charArray** excludedPatterns, int excludedPatternCount) {
 	struct locationTrie* currentNodePtr = rootPtr;
-	unsigned long bestValue = 0;
+	long bestValue = 0;
 	struct locationTrie* bestNodePtr = 0;
 	int i = 0;
 	int depth = 0;
@@ -497,7 +497,8 @@ struct charArray* getMajorityPattern(struct locationTrie* rootPtr, int depthLimi
 				if (currentNodePtr->locations->length > 0 && currentNodePtr->overlapping == 0) {
 					struct charArray* currentPatternPtr = getPatternFromTrie(currentNodePtr);
 					int locCount = currentNodePtr->locations->length;
-					unsigned long value = (locCount * currentPatternPtr->length) - (locCount * placeholderLength);
+					unsigned long patternDefinitionLength = placeholderLength + currentPatternPtr->length + 2;
+					long value = ((locCount * currentPatternPtr->length) - (locCount * placeholderLength)) - patternDefinitionLength;
 
 					unsigned char excluded = 0;
 					for(int iEx = 0; iEx < excludedPatternCount; iEx++) {
@@ -927,7 +928,7 @@ int main(int argc, char* argv[])
 	if (compressing) {
 		printf("Compressing file: %s\n", pathPtr);
 		compressedFilePtr = compress(pathPtr, 16, CHAR_SIZE);
-		
+
 		unsigned char* newPath = getFilePathWithoutExtension(pathPtr)->data;
 		strcat(newPath, COMPRESSED_EXTENSION);
 		pathPtr = newPath;
