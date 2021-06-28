@@ -240,63 +240,36 @@ struct locationTrie* buildLocationTrie(struct charArray input, int maxPatternLen
 }
 
 struct charArray* increment(struct charArray* patternPtr, int maxPatternLength) {
-	int i = patternPtr->length - 1;
+	struct charArray* outPtr = malloc(sizeof(struct charArray));
+	outPtr->data = malloc(patternPtr->length);
+	outPtr->length = patternPtr->length;
+	for(int i = 0; i < patternPtr->length; i++) {
+		outPtr->data[i] = patternPtr->data[i];
+	}
+	
+	int pos = outPtr->length - 1;
 	unsigned char overflow = 0;
-	unsigned char incremented = 0;
-	while(overflow == 0 && incremented == 0) {
-		if (patternPtr->data[i] < CHAR_SIZE - 1) {
-			patternPtr->data[i]++;
-			incremented = 1;
-			return patternPtr;
+	while(overflow == 0){
+		int value = outPtr->data[pos];
+		value++;
+		if (value < CHAR_SIZE) {
+			outPtr->data[pos] = value;
+			return outPtr;
 		} else {
-			patternPtr->data[i] = 0;
-			i --;
-			if (i < 0) {
-				int patternLength = patternPtr->length;
-				if (patternLength < maxPatternLength) {
-					patternLength++;
-					patternPtr->length = patternLength;
-					unsigned char* newData = malloc(patternLength);
-					memset(newData, 0, patternLength);
-					free(patternPtr->data);
-					patternPtr->data = newData;
-					incremented = 1;
-					return patternPtr;
-				} else {
-					overflow = 1;
-					printf("Increment overflowed at pattern length %d\n", patternLength);
-				}
+			outPtr->data[pos] = 0;
+			pos--;
+			if (pos < 0) {
+				overflow = 1;
 			}
 		}
 	}
-	return 0;
-}
-
-struct charArray* getBestPattern(struct locationTrie* rootPtr, int maxPatternLength) {
-	unsigned char ar[1] = {0};
-	struct charArray* currentPatternPtr = (struct charArray*)malloc(sizeof(struct charArray));
-	currentPatternPtr->data = ar;
-	currentPatternPtr->length = 1;
-
-	struct charArray* bestPatternPtr = 0;
-	unsigned long bestValue = 0;
-	while(currentPatternPtr != 0) {
-		struct locationTrie* currentNodePtr = getNode(rootPtr, currentPatternPtr, 0);
-		if (currentNodePtr != 0) {
-			unsigned long value = currentNodePtr->locations->length * currentPatternPtr->length;
-			if (value > bestValue) {
-				bestValue = value;
-				bestPatternPtr = currentPatternPtr;
-			}
-		}
-		currentPatternPtr = increment(currentPatternPtr, maxPatternLength);
+	outPtr->data = realloc(outPtr->data, outPtr->length + 1);
+	outPtr->length = outPtr->length + 1;
+	outPtr->data[0] = 0;
+	for(int i = 1; i < outPtr->length; i++) {
+		outPtr->data[i] = outPtr->data[i - 1];
 	}
-	printf("Best pattern : ");
-	for(int i = 0; i < bestPatternPtr->length; i++) {
-		printChar(bestPatternPtr->data[i]);
-	}
-	printf("\nUsed in %d locations", getNode(rootPtr, bestPatternPtr, 0)->locations->length);
-	return bestPatternPtr;
+	return outPtr;
 }
 
 unsigned char getChildNumber(struct locationTrie* childPtr) {
@@ -328,39 +301,6 @@ struct charArray* getPatternFromTrie(struct locationTrie* triePtr) {
 	return outPtr;
 }
 
-void searchTrie(struct locationTrie* rootPtr, int depthLimit) {
-	//depth first
-	struct locationTrie* currentPtr = rootPtr;
-	int i = 0;
-	int depth = 0;
-	char ar[depthLimit];
-	while(depth >= 0) {
-		while(i < CHAR_SIZE && depth < depthLimit) {
-			struct locationTrie* childPtr = currentPtr->children[i];
-			if (childPtr != 0) {
-				currentPtr = childPtr;
-				ar[depth] = i;
-				for(int i3 = 0; i3 <= depth; i3++) {
-					printChar(ar[i3]);
-				}
-				printf("\n");
-				depth++;
-				i = 0;
-			}
-			i++;
-		}
-		if (currentPtr == rootPtr) {
-			//printf("Back to root trie\n");
-			break;
-		}
-		i = getChildNumber(currentPtr) + 1;
-		currentPtr = currentPtr->parent;
-		depth--;
-		//printf("Back to parent (depth %d)\n", depth);
-	}
-	printf("Searched trie\n");
-}
-
 unsigned char charArraysEqual(struct charArray* ar1Ptr, struct charArray* ar2Ptr) {
 	if (ar1Ptr->length != ar2Ptr->length) {
 		return 0;
@@ -375,19 +315,15 @@ unsigned char charArraysEqual(struct charArray* ar1Ptr, struct charArray* ar2Ptr
 
 unsigned char eitherArrayContainsOther(struct charArray* ar1Ptr, struct charArray* ar2Ptr) {
 	if (ar1Ptr->length <= ar2Ptr->length) {
-		for(int i = 0; i < ar1Ptr->length; i++) {
-			if (ar1Ptr->data[i] != ar2Ptr->data[i]) {
-				return 0;
-			}
+		if (getPatternLocations(ar1Ptr, ar2Ptr, 0)->length > 0) {
+			return 1;
 		}
 	} else {
-		for(int i = 0; i < ar2Ptr->length; i++) {
-			if (ar2Ptr->data[i] != ar1Ptr->data[i]) {
-				return 0;
-			}
+		if (getPatternLocations(ar2Ptr, ar1Ptr, 0)->length > 0) {
+			return 1;
 		}
 	}
-	return 1;
+	return 0;
 }
 
 unsigned char isSuitablePlaceholder(struct charArray* charArray, struct charArray** placeholderPtrs, int listSize) {
@@ -432,53 +368,19 @@ unsigned char overlapsWithListMember(struct locationTrie* rootPtr, struct charAr
 }
 
 struct charArray* getLowestUnfeaturedSequence(struct locationTrie* rootPtr, int depthLimit, struct charArray** excludedPlaceholderPtrs, int excludedPlaceholdersCount) {
-	//breadth first
-	struct locationTrie* currentPtr = rootPtr;
-	int i = 0;
-	int depth = 0;
-	char ar[depthLimit];
-	while(depth < depthLimit) {
-		while(i < CHAR_SIZE) {
-			//printf("Searching for unfeatured sequence : Depth %d : Index %d\n", depth, i);
-			struct locationTrie* childPtr = 0;
-			if (currentPtr != 0) {
-				childPtr = currentPtr->children[i];
-			}
-			ar[depth] = i;
-			if (childPtr == 0) {
-				struct charArray* outputPtr = (struct charArray*)malloc(sizeof(struct charArray));
-				outputPtr->length = depth + 1;
-				outputPtr->data = (unsigned char*)malloc(depth + 1);
-				for(int i3 = 0; i3 <= depth; i3++) {
-					outputPtr->data[i3] = ar[i3];
-				}
-				if (isSuitablePlaceholder(outputPtr, excludedPlaceholderPtrs, excludedPlaceholdersCount) == 1) {
-					// printf("Found unfeatured sequence #%d : ", excludedPlaceholdersCount + 1);
-					// printChars(*outputPtr, 1);
-					return outputPtr;
-				} else {
-					free(outputPtr->data);
-					free(outputPtr);
-				}
-			}
-			i++;
-		}
-		i = 0;
-		ar[depth] = i;
-		if (currentPtr != rootPtr) {
-			//go to sibling node
-			int i2 = getChildNumber(currentPtr) + 1;
-			if (i2 < CHAR_SIZE) {
-				ar[depth - 1] = i2;
-				currentPtr = currentPtr->parent->children[i2];
-				continue;
-			}
-		}
-		currentPtr = currentPtr->children[i];
-		depth++;
+	struct charArray* outPtr = malloc(sizeof(struct charArray));
+	outPtr->length = 1;
+	outPtr->data = malloc(1);
+	outPtr->data[0] = 0;
+	while(getNode(rootPtr, outPtr, 0) != 0 || isSuitablePlaceholder(outPtr, excludedPlaceholderPtrs, excludedPlaceholdersCount) == 0) {
+		struct charArray* nextPtr = increment(outPtr, depthLimit);
+		free(outPtr->data);
+		free(outPtr);
+		outPtr = nextPtr;
 	}
-	printf("Something has gone wrong if a lowest unfeatured sequence can't be found");
-	return 0;
+	printf("Found unfeatured sequence #%d : ", excludedPlaceholdersCount + 1);
+	printChars(*outPtr, 1);
+	return outPtr;
 }
 
 struct charArray* getMajorityPattern(struct locationTrie* rootPtr, int depthLimit, int placeholderLength, struct charArray** excludedPatterns, int excludedPatternCount) {
@@ -927,7 +829,7 @@ int main(int argc, char* argv[])
 	struct charArray* uncompressedFilePtr = 0;
 	if (compressing) {
 		printf("Compressing file: %s\n", pathPtr);
-		compressedFilePtr = compress(pathPtr, 16, CHAR_SIZE);
+		compressedFilePtr = compress(pathPtr, 16, CHAR_SIZE - 1);
 
 		unsigned char* newPath = getFilePathWithoutExtension(pathPtr)->data;
 		strcat(newPath, COMPRESSED_EXTENSION);
