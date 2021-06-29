@@ -468,50 +468,6 @@ struct charArray* removeMember(struct charArray* charArrayPtr, int index) {
 	return out;
 }
 
-struct charArray* definePalette(int paletteSize, int maxPatternLength, struct charArray** placeholderPtrsPtr, struct charArray** consideredPatternPtrsPtr) {
-	unsigned char paletteArray[paletteSize * maxPatternLength * maxPatternLength];
-	paletteArray[0] = paletteSize;
-	int i = 0;
-	int iPalette = 1;
-	while(i < paletteSize) {
-		struct charArray* placeholderPtr = placeholderPtrsPtr[i];
-		if (placeholderPtr == 0) {
-			i++;
-			printf("Something has gone wrong if one of the placeholder pointers is 0");
-			paletteArray[0]--;
-			continue;
-		}
-		paletteArray[iPalette] = placeholderPtr->length;
-		iPalette++;
-		for(int iPlac = 0; iPlac < placeholderPtr->length; iPlac++) {
-			paletteArray[iPalette + iPlac] = placeholderPtr->data[iPlac];
-		}
-		iPalette += placeholderPtr->length;
-
-		struct charArray* patternPtr = consideredPatternPtrsPtr[i];
-		paletteArray[iPalette] = patternPtr->length;
-		iPalette++;
-		for(int iPat = 0; iPat < patternPtr->length; iPat++) {
-			paletteArray[iPalette + iPat] = patternPtr->data[iPat];
-		}
-		iPalette += patternPtr->length;
-		i++;
-
-		printf("Replacing ");
-		printChars(*patternPtr, 0);
-		printf(" with ");
-		printChars(*placeholderPtr, 1);
-	}
-	struct charArray* out = malloc(sizeof(struct charArray));
-	out->data = malloc(iPalette);
-	for(int i2 = 0; i2 < iPalette; i2++) {
-		out->data[i2] = paletteArray[i2];
-	}
-	out->length = iPalette;
-	printf("Palette definition contains %d placeholder/pattern pairs in %d bytes\n", paletteSize, iPalette);
-	return out;
-}
-
 int getStringLength(unsigned char path[]) {
 	int pathLength = 0;
 	unsigned char currentChar = path[0];
@@ -582,6 +538,50 @@ struct charArray* getFilePathWithoutExtension(unsigned char path[]) {
 	return out;
 }
 
+struct charArray* definePalette(int paletteSize, int maxPatternLength, struct charArray** placeholderPtrsPtr, struct charArray** consideredPatternPtrsPtr) {
+	unsigned char paletteArray[paletteSize * maxPatternLength * maxPatternLength];
+	paletteArray[0] = paletteSize;
+	int i = 0;
+	int iPalette = 1;
+	while(i < paletteSize) {
+		struct charArray* placeholderPtr = placeholderPtrsPtr[i];
+		if (placeholderPtr == 0) {
+			i++;
+			printf("Something has gone wrong if one of the placeholder pointers is 0");
+			paletteArray[0]--;
+			continue;
+		}
+		paletteArray[iPalette] = placeholderPtr->length;
+		iPalette++;
+		for(int iPlac = 0; iPlac < placeholderPtr->length; iPlac++) {
+			paletteArray[iPalette + iPlac] = placeholderPtr->data[iPlac];
+		}
+		iPalette += placeholderPtr->length;
+
+		struct charArray* patternPtr = consideredPatternPtrsPtr[i];
+		paletteArray[iPalette] = patternPtr->length;
+		iPalette++;
+		for(int iPat = 0; iPat < patternPtr->length; iPat++) {
+			paletteArray[iPalette + iPat] = patternPtr->data[iPat];
+		}
+		iPalette += patternPtr->length;
+		i++;
+
+		printf("Replacing ");
+		printChars(*patternPtr, 0);
+		printf(" with ");
+		printChars(*placeholderPtr, 1);
+	}
+	struct charArray* out = malloc(sizeof(struct charArray));
+	out->data = malloc(iPalette);
+	for(int i2 = 0; i2 < iPalette; i2++) {
+		out->data[i2] = paletteArray[i2];
+	}
+	out->length = iPalette;
+	printf("Palette definition contains %d placeholder/pattern pairs in %d bytes\n", paletteSize, iPalette);
+	return out;
+}
+
 struct charArray* compress(char* path, int maxPatternLength, int maxPaletteSize) {
 	struct charArray data = loadBytes(path);
 	struct locationTrie* rootPtr = buildLocationTrie(data, maxPatternLength);
@@ -604,9 +604,10 @@ struct charArray* compress(char* path, int maxPatternLength, int maxPaletteSize)
 		passes--;
 	}
 
+	struct charArray* workingOutput = 0;
+	//validate(data, paletteSize, maxPatternLength, rootPtr, consideredPatternPtrsPtr, placeholderPtrsPtr, workingOutput);
 	unsigned char validating = 1;
 	int discardedPlaceholdersCount = 0;
-	struct charArray* workingOutput = 0;
 	validation:
 	while(validating == 1) {
 		//Build an output char array based on the current palette of placeholders
@@ -879,6 +880,7 @@ int main(int argc, char* argv[])
 		strcat(newPath, ".");
 		strcat(newPath, fileExtension->data);
 		pathPtr = newPath;
+		printf("Saving uncompressed file: %s\n", pathPtr);
 		FILE* filePtr = fopen(pathPtr, "wb");
 		for(int i = 0; i < uncompressedFilePtr->length; i++) {
 			fputc(uncompressedFilePtr->data[i], filePtr);
