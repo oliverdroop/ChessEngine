@@ -6,28 +6,28 @@
 #define CHAR_SIZE 256
 #define COMPRESSED_EXTENSION ".dcp"
 
-struct charArray {
+typedef struct CharArray {
 	int length;
 	unsigned char* data;
-};
+} CharArray;
 
-struct longArray {
+typedef struct LongArray {
 	int length;
 	unsigned long* data;
-};
+} LongArray;
 
-struct locationTrie {
+typedef struct TrieNode {
 	unsigned char overlapping;
-	struct locationTrie* parent;
-	struct locationTrie* children[CHAR_SIZE];
-	struct longArray* locations;
-};
+	struct TrieNode* parent;
+	struct TrieNode* children[CHAR_SIZE];
+	struct LongArray* locations;
+} TrieNode;
 
 void printChar(unsigned char value) {
 	printf("%02X ", value);
 }
 
-void printChars(struct charArray chars, unsigned char trailingNewlines) {
+void printChars(CharArray chars, unsigned char trailingNewlines) {
 	for(int i = 0; i < chars.length; i++) {
 		unsigned char byteVal = chars.data[i];
 		printChar(byteVal);
@@ -38,7 +38,7 @@ void printChars(struct charArray chars, unsigned char trailingNewlines) {
 	}
 }
 
-struct charArray loadBytes(char path[]) {
+CharArray loadBytes(char path[]) {
 	FILE *fileptr;
 	unsigned char *buffer;
 	long filelen;
@@ -48,42 +48,42 @@ struct charArray loadBytes(char path[]) {
 	filelen = ftell(fileptr);             // Get the current byte offset in the file
 	rewind(fileptr);                      // Jump back to the beginning of the file
 
-	buffer = (unsigned char *)malloc(filelen * sizeof(unsigned char)); // Enough memory for the file
+	buffer = malloc(filelen * sizeof(unsigned char)); // Enough memory for the file
 	fread(buffer, filelen, 1, fileptr); // Read in the entire file
 	fclose(fileptr); // Close the file
 	
 	printf("Loaded %d bytes\n", filelen);
 	
-	struct charArray output;
+	CharArray output;
 	output.length = filelen;
 	output.data = buffer;
 	
 	return output;
 }
 
-struct charArray subCharArray(struct charArray src, unsigned long start, unsigned long length) {
-	struct charArray out;
+CharArray subCharArray(CharArray src, unsigned long start, unsigned long length) {
+	CharArray out;
 	out.length = length;
 	out.data = src.data + start;
 	return out;
 }
 
-struct longArray subLongArray(struct longArray src, unsigned long start, unsigned long length) {
-	struct longArray out;
+LongArray subLongArray(LongArray src, unsigned long start, unsigned long length) {
+	LongArray out;
 	out.length = length;
 	out.data = (unsigned long*)*src.data + (start * sizeof(unsigned long));
 	return out;
 }
 
-struct longArray emptyLongArray(){
-	struct longArray emptyArray;
+LongArray emptyLongArray(){
+	LongArray emptyArray;
 	emptyArray.length = 0;
 	emptyArray.data = 0;
 	return emptyArray;
 }
 
-struct charArray* combineCharArrays(struct charArray* ar1Ptr, struct charArray* ar2Ptr) {
-	struct charArray* outPtr = malloc(sizeof (struct charArray));
+CharArray* combineCharArrays(CharArray* ar1Ptr, CharArray* ar2Ptr) {
+	CharArray* outPtr = malloc(sizeof (CharArray));
 	int length = ar1Ptr->length + ar2Ptr->length;
 	outPtr->data = malloc(length);
 	outPtr->length = length;
@@ -92,12 +92,12 @@ struct charArray* combineCharArrays(struct charArray* ar1Ptr, struct charArray* 
 	return outPtr;
 }
 
-void freeCharArray(struct charArray* array) {
+void freeCharArray(CharArray* array) {
 	free(array->data);
 	free(array);
 }
 
-char patternAppearsAt(struct charArray* pattern, struct charArray* chars, unsigned long index) {
+char patternAppearsAt(CharArray* pattern, CharArray* chars, unsigned long index) {
 	if (index > chars->length - pattern->length) {
 		return 0;
 	}
@@ -109,7 +109,7 @@ char patternAppearsAt(struct charArray* pattern, struct charArray* chars, unsign
 	return 1;
 }
 
-unsigned char patternContinuesAt(struct charArray* pattern, struct charArray* chars, int index, int prefixLength) {
+unsigned char patternContinuesAt(CharArray* pattern, CharArray* chars, int index, int prefixLength) {
 	if (index > chars->length - pattern->length || prefixLength >= pattern->length) {
 		return 0;
 	}
@@ -121,7 +121,7 @@ unsigned char patternContinuesAt(struct charArray* pattern, struct charArray* ch
 	return 1;
 }
 
-struct longArray* getPatternLocations(struct charArray* pattern, struct charArray* chars, unsigned long startIndex) {
+LongArray* getPatternLocations(CharArray* pattern, CharArray* chars, unsigned long startIndex) {
 	unsigned long locations[chars->length];
 	unsigned long locationCount = 0;
 	while(startIndex <= chars->length - pattern->length) {
@@ -133,8 +133,8 @@ struct longArray* getPatternLocations(struct charArray* pattern, struct charArra
 			startIndex++;
 		}
 	}
-	struct longArray* locArPtr = (struct longArray*)malloc(sizeof(struct longArray));
-	locArPtr->data = (unsigned long*)malloc(locationCount * sizeof(unsigned long));
+	LongArray* locArPtr = malloc(sizeof(LongArray));
+	locArPtr->data = malloc(locationCount * sizeof(unsigned long));
 	for(int i = 0; i < locationCount; i++) {
 		locArPtr->data[i] = locations[i];
 	}
@@ -142,7 +142,7 @@ struct longArray* getPatternLocations(struct charArray* pattern, struct charArra
 	return locArPtr;
 }
 
-struct longArray* filterPatternLocations(struct charArray* patternPtr, struct charArray* chars, struct longArray* locationsPtr){
+LongArray* filterPatternLocations(CharArray* patternPtr, CharArray* chars, LongArray* locationsPtr){
 	if (locationsPtr->length == 1) {
 		return locationsPtr;
 	}
@@ -160,45 +160,43 @@ struct longArray* filterPatternLocations(struct charArray* patternPtr, struct ch
 		previous = location;
 		i++;
 	}
-	unsigned long* outDataPtr = (unsigned long*)malloc(count * sizeof(unsigned long));
+	unsigned long* outDataPtr = malloc(count * sizeof(unsigned long));
 	for(int i = 0; i < count; i++) {
 		outDataPtr[i] = array[i];
 	}
-	struct longArray* outPtr = (struct longArray*)malloc(sizeof(struct longArray));
+	LongArray* outPtr = malloc(sizeof(LongArray));
 	outPtr->length = count;
 	outPtr->data = outDataPtr;
-	//printf("Filtered locations from %d to %d\n", locationsPtr->length, outPtr->length);
 	return outPtr;
 }
 
-struct locationTrie* getNewTrieNode() {
-	struct locationTrie* triePtr = (struct locationTrie*)malloc(sizeof(struct locationTrie));
-	memset(triePtr, 0, sizeof(struct locationTrie));
+TrieNode* getNewTrieNode() {
+	TrieNode* triePtr = malloc(sizeof(TrieNode));
+	memset(triePtr, 0, sizeof(TrieNode));
 	for(int i = 0; i < CHAR_SIZE; i++) {
 		triePtr->children[i] = 0;
 	}
-	triePtr->locations = (struct longArray*)malloc(sizeof(struct longArray));
+	triePtr->locations = malloc(sizeof(LongArray));
 	triePtr->locations->length = 0;
 	triePtr->locations->data = NULL;
 	triePtr->overlapping = 0;
 	return triePtr;
 }
 
-void makeLeaf(struct locationTrie* triePtr, struct longArray* locsPtr) {
+void makeLeaf(TrieNode* triePtr, LongArray* locsPtr) {
 	triePtr->locations = locsPtr;
-	//printf("Made leaf : count %d\n", locsPtr->length);
 }
 
-struct locationTrie* getChildNode(struct locationTrie* parentPtr, unsigned char index) {
+TrieNode* getChildNode(TrieNode* parentPtr, unsigned char index) {
 	return parentPtr->children[index];
 }
 
-struct locationTrie* getNode(struct locationTrie* rootPtr, struct charArray* patternPtr, unsigned char createNew) {
-	struct locationTrie* currentPtr = rootPtr;
-	struct locationTrie nextNode;
+TrieNode* getNode(TrieNode* rootPtr, CharArray* patternPtr, unsigned char createNew) {
+	TrieNode* currentPtr = rootPtr;
+	TrieNode nextNode;
 	for(unsigned long i = 0; i < patternPtr->length; i++) {
 		unsigned char patternChar = patternPtr->data[i];
-		struct locationTrie* childPtr = currentPtr->children[patternChar];
+		TrieNode* childPtr = currentPtr->children[patternChar];
 		if (childPtr == 0) {
 			if (createNew == 0) {
 				return 0;
@@ -212,24 +210,24 @@ struct locationTrie* getNode(struct locationTrie* rootPtr, struct charArray* pat
 	return currentPtr;
 }
 
-struct locationTrie* buildLocationTrie(struct charArray input, int maxPatternLength) {
+TrieNode* buildLocationTrie(CharArray input, int maxPatternLength) {
 	printf("Building location trie for data of length %d\n", input.length);
-	struct charArray* inputPtr = &input;
+	CharArray* inputPtr = &input;
 	int aSize = CHAR_SIZE * CHAR_SIZE;
-	struct longArray locationPointers[aSize];
-	struct locationTrie* rootNodePtr = getNewTrieNode();
-	struct charArray pattern;
+	LongArray locationPointers[aSize];
+	TrieNode* rootNodePtr = getNewTrieNode();
+	CharArray pattern;
 	//int maxPatternLength = 16;
 	for(unsigned long i = 0; i <= input.length - 2; i++) {
 		int patternLength = 2;
-		struct longArray* locsPtr = (struct longArray*)malloc(sizeof(struct longArray));
-		memset(locsPtr, 0, sizeof(struct longArray));
+		LongArray* locsPtr = malloc(sizeof(LongArray));
+		memset(locsPtr, 0, sizeof(LongArray));
 
 		while(patternLength <= maxPatternLength) {
 			pattern = subCharArray(input, i, patternLength);
-			struct charArray* patternPtr = &pattern;
+			CharArray* patternPtr = &pattern;
 
-			struct locationTrie *triePtr = getNode(rootNodePtr, patternPtr, 1);
+			TrieNode *triePtr = getNode(rootNodePtr, patternPtr, 1);
 
 			if (triePtr->locations->length > 0) {
 				patternLength++;
@@ -254,8 +252,8 @@ struct locationTrie* buildLocationTrie(struct charArray input, int maxPatternLen
 	return rootNodePtr;
 }
 
-struct charArray* increment(struct charArray* patternPtr, int maxPatternLength) {
-	struct charArray* outPtr = malloc(sizeof(struct charArray));
+CharArray* increment(CharArray* patternPtr, int maxPatternLength) {
+	CharArray* outPtr = malloc(sizeof(CharArray));
 	outPtr->data = malloc(patternPtr->length);
 	outPtr->length = patternPtr->length;
 	for(int i = 0; i < patternPtr->length; i++) {
@@ -287,8 +285,8 @@ struct charArray* increment(struct charArray* patternPtr, int maxPatternLength) 
 	return outPtr;
 }
 
-unsigned char getChildNumber(struct locationTrie* childPtr) {
-	struct locationTrie* parentPtr = childPtr->parent;
+unsigned char getChildNumber(TrieNode* childPtr) {
+	TrieNode* parentPtr = childPtr->parent;
 	for(int i = 0; i < CHAR_SIZE; i++) {
 		if (parentPtr->children[i] == childPtr) {
 			return i;
@@ -297,8 +295,8 @@ unsigned char getChildNumber(struct locationTrie* childPtr) {
 	return 0;
 }
 
-struct charArray* getPatternFromTrie(struct locationTrie* triePtr) {
-	struct locationTrie* currentPtr = triePtr;
+CharArray* getPatternFromTrie(TrieNode* triePtr) {
+	TrieNode* currentPtr = triePtr;
 	int depth = 0;
 	unsigned char reverseOutput[CHAR_SIZE];
 	while(currentPtr->parent != 0) {
@@ -307,8 +305,8 @@ struct charArray* getPatternFromTrie(struct locationTrie* triePtr) {
 		depth++;
 		currentPtr = currentPtr->parent;
 	}
-	struct charArray* outPtr = (struct charArray*)malloc(sizeof(struct charArray));
-	outPtr->data = (unsigned char*)malloc(depth);
+	CharArray* outPtr = malloc(sizeof(CharArray));
+	outPtr->data = malloc(depth);
 	for(int i = 0; i < depth; i++) {
 		outPtr->data[i] = reverseOutput[depth - i - 1];
 	}
@@ -316,7 +314,7 @@ struct charArray* getPatternFromTrie(struct locationTrie* triePtr) {
 	return outPtr;
 }
 
-unsigned char charArraysEqual(struct charArray* ar1Ptr, struct charArray* ar2Ptr) {
+unsigned char charArraysEqual(CharArray* ar1Ptr, CharArray* ar2Ptr) {
 	if (ar1Ptr->length != ar2Ptr->length) {
 		return 0;
 	}
@@ -328,7 +326,7 @@ unsigned char charArraysEqual(struct charArray* ar1Ptr, struct charArray* ar2Ptr
 	return 1;
 }
 
-unsigned char eitherArrayContainsOther(struct charArray* ar1Ptr, struct charArray* ar2Ptr) {
+unsigned char eitherArrayContainsOther(CharArray* ar1Ptr, CharArray* ar2Ptr) {
 	if (ar1Ptr->length <= ar2Ptr->length) {
 		if (getPatternLocations(ar1Ptr, ar2Ptr, 0)->length > 0) {
 			return 1;
@@ -341,9 +339,9 @@ unsigned char eitherArrayContainsOther(struct charArray* ar1Ptr, struct charArra
 	return 0;
 }
 
-unsigned char isSuitablePlaceholder(struct charArray* charArray, struct charArray** placeholderPtrs, int listSize) {
+unsigned char isSuitablePlaceholder(CharArray* charArray, CharArray** placeholderPtrs, int listSize) {
 	for(int i = 0; i < listSize; i++) {
-		struct charArray* listMember = placeholderPtrs[i];
+		CharArray* listMember = placeholderPtrs[i];
 		if (eitherArrayContainsOther(charArray, listMember) == 1) {
 			return 0;
 		}
@@ -351,11 +349,11 @@ unsigned char isSuitablePlaceholder(struct charArray* charArray, struct charArra
 	return 1;
 }
 
-unsigned char patternsOverlap(struct locationTrie* rootPtr, struct charArray* patternPtr1, struct charArray* patternPtr2) {
+unsigned char patternsOverlap(TrieNode* rootPtr, CharArray* patternPtr1, CharArray* patternPtr2) {
 	int length1 = patternPtr1->length;
 	int length2 = patternPtr2->length;
-	struct locationTrie* nodePtr1 = getNode(rootPtr, patternPtr1, 0);
-	struct locationTrie* nodePtr2 = getNode(rootPtr, patternPtr2, 0);
+	TrieNode* nodePtr1 = getNode(rootPtr, patternPtr1, 0);
+	TrieNode* nodePtr2 = getNode(rootPtr, patternPtr2, 0);
 	for(int i1 = 0; i1 < nodePtr1->locations->length; i1++) {
 		unsigned long loc1 = nodePtr1->locations->data[i1];
 		for(int i2 = 0; i2 < nodePtr2->locations->length; i2++) {
@@ -372,9 +370,9 @@ unsigned char patternsOverlap(struct locationTrie* rootPtr, struct charArray* pa
 	return 0;
 }
 
-unsigned char overlapsWithListMember(struct locationTrie* rootPtr, struct charArray* charArray, struct charArray** list, int listSize) {
+unsigned char overlapsWithAnyListMember(TrieNode* rootPtr, CharArray* charArray, CharArray** list, int listSize) {
 	for(int i = 0; i < listSize; i++) {
-		struct charArray* listMember = list[i];
+		CharArray* listMember = list[i];
 		if (patternsOverlap(rootPtr, charArray, listMember) == 1) {
 			return 1;
 		}
@@ -382,13 +380,13 @@ unsigned char overlapsWithListMember(struct locationTrie* rootPtr, struct charAr
 	return 0;
 }
 
-struct charArray* getLowestUnfeaturedSequence(struct locationTrie* rootPtr, int depthLimit, struct charArray** excludedPlaceholderPtrs, int excludedPlaceholdersCount) {
-	struct charArray* outPtr = malloc(sizeof(struct charArray));
+CharArray* getLowestUnfeaturedSequence(TrieNode* rootPtr, int depthLimit, CharArray** excludedPlaceholderPtrs, int excludedPlaceholdersCount) {
+	CharArray* outPtr = malloc(sizeof(CharArray));
 	outPtr->length = 1;
 	outPtr->data = malloc(1);
 	outPtr->data[0] = 0;
 	while(getNode(rootPtr, outPtr, 0) != 0 || isSuitablePlaceholder(outPtr, excludedPlaceholderPtrs, excludedPlaceholdersCount) == 0) {
-		struct charArray* nextPtr = increment(outPtr, depthLimit);
+		CharArray* nextPtr = increment(outPtr, depthLimit);
 		free(outPtr->data);
 		free(outPtr);
 		outPtr = nextPtr;
@@ -398,21 +396,21 @@ struct charArray* getLowestUnfeaturedSequence(struct locationTrie* rootPtr, int 
 	return outPtr;
 }
 
-struct charArray* getMajorityPattern(struct locationTrie* rootPtr, int depthLimit, int placeholderLength, struct charArray** excludedPatterns, int excludedPatternCount) {
-	struct locationTrie* currentNodePtr = rootPtr;
+CharArray* getMajorityPattern(TrieNode* rootPtr, int depthLimit, int placeholderLength, CharArray** excludedPatterns, int excludedPatternCount) {
+	TrieNode* currentNodePtr = rootPtr;
 	long bestValue = 0;
-	struct locationTrie* bestNodePtr = 0;
+	TrieNode* bestNodePtr = 0;
 	int i = 0;
 	int depth = 0;
 	while(depth >= 0) {
 		while(i < CHAR_SIZE && depth < depthLimit) {
-			struct locationTrie* childPtr = currentNodePtr->children[i];
+			TrieNode* childPtr = currentNodePtr->children[i];
 			if (childPtr != 0) {
 				currentNodePtr = childPtr;
 				depth++;
 				i = 0;
 				if (currentNodePtr->locations->length > 0 && currentNodePtr->overlapping == 0) {
-					struct charArray* currentPatternPtr = getPatternFromTrie(currentNodePtr);
+					CharArray* currentPatternPtr = getPatternFromTrie(currentNodePtr);
 					int locCount = currentNodePtr->locations->length;
 					unsigned long patternDefinitionLength = placeholderLength + currentPatternPtr->length + 2;
 					long value = ((locCount * currentPatternPtr->length) - (locCount * placeholderLength)) - patternDefinitionLength;
@@ -450,7 +448,7 @@ struct charArray* getMajorityPattern(struct locationTrie* rootPtr, int depthLimi
 		currentNodePtr = currentNodePtr->parent;
 		depth--;
 	}
-	struct charArray* bestPatternPtr = 0;
+	CharArray* bestPatternPtr = 0;
 	if (bestNodePtr != 0) {
 		bestPatternPtr = getPatternFromTrie(bestNodePtr);
 	}
@@ -465,13 +463,13 @@ struct charArray* getMajorityPattern(struct locationTrie* rootPtr, int depthLimi
 	return bestPatternPtr;
 }
 
-void freeTrie(struct locationTrie* rootPtr, int depthLimit) {
-	struct locationTrie* currentNodePtr = rootPtr;
+void freeTrie(TrieNode* rootPtr, int depthLimit) {
+	TrieNode* currentNodePtr = rootPtr;
 	int i = 0;
 	int depth = 0;
 	while(depth >= 0) {
 		while(i < CHAR_SIZE && depth < depthLimit) {
-			struct locationTrie* childPtr = currentNodePtr->children[i];
+			TrieNode* childPtr = currentNodePtr->children[i];
 			if (childPtr != 0) {
 				currentNodePtr = childPtr;
 				depth++;
@@ -484,7 +482,7 @@ void freeTrie(struct locationTrie* rootPtr, int depthLimit) {
 			break;
 		}
 		i = getChildNumber(currentNodePtr) + 1;
-		struct locationTrie* previousNodePtr = currentNodePtr;
+		TrieNode* previousNodePtr = currentNodePtr;
 		currentNodePtr = currentNodePtr->parent;
 		//free(previousNodePtr->children);
 		if (previousNodePtr->locations != 0) {
@@ -497,8 +495,8 @@ void freeTrie(struct locationTrie* rootPtr, int depthLimit) {
 	free(rootPtr);
 }
 
-struct charArray* removeMember(struct charArray* charArrayPtr, int index) {
-	struct charArray* out = malloc(sizeof(struct charArray));
+CharArray* removeMember(CharArray* charArrayPtr, int index) {
+	CharArray* out = malloc(sizeof(CharArray));
 	out->data = malloc(charArrayPtr->length - 1);
 	if (index > 0) {
 		for(int i = 0; i < index; i++) {
@@ -535,11 +533,11 @@ int getLastDotPosition(unsigned char path[]) {
 	return i;
 }
 
-struct charArray* getFileExtension(unsigned char path[]) {
+CharArray* getFileExtension(unsigned char path[]) {
 	int pathLength = getStringLength(path);
 	//Find the last dot in the path
 	int i = getLastDotPosition(path) + 1;
-	struct charArray* out = malloc(sizeof(struct charArray));
+	CharArray* out = malloc(sizeof(CharArray));
 	out->length = pathLength - i + 1;
 	out->data = malloc(pathLength - i + 1);
 	//Put the length of the file extension first.
@@ -556,10 +554,10 @@ struct charArray* getFileExtension(unsigned char path[]) {
 	return out;
 }
 
-struct charArray* getFileExtensionFromCompressedFile(struct charArray* fileCharsPtr) {
+CharArray* getFileExtensionFromCompressedFile(CharArray* fileCharsPtr) {
 	int fileExtensionLength = fileCharsPtr->data[0];
 	unsigned long pos = 1;
-	struct charArray* out = malloc(sizeof(struct charArray));
+	CharArray* out = malloc(sizeof(CharArray));
 	out->data = malloc(fileExtensionLength + 1);
 	out->length = fileExtensionLength + 1;
 	for(int i = 0; i < fileExtensionLength; i++) {
@@ -569,10 +567,9 @@ struct charArray* getFileExtensionFromCompressedFile(struct charArray* fileChars
 	return out;
 }
 
-struct charArray* getFilePathWithoutExtension(unsigned char path[]) {
-	//int pathLength = getStringLength(path);
+CharArray* getFilePathWithoutExtension(unsigned char path[]) {
 	int i = getLastDotPosition(path);
-	struct charArray* out = malloc(sizeof(struct charArray));
+	CharArray* out = malloc(sizeof(CharArray));
 	out->length = i + 1;
 	out->data = malloc(i + 1);
 
@@ -585,10 +582,10 @@ struct charArray* getFilePathWithoutExtension(unsigned char path[]) {
 	return out;
 }
 
-struct charArray* getLengthDefinition(struct charArray* data) {
+CharArray* getLengthDefinition(CharArray* data) {
 	unsigned char byte0 = data->length / CHAR_SIZE;
 	unsigned char byte1 = data->length % CHAR_SIZE;
-	struct charArray* outPtr = malloc(sizeof (struct charArray));
+	CharArray* outPtr = malloc(sizeof (CharArray));
 	outPtr->data = malloc(2);
 	outPtr->length = 2;
 	outPtr->data[0] = byte0;
@@ -596,13 +593,13 @@ struct charArray* getLengthDefinition(struct charArray* data) {
 	return outPtr;
 }
 
-struct charArray* definePalette(int paletteSize, int maxPatternLength, struct charArray** placeholderPtrsPtr, struct charArray** consideredPatternPtrsPtr) {
+CharArray* definePalette(int paletteSize, int maxPatternLength, CharArray** placeholderPtrsPtr, CharArray** consideredPatternPtrsPtr) {
 	unsigned char paletteArray[paletteSize * maxPatternLength * maxPatternLength];
 	paletteArray[0] = paletteSize;
 	int i = 0;
 	int iPalette = 1;
 	while(i < paletteSize) {
-		struct charArray* placeholderPtr = placeholderPtrsPtr[i];
+		CharArray* placeholderPtr = placeholderPtrsPtr[i];
 		if (placeholderPtr == 0) {
 			i++;
 			printf("Something has gone wrong if one of the placeholder pointers is 0");
@@ -616,7 +613,7 @@ struct charArray* definePalette(int paletteSize, int maxPatternLength, struct ch
 		}
 		iPalette += placeholderPtr->length;
 
-		struct charArray* patternPtr = consideredPatternPtrsPtr[i];
+		CharArray* patternPtr = consideredPatternPtrsPtr[i];
 		paletteArray[iPalette] = patternPtr->length;
 		iPalette++;
 		for(int iPat = 0; iPat < patternPtr->length; iPat++) {
@@ -630,7 +627,7 @@ struct charArray* definePalette(int paletteSize, int maxPatternLength, struct ch
 		printf(" with ");
 		printChars(*placeholderPtr, 1);
 	}
-	struct charArray* out = malloc(sizeof(struct charArray));
+	CharArray* out = malloc(sizeof(CharArray));
 	out->data = malloc(iPalette);
 	for(int i2 = 0; i2 < iPalette; i2++) {
 		out->data[i2] = paletteArray[i2];
@@ -640,33 +637,33 @@ struct charArray* definePalette(int paletteSize, int maxPatternLength, struct ch
 	return out;
 }
 
-struct charArray* compress(char* path, int maxPatternLength, int maxPaletteSize) {
-	struct charArray inputData = loadBytes(path);
+CharArray* compress(char* path, int maxPatternLength, int maxPaletteSize) {
+	CharArray inputData = loadBytes(path);
 	int maxChunkSize = (CHAR_SIZE * CHAR_SIZE) - 1;
 	//int maxChunkSize = 10000;
 	int splitCount = inputData.length / maxChunkSize;
 	printf("Split count is %d\n", splitCount);
 
-	struct charArray** outFilePtrs = malloc((splitCount + 1) * sizeof (struct charArray*));
+	CharArray** outFilePtrs = malloc((splitCount + 1) * sizeof (CharArray*));
 	for(int chunkNumber = 0; chunkNumber < splitCount + 1; chunkNumber++) {
 		unsigned long start = maxChunkSize * chunkNumber;
 		unsigned long remaining = inputData.length - start;
 		if (remaining > maxChunkSize) {
 			remaining = maxChunkSize;
 		}
-		struct charArray data = subCharArray(inputData, start, remaining);
+		CharArray data = subCharArray(inputData, start, remaining);
 
-		struct locationTrie* rootPtr = buildLocationTrie(data, maxPatternLength);
+		TrieNode* rootPtr = buildLocationTrie(data, maxPatternLength);
 		int paletteSize = maxPaletteSize;
 		int passes = paletteSize;
 
 
-		struct charArray** placeholderPtrsPtr = (struct charArray**)malloc(paletteSize * sizeof (struct charArray*));
-		struct charArray** consideredPatternPtrsPtr = (struct charArray**)malloc(paletteSize * sizeof (struct charArray*));
+		CharArray** placeholderPtrsPtr = malloc(paletteSize * sizeof (CharArray*));
+		CharArray** consideredPatternPtrsPtr = malloc(paletteSize * sizeof (CharArray*));
 		while(passes > 0) {
 			int i = paletteSize - passes;
-			struct charArray* placeholderPtr = getLowestUnfeaturedSequence(rootPtr, maxPatternLength, placeholderPtrsPtr, i);
-			struct charArray* patternPtr = getMajorityPattern(rootPtr, maxPatternLength, placeholderPtr->length, consideredPatternPtrsPtr, i);
+			CharArray* placeholderPtr = getLowestUnfeaturedSequence(rootPtr, maxPatternLength, placeholderPtrsPtr, i);
+			CharArray* patternPtr = getMajorityPattern(rootPtr, maxPatternLength, placeholderPtr->length, consideredPatternPtrsPtr, i);
 			if (patternPtr == 0 || getNode(rootPtr, patternPtr, 0)->locations->length <= 1) {
 				paletteSize = i;
 				break;
@@ -676,8 +673,7 @@ struct charArray* compress(char* path, int maxPatternLength, int maxPaletteSize)
 			passes--;
 		}
 
-		struct charArray* workingOutput = 0;
-		//validate(data, paletteSize, maxPatternLength, rootPtr, consideredPatternPtrsPtr, placeholderPtrsPtr, workingOutput);
+		CharArray* workingOutput = 0;
 		unsigned char validating = 1;
 		int discardedPlaceholdersCount = 0;
 		validation:
@@ -689,9 +685,9 @@ struct charArray* compress(char* path, int maxPatternLength, int maxPaletteSize)
 			while(i < data.length) {
 				unsigned char isPatternLocation = 0;
 				for(int iPattern = 0; iPattern < paletteSize; iPattern++) {
-					struct charArray* patternPtr = consideredPatternPtrsPtr[iPattern];
-					struct charArray* placeholderPtr = placeholderPtrsPtr[iPattern];
-					struct locationTrie* patternNodePtr = getNode(rootPtr, patternPtr, 0);
+					CharArray* patternPtr = consideredPatternPtrsPtr[iPattern];
+					CharArray* placeholderPtr = placeholderPtrsPtr[iPattern];
+					TrieNode* patternNodePtr = getNode(rootPtr, patternPtr, 0);
 				
 					for(int iLoc = 0; iLoc < patternNodePtr->locations->length; iLoc++) {
 						unsigned long loc = patternNodePtr->locations->data[iLoc];
@@ -718,7 +714,7 @@ struct charArray* compress(char* path, int maxPatternLength, int maxPaletteSize)
 
 			//Build a version of the compressed data to validate
 			if (workingOutput == 0) {
-				workingOutput = malloc(sizeof(struct charArray));
+				workingOutput = malloc(sizeof(CharArray));
 				workingOutput->data = malloc(iOut);
 			} else {
 				workingOutput->data = realloc(workingOutput->data, iOut);
@@ -730,22 +726,22 @@ struct charArray* compress(char* path, int maxPatternLength, int maxPaletteSize)
 
 			//Check for inadvertant placeholder use
 			for(int iPattern = 0; iPattern < paletteSize; iPattern++) {
-				struct charArray* patternPtr = consideredPatternPtrsPtr[iPattern];
-				struct charArray* placeholderPtr = placeholderPtrsPtr[iPattern];
-				struct locationTrie* patternNodePtr = getNode(rootPtr, patternPtr, 0);
+				CharArray* patternPtr = consideredPatternPtrsPtr[iPattern];
+				CharArray* placeholderPtr = placeholderPtrsPtr[iPattern];
+				TrieNode* patternNodePtr = getNode(rootPtr, patternPtr, 0);
 
-				struct longArray* placeholderLocationsPtr = getPatternLocations(placeholderPtr, workingOutput, 0);
+				LongArray* placeholderLocationsPtr = getPatternLocations(placeholderPtr, workingOutput, 0);
 				int placeholderCount = placeholderLocationsPtr->length;
 				int patternCount = patternNodePtr->locations->length;
 				if (placeholderCount != patternCount) {
-					struct charArray* newPlaceholderPtr = getLowestUnfeaturedSequence(rootPtr, maxPatternLength, placeholderPtrsPtr, paletteSize + discardedPlaceholdersCount);
+					CharArray* newPlaceholderPtr = getLowestUnfeaturedSequence(rootPtr, maxPatternLength, placeholderPtrsPtr, paletteSize + discardedPlaceholdersCount);
 					printf("Replaced placeholder ");
 					printChars(*placeholderPtr, 0);
 					printf(" with ");
 					printChars(*newPlaceholderPtr, 0);
 					printf(" because count %d didn't match pattern count %d\n", placeholderCount, patternCount);
 					
-					placeholderPtrsPtr = realloc(placeholderPtrsPtr, (paletteSize + discardedPlaceholdersCount + 1) * sizeof (struct charArray*));
+					placeholderPtrsPtr = realloc(placeholderPtrsPtr, (paletteSize + discardedPlaceholdersCount + 1) * sizeof (CharArray*));
 					placeholderPtrsPtr[paletteSize + discardedPlaceholdersCount] = placeholderPtr;
 					placeholderPtrsPtr[iPattern] = newPlaceholderPtr;
 					discardedPlaceholdersCount++;
@@ -757,10 +753,10 @@ struct charArray* compress(char* path, int maxPatternLength, int maxPaletteSize)
 			validating = 0;
 		}
 		
-		struct charArray* extensionPtr = getFileExtension(path);
-		struct charArray* lengthDefPtr = getLengthDefinition(workingOutput);
-		struct charArray* palettePtr = definePalette(paletteSize, maxPatternLength, placeholderPtrsPtr, consideredPatternPtrsPtr);
-		struct charArray* fragmentPtr = malloc(sizeof(struct charArray));
+		CharArray* extensionPtr = getFileExtension(path);
+		CharArray* lengthDefPtr = getLengthDefinition(workingOutput);
+		CharArray* palettePtr = definePalette(paletteSize, maxPatternLength, placeholderPtrsPtr, consideredPatternPtrsPtr);
+		CharArray* fragmentPtr = malloc(sizeof(CharArray));
 		int fragmentLength = extensionPtr->length + lengthDefPtr->length + palettePtr->length + workingOutput->length;
 		fragmentPtr->data = malloc(fragmentLength);
 		fragmentPtr->length = fragmentLength;
@@ -790,7 +786,7 @@ struct charArray* compress(char* path, int maxPatternLength, int maxPaletteSize)
 		freeCharArray(workingOutput);
 	}
 
-	struct charArray* finalOut = malloc(sizeof (struct charArray));
+	CharArray* finalOut = malloc(sizeof (CharArray));
 	finalOut->data = malloc(0);
 	finalOut->length = 0;
 	for(int chunkNumber = 0; chunkNumber < splitCount + 1; chunkNumber++) {
@@ -802,11 +798,11 @@ struct charArray* compress(char* path, int maxPatternLength, int maxPaletteSize)
 	return finalOut;
 }
 
-struct charArray* uncompress(struct charArray* compressedFile) {
+CharArray* uncompress(CharArray* compressedFile) {
 	printf("Starting uncompress of file of length %d\n", compressedFile->length);
 	int end = 0;
 	unsigned long pos = 0;
-	struct charArray* finalOut = malloc(sizeof(struct charArray));
+	CharArray* finalOut = malloc(sizeof(CharArray));
 	finalOut->data = malloc(0);
 	finalOut->length = 0;
 
@@ -825,14 +821,14 @@ struct charArray* uncompress(struct charArray* compressedFile) {
 
 		int paletteSize = compressedFile->data[pos];
 		pos++;
-		struct charArray** placeholderPtrs = malloc(paletteSize * sizeof(struct charArray*));
-		struct charArray** patternPtrs = malloc(paletteSize * sizeof(struct charArray*));
+		CharArray** placeholderPtrs = malloc(paletteSize * sizeof(CharArray*));
+		CharArray** patternPtrs = malloc(paletteSize * sizeof(CharArray*));
 		int iPalette = 0;
 		while(iPalette < paletteSize) {
 			//Get the placeholder
 			int placeholderLength = compressedFile->data[pos];
 			pos++;
-			struct charArray* placeholderPtr = malloc(sizeof (struct charArray));
+			CharArray* placeholderPtr = malloc(sizeof (CharArray));
 			placeholderPtr->data = malloc(placeholderLength);
 			placeholderPtr->length = placeholderLength;
 			for(int iPlac = 0; iPlac < placeholderLength; iPlac++) {
@@ -844,7 +840,7 @@ struct charArray* uncompress(struct charArray* compressedFile) {
 			//Get the pattern
 			int patternLength = compressedFile->data[pos];
 			pos++;
-			struct charArray* patternPtr = malloc(sizeof (struct charArray));
+			CharArray* patternPtr = malloc(sizeof (CharArray));
 			patternPtr->data = malloc(patternLength);
 			patternPtr->length = patternLength;
 			for(int iPat = 0; iPat < patternLength; iPat++) {
@@ -859,16 +855,16 @@ struct charArray* uncompress(struct charArray* compressedFile) {
 
 		//Rebuild file
 		int iOut = 0;
-		struct charArray* outPtr = malloc(sizeof (struct charArray));
+		CharArray* outPtr = malloc(sizeof (CharArray));
 		outPtr->data = malloc(CHAR_SIZE * CHAR_SIZE);
 		end = pos + fileLength;
 		buildLoop:
 		while(pos < end) {
 			//Check if current position is the beginning of a placeholder
 			for(int iPal = 0; iPal < iPalette; iPal++) {
-				struct charArray* placeholderPtr = placeholderPtrs[iPal];
+				CharArray* placeholderPtr = placeholderPtrs[iPal];
 				if (patternAppearsAt(placeholderPtr, compressedFile, pos) == 1) {
-					struct charArray* patternPtr = patternPtrs[iPal];
+					CharArray* patternPtr = patternPtrs[iPal];
 					for(int iPat = 0; iPat < patternPtr->length; iPat++) {
 						outPtr->data[iOut + iPat] = patternPtr->data[iPat];
 					}
@@ -962,8 +958,8 @@ int main(int argc, char* argv[])
 		aIndex += 2;
 	}
 
-	struct charArray* compressedFilePtr = 0;
-	struct charArray* uncompressedFilePtr = 0;
+	CharArray* compressedFilePtr = 0;
+	CharArray* uncompressedFilePtr = 0;
 	if (compressing) {
 		printf("Compressing file: %s\n", pathPtr);
 		compressedFilePtr = compress(pathPtr, patternLength, patternCount);
@@ -980,9 +976,9 @@ int main(int argc, char* argv[])
 	}
 	if (uncompressing) {
 		printf("Loading compressed file: %s\n", pathPtr);
-		struct charArray compressedFileChars = loadBytes(pathPtr);
+		CharArray compressedFileChars = loadBytes(pathPtr);
 		compressedFilePtr = &compressedFileChars;
-		struct charArray* fileExtension = getFileExtensionFromCompressedFile(compressedFilePtr);
+		CharArray* fileExtension = getFileExtensionFromCompressedFile(compressedFilePtr);
 		
 		uncompressedFilePtr = uncompress(compressedFilePtr);
 
