@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+#include <unistd.h>
 
 #define CHAR_SIZE 256
 #define COMPRESSED_EXTENSION ".dcp"
@@ -391,8 +392,8 @@ CharArray* getLowestUnfeaturedSequence(TrieNode* rootPtr, int depthLimit, CharAr
 		free(outPtr);
 		outPtr = nextPtr;
 	}
-	printf("Found unfeatured sequence #%d : ", excludedPlaceholdersCount + 1);
-	printChars(*outPtr, 1);
+	// printf("Found unfeatured sequence #%d : ", excludedPlaceholdersCount + 1);
+	// printChars(*outPtr, 1);
 	return outPtr;
 }
 
@@ -458,7 +459,7 @@ CharArray* getMajorityPattern(TrieNode* rootPtr, int depthLimit, int placeholder
 		printChars(*bestPatternPtr, 0);
 		int patternLength = bestPatternPtr->length;
 		int patternCount = bestNodePtr->locations->length;
-		printf(" : length %d : count %d : value %d\n", patternLength, patternCount, bestValue);
+		printf(" : length %d : count %d : saving %d\n", patternLength, patternCount, bestValue);
 	}
 	return bestPatternPtr;
 }
@@ -637,31 +638,31 @@ CharArray* definePalette(int paletteSize, int maxPatternLength, CharArray** plac
 	return out;
 }
 
-CharArray* compress(char* path, int maxPatternLength, int maxPaletteSize) {
+CharArray* compress(char* path, int maxPatternLength, int maxPaletteSize, int fragmentSize) {
 	CharArray inputData = loadBytes(path);
-	int maxChunkSize = (CHAR_SIZE * CHAR_SIZE) - 1;
+	//int maxFragmentSize = (CHAR_SIZE * CHAR_SIZE) - 1;
 	//int maxChunkSize = 10000;
-	int splitCount = inputData.length / maxChunkSize;
+	int splitCount = inputData.length / fragmentSize;
 	printf("Split count is %d\n", splitCount);
 
-	CharArray** outFilePtrs = malloc((splitCount + 1) * sizeof (CharArray*));
-	for(int chunkNumber = 0; chunkNumber < splitCount + 1; chunkNumber++) {
-		unsigned long start = maxChunkSize * chunkNumber;
+	CharArray** fragmentPtrs = malloc((splitCount + 1) * sizeof (CharArray*));
+	for(int fragmentNumber = 0; fragmentNumber < splitCount + 1; fragmentNumber++) {
+		unsigned long start = fragmentSize * fragmentNumber;
 		unsigned long remaining = inputData.length - start;
-		if (remaining > maxChunkSize) {
-			remaining = maxChunkSize;
+		if (remaining > fragmentSize) {
+			remaining = fragmentSize;
 		}
 		CharArray data = subCharArray(inputData, start, remaining);
 
 		TrieNode* rootPtr = buildLocationTrie(data, maxPatternLength);
 		int paletteSize = maxPaletteSize;
-		int passes = paletteSize;
+		int patternsLeftToFind = paletteSize;
 
 
 		CharArray** placeholderPtrsPtr = malloc(paletteSize * sizeof (CharArray*));
 		CharArray** consideredPatternPtrsPtr = malloc(paletteSize * sizeof (CharArray*));
-		while(passes > 0) {
-			int i = paletteSize - passes;
+		while(patternsLeftToFind > 0) {
+			int i = paletteSize - patternsLeftToFind;
 			CharArray* placeholderPtr = getLowestUnfeaturedSequence(rootPtr, maxPatternLength, placeholderPtrsPtr, i);
 			CharArray* patternPtr = getMajorityPattern(rootPtr, maxPatternLength, placeholderPtr->length, consideredPatternPtrsPtr, i);
 			if (patternPtr == 0 || getNode(rootPtr, patternPtr, 0)->locations->length <= 1) {
@@ -670,7 +671,7 @@ CharArray* compress(char* path, int maxPatternLength, int maxPaletteSize) {
 			}
 			placeholderPtrsPtr[i] = placeholderPtr;
 			consideredPatternPtrsPtr[i] = patternPtr;
-			passes--;
+			patternsLeftToFind--;
 		}
 
 		CharArray* workingOutput = 0;
@@ -776,7 +777,7 @@ CharArray* compress(char* path, int maxPatternLength, int maxPaletteSize) {
 		for(int iOut = 0; iOut < workingOutput->length; iOut++) {
 			fragmentPtr->data[iOut + lengthDefPtr->length + extensionPtr->length + palettePtr->length] = workingOutput->data[iOut];
 		}
-		outFilePtrs[chunkNumber] = fragmentPtr;
+		fragmentPtrs[fragmentNumber] = fragmentPtr;
 		freeTrie(rootPtr, maxPatternLength);
 		free(placeholderPtrsPtr);
 		free(consideredPatternPtrsPtr);
@@ -786,16 +787,16 @@ CharArray* compress(char* path, int maxPatternLength, int maxPaletteSize) {
 		freeCharArray(workingOutput);
 	}
 
-	CharArray* finalOut = malloc(sizeof (CharArray));
-	finalOut->data = malloc(0);
-	finalOut->length = 0;
-	for(int chunkNumber = 0; chunkNumber < splitCount + 1; chunkNumber++) {
-		finalOut = combineCharArrays(finalOut, outFilePtrs[chunkNumber]);
+	CharArray* outPtr = malloc(sizeof (CharArray));
+	outPtr->data = malloc(0);
+	outPtr->length = 0;
+	for(int fragmentNumber = 0; fragmentNumber < splitCount + 1; fragmentNumber++) {
+		outPtr = combineCharArrays(outPtr, fragmentPtrs[fragmentNumber]);
 	}
 	
-	double compression = inputData.length / (double)finalOut->length;
-	printf("Compressed file of length %d to length %d : %.2f\n", inputData.length, finalOut->length, compression);
-	return finalOut;
+	double compression = inputData.length / (double)outPtr->length;
+	printf("Compressed file of length %d to length %d : %.2f\n", inputData.length, outPtr->length, compression);
+	return outPtr;
 }
 
 CharArray* uncompress(CharArray* compressedFile) {
@@ -887,33 +888,38 @@ CharArray* uncompress(CharArray* compressedFile) {
 }
 
 void printHelp() {
+	printf("---------------------------------Compressor----------------------------------\n");
 	printf("Usage: compressor [mandatory option] file... [optional options]\n");
 	printf("\t--help\t\tDisplay this information\n");
-	printf("------------------------Mandatory Options------------------------\n");
+	printf("------------------------------Mandatory Options------------------------------\n");
 	printf("\t-c\t\tCompress a file with an extension\n");
 	printf("\t-u\t\tUncompress a valid .dcp file\n");
 	printf("\t-cu\t\tCompress a file and then reconstruct it\n");
-	printf("------------------------Optional Options-------------------------\n");
-	printf("\t-pc <integer>\tSet the maximum pattern count. Lower numbers offer better performance (default/max 255)\n");
-	printf("\t-pl <integer>\tSet the maximum pattern length. Lower numbers offer better performance (default/max 16)\n");
+	printf("------------------------------Optional Options-------------------------------\n");
+	printf("--------Use lower numbers to trade compression for better performance--------\n");
+	printf("\t-pc <integer>\tSet the maximum pattern count. (default/max 255)\n");
+	printf("\t-pl <integer>\tSet the maximum pattern length. (default/max 16)\n");
+	printf("\t-fs <integer>\tSet the maximum fragment size. (default/max 65535)\n");
 	printf("Thank you for choosing compressor; a lossless file compressor by Oliver Droop\n");
 }
 
 int main(int argc, char* argv[])
 {
-	char path[] = "D:\\WebHost\\Cog1.bmp";
+	char path[] = "";
 	char* pathPtr = path;
 
 	unsigned char compressing = 0;
 	unsigned char uncompressing = 0;
 	int patternCount = CHAR_SIZE - 1;
 	int patternLength = 16;
+	int fragmentSize = (CHAR_SIZE * CHAR_SIZE) - 1;
 
 	if (argc == 2 && strcmp(argv[1], "--help") == 0) {
 		printHelp();
 		return 0;
 	} else if (argc < 3) {
 		printf("Too few arguments!");
+		printf("Usage: compressor [mandatory option] file... [optional options]\n");
 		return 0;
 	}
 	//Parse first argument
@@ -934,9 +940,7 @@ int main(int argc, char* argv[])
 
 	//Parse second argument
 	pathPtr = argv[2];
-	// printf("Full path length : %d\n", getStringLength(pathPtr));
-	// printf("Length of path without extension : %d\n", getFilePathWithoutExtension(pathPtr)->length);
-	// printf("Extension length : %d\n", getFileExtension(pathPtr)->length - 1);
+	//Parse further optional arguments
 	int aIndex = 3;
 	while (argc > aIndex + 1) {
 		if (compressing == 0) {
@@ -954,6 +958,12 @@ int main(int argc, char* argv[])
 				printf("Maximum pattern length must be > 1 and < 17\n");
 				return 1;
 			}
+		} else if (strcmp(argv[aIndex], "-fs") == 0) {
+			sscanf(argv[aIndex + 1], "%i", &fragmentSize);
+			if (fragmentSize < 256 || fragmentSize > 65535) {
+				printf("Maximum fragment size must be > 255 and < 65536\n");
+				return 1;
+			}
 		}
 		aIndex += 2;
 	}
@@ -962,7 +972,7 @@ int main(int argc, char* argv[])
 	CharArray* uncompressedFilePtr = 0;
 	if (compressing) {
 		printf("Compressing file: %s\n", pathPtr);
-		compressedFilePtr = compress(pathPtr, patternLength, patternCount);
+		compressedFilePtr = compress(pathPtr, patternLength, patternCount, fragmentSize);
 
 		unsigned char* newPath = getFilePathWithoutExtension(pathPtr)->data;
 		strcat(newPath, COMPRESSED_EXTENSION);
@@ -985,6 +995,14 @@ int main(int argc, char* argv[])
 		unsigned char* newPath = getFilePathWithoutExtension(pathPtr)->data;
 		strcat(newPath, ".");
 		strcat(newPath, fileExtension->data);
+
+		//Don't save over an existing file
+		while(access(newPath, F_OK) == 0) {
+    		//File already exists
+			newPath = getFilePathWithoutExtension(pathPtr)->data;
+			strcat(newPath, "Copy.");
+			strcat(newPath, fileExtension->data);
+		}
 		pathPtr = newPath;
 		printf("Saving uncompressed file: %s\n", pathPtr);
 		FILE* filePtr = fopen(pathPtr, "wb");
