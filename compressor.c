@@ -143,7 +143,7 @@ LongArray* getPatternLocations(CharArray* pattern, CharArray* chars, unsigned lo
 	return locArPtr;
 }
 
-LongArray* filterPatternLocations(CharArray* patternPtr, CharArray* chars, LongArray* locationsPtr){
+LongArray* filterPatternLocations(CharArray* patternPtr, CharArray* fragmentPtr, LongArray* locationsPtr){
 	if (locationsPtr->length == 1) {
 		return locationsPtr;
 	}
@@ -152,22 +152,20 @@ LongArray* filterPatternLocations(CharArray* patternPtr, CharArray* chars, LongA
 	int i = 1;
 	int count = 1;
 	unsigned long previous = array[0];
+	int prefixLength = patternPtr->length - 1;
 	while(i < locationsPtr->length) {
 		unsigned long location = locationsPtr->data[i];
-		if (location - previous >= patternPtr->length && patternAppearsAt(patternPtr, chars, location) == 1) {
+		if (location - previous >= patternPtr->length && patternContinuesAt(patternPtr, fragmentPtr, location + prefixLength, prefixLength) == 1) {
 			array[count] = location;
 			count++;
 		}
 		previous = location;
 		i++;
 	}
-	unsigned long* outDataPtr = malloc(count * sizeof(unsigned long));
-	for(int i = 0; i < count; i++) {
-		outDataPtr[i] = array[i];
-	}
 	LongArray* outPtr = malloc(sizeof(LongArray));
 	outPtr->length = count;
-	outPtr->data = outDataPtr;
+	outPtr->data = malloc(count * sizeof(unsigned long));
+	memcpy(outPtr->data, &array, count * sizeof(unsigned long));
 	return outPtr;
 }
 
@@ -214,11 +212,8 @@ TrieNode* getNode(TrieNode* rootPtr, CharArray* patternPtr, unsigned char create
 TrieNode* buildLocationTrie(CharArray input, int maxPatternLength) {
 	printf("Building location trie for data of length %d\n", input.length);
 	CharArray* inputPtr = &input;
-	int aSize = CHAR_SIZE * CHAR_SIZE;
-	LongArray locationPointers[aSize];
 	TrieNode* rootNodePtr = getNewTrieNode();
 	CharArray pattern;
-	//int maxPatternLength = 16;
 	for(unsigned long i = 0; i <= input.length - 2; i++) {
 		int patternLength = 2;
 		LongArray* locsPtr = malloc(sizeof(LongArray));
@@ -234,7 +229,6 @@ TrieNode* buildLocationTrie(CharArray input, int maxPatternLength) {
 				patternLength++;
 				continue;
 			}
-			//printChars(pattern, 1);
 			
 			if (locsPtr == NULL || locsPtr->length == 0) {
 				locsPtr = getPatternLocations(patternPtr, inputPtr, i);
@@ -388,8 +382,7 @@ CharArray* getLowestUnfeaturedSequence(TrieNode* rootPtr, int depthLimit, CharAr
 	outPtr->data[0] = 0;
 	while(getNode(rootPtr, outPtr, 0) != 0 || isSuitablePlaceholder(outPtr, excludedPlaceholderPtrs, excludedPlaceholdersCount) == 0) {
 		CharArray* nextPtr = increment(outPtr, depthLimit);
-		free(outPtr->data);
-		free(outPtr);
+		freeCharArray(outPtr);
 		outPtr = nextPtr;
 	}
 	// printf("Found unfeatured sequence #%d : ", excludedPlaceholdersCount + 1);
@@ -434,8 +427,7 @@ CharArray* getMajorityPattern(TrieNode* rootPtr, int depthLimit, int placeholder
 						bestValue = value;
 						bestNodePtr = currentNodePtr;
 					} else {
-						free(currentPatternPtr->data);
-						free(currentPatternPtr);
+						freeCharArray(currentPatternPtr);
 					}
 				}
 			} else {
@@ -538,49 +530,49 @@ CharArray* getFileExtension(unsigned char path[]) {
 	int pathLength = getStringLength(path);
 	//Find the last dot in the path
 	int i = getLastDotPosition(path) + 1;
-	CharArray* out = malloc(sizeof(CharArray));
-	out->length = pathLength - i + 1;
-	out->data = malloc(pathLength - i + 1);
+	CharArray* outPtr = malloc(sizeof(CharArray));
+	outPtr->length = pathLength - i + 1;
+	outPtr->data = malloc(pathLength - i + 1);
 	//Put the length of the file extension first.
-	out->data[0] = pathLength - i;
+	outPtr->data[0] = pathLength - i;
 	int iOut = 1;
 	//File extension characters
 	while(i < pathLength) {
-		out->data[iOut] = path[i];
+		outPtr->data[iOut] = path[i];
 		i++;
 		iOut++;
 	}
 	printf("File extension data : ");
-	printChars(*out, 1);
-	return out;
+	printChars(*outPtr, 1);
+	return outPtr;
 }
 
 CharArray* getFileExtensionFromCompressedFile(CharArray* fileCharsPtr) {
 	int fileExtensionLength = fileCharsPtr->data[0];
 	unsigned long pos = 1;
-	CharArray* out = malloc(sizeof(CharArray));
-	out->data = malloc(fileExtensionLength + 1);
-	out->length = fileExtensionLength + 1;
+	CharArray* outPtr = malloc(sizeof(CharArray));
+	outPtr->data = malloc(fileExtensionLength + 1);
+	outPtr->length = fileExtensionLength + 1;
 	for(int i = 0; i < fileExtensionLength; i++) {
-		out->data[i] = fileCharsPtr->data[pos + i];
+		outPtr->data[i] = fileCharsPtr->data[pos + i];
 	}
-	out->data[fileExtensionLength] = '\0';
-	return out;
+	outPtr->data[fileExtensionLength] = '\0';
+	return outPtr;
 }
 
 CharArray* getFilePathWithoutExtension(unsigned char path[]) {
 	int i = getLastDotPosition(path);
-	CharArray* out = malloc(sizeof(CharArray));
-	out->length = i + 1;
-	out->data = malloc(i + 1);
+	CharArray* outPtr = malloc(sizeof(CharArray));
+	outPtr->length = i + 1;
+	outPtr->data = malloc(i + 1);
 
 	int iOut = 0;
 	while(iOut < i) {
-		out->data[iOut] = path[iOut];
+		outPtr->data[iOut] = path[iOut];
 		iOut++;
 	}
-	out->data[i] = '\0';
-	return out;
+	outPtr->data[i] = '\0';
+	return outPtr;
 }
 
 CharArray* getLengthDefinition(CharArray* data) {
@@ -628,20 +620,16 @@ CharArray* definePalette(int paletteSize, int maxPatternLength, CharArray** plac
 		printf(" with ");
 		printChars(*placeholderPtr, 1);
 	}
-	CharArray* out = malloc(sizeof(CharArray));
-	out->data = malloc(iPalette);
-	for(int i2 = 0; i2 < iPalette; i2++) {
-		out->data[i2] = paletteArray[i2];
-	}
-	out->length = iPalette;
+	CharArray* outPtr = malloc(sizeof(CharArray));
+	outPtr->data = malloc(iPalette);
+	memcpy(outPtr->data, &paletteArray, iPalette);
+	outPtr->length = iPalette;
 	printf("Palette definition contains %d placeholder/pattern pairs in %d bytes\n", paletteSize, iPalette);
-	return out;
+	return outPtr;
 }
 
 CharArray* compress(char* path, int maxPatternLength, int maxPaletteSize, int fragmentSize) {
 	CharArray inputData = loadBytes(path);
-	//int maxFragmentSize = (CHAR_SIZE * CHAR_SIZE) - 1;
-	//int maxChunkSize = 10000;
 	int splitCount = inputData.length / fragmentSize;
 	printf("Split count is %d\n", splitCount);
 
@@ -682,7 +670,7 @@ CharArray* compress(char* path, int maxPatternLength, int maxPaletteSize, int fr
 			//Build an output char array based on the current palette of placeholders
 			int i = 0;
 			int iOut = 0;
-			unsigned char outArray[data.length];
+			unsigned char compressedArray[data.length];
 			while(i < data.length) {
 				unsigned char isPatternLocation = 0;
 				for(int iPattern = 0; iPattern < paletteSize; iPattern++) {
@@ -694,7 +682,7 @@ CharArray* compress(char* path, int maxPatternLength, int maxPaletteSize, int fr
 						unsigned long loc = patternNodePtr->locations->data[iLoc];
 						if (loc == i) {
 							for(int iAr = 0; iAr < placeholderPtr->length; iAr++) {
-								outArray[iOut + iAr] = placeholderPtr->data[iAr];
+								compressedArray[iOut + iAr] = placeholderPtr->data[iAr];
 							}
 							isPatternLocation = 1;
 							i += patternPtr->length;
@@ -707,7 +695,7 @@ CharArray* compress(char* path, int maxPatternLength, int maxPaletteSize, int fr
 				}
 				breakout:
 				if (isPatternLocation == 0) {
-					outArray[iOut] = data.data[i];
+					compressedArray[iOut] = data.data[i];
 					i++;
 					iOut++;
 				}
@@ -720,9 +708,7 @@ CharArray* compress(char* path, int maxPatternLength, int maxPaletteSize, int fr
 			} else {
 				workingOutput->data = realloc(workingOutput->data, iOut);
 			}
-			for(int i2 = 0; i2 < iOut; i2++) {
-				workingOutput->data[i2] = outArray[i2];
-			}
+			memcpy(workingOutput->data, &compressedArray, iOut);
 			workingOutput->length = iOut;
 
 			//Check for inadvertant placeholder use
@@ -999,7 +985,7 @@ int main(int argc, char* argv[])
 		//Don't save over an existing file
 		while(access(newPath, F_OK) == 0) {
     		//File already exists
-			newPath = getFilePathWithoutExtension(pathPtr)->data;
+			newPath = getFilePathWithoutExtension(newPath)->data;
 			strcat(newPath, "Copy.");
 			strcat(newPath, fileExtension->data);
 		}
