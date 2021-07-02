@@ -996,6 +996,7 @@ int main(int argc, char* argv[])
 			fputc(uncompressedFilePtr->data[i], filePtr);
 		}
 		fclose(filePtr);
+		
 	}
 	return 0;
 }
