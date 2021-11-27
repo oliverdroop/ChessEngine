@@ -18,29 +18,7 @@ img.src = "http://178.62.85.228/SpannerNut1.jpg";
 var vertexArray = [];
 var vtop = {x:0, y:0, z:360, screenX:0, screenY:0};
 var vbot = {x:0, y:0, z:-360, screenX:0, screenY:0};
-// for(var inx1 = 0; inx1 < 12; inx1++) {
-// 	for(var inx2 = 0; inx2 < 12; inx2++) {
-// 		var prod = (Math.pow(inx1 - 6, 2) * Math.pow(inx2 - 6, 2)) / 6;
-// 		var vertex = {
-// 			x:-360 + inx1 * 60, 
-// 			y:Math.round((Math.random() * 36) + prod),
-// 			z:-360 + inx2 * 60,
-// 			screenX:0,
-// 			screenY:0
-// 		};
-// 		vertexArray[(inx1 * 12) + inx2] = vertex;
-// 	}
-// }
 var polygonArray = [];
-// for(var idx1 = 0; idx1 < 132; idx1++){
-// 	var poly;
-// 	if ((idx1 + 1)% 12 != 0){
-// 		poly = {v0:vertexArray[idx1 + 1], v1:vertexArray[idx1], v2:vertexArray[idx1 + 12]};
-// 		polygonArray.push(poly);
-// 		poly = {v0:vertexArray[idx1 + 1], v1:vertexArray[idx1 + 12], v2:vertexArray[idx1 + 13]};
-// 		polygonArray.push(poly);
-// 	}
-// }
 var arrayWidth = 35;
 for(var i1 = 0; i1 < arrayWidth; i1++) {
     for(var i2 = 0; i2 < arrayWidth; i2++) {
@@ -53,7 +31,7 @@ for(var i1 = 0; i1 < arrayWidth; i1++) {
             screenY:0,
 			neighbours:neighbours
         }
-        vertex.z = Math.round(-findDistance(vertex, vtop));
+        vertex.z = Math.round(-findDistance(vertex, vtop)) + 400;
         vertexArray.push(vertex);
     }
 }
@@ -69,8 +47,6 @@ for(var i1 = 1; i1 < arrayWidth; i1++) {
 			poly.v1.neighbours.push({vertex:poly.v0, gradient:0, proportion:0});
 			poly.v0.neighbours.push({vertex:poly.v2, gradient:0, proportion:0});
 			poly.v2.neighbours.push({vertex:poly.v0, gradient:0, proportion:0});
-			//poly.v1.neighbours.push(poly.v2);
-			//poly.v2.neighbours.push(poly.v1);
             polygonArray.push(poly);
             poly = {
                 v0:vertexArray[((i1 - 1) * arrayWidth) + i2],
@@ -127,16 +103,17 @@ var camAngleRef = {x:camAngleX, y:camAngleY};
 document.onmousedown = logMouseDown;
 document.onmouseup = mouseUp;
 document.onmousemove = mouseMove;
+document.onwheel = mouseWheel;
 
 function myFunc(){
 	//Perform automatic rotation of vertices
 	if (mouseDownPos.x == 0 && mouseDownPos.y == 0){
 		var d1 = findDistance(vtop, vbot);
 		var Rvect = {x:(vtop.x - vbot.x) * (1 / d1), y:(vtop.y - vbot.y) * (1 / d1), z:(vtop.z - vbot.z) * (1 / d1)};
-		for(var indx = 0; indx < vertexArray.length; indx++){
-			var v = vertexArray[indx];
-			rotateVertex(v, Math.PI / 240, Rvect);
-		}
+		// for(var indx = 0; indx < vertexArray.length; indx++){
+		// 	var v = vertexArray[indx];
+		// 	rotateVertex(v, Math.PI / 240, Rvect);
+		// }
 	}
 	//repositionCamera();
 	ctx.clearRect(0,0,c.width, c.height);
@@ -181,8 +158,11 @@ function initiateCamera(){
 	sunVector.z = sunVector.z * fac;
 }
 function repositionCamera(rotx, roty){
-	var Rvcx = {x:0, y:1, z:0};
+	//var Rvcx = {x:0, y:1, z:0};
 	var Rvcy = {x:1, y:0, z:0};
+	var vDistRat = 1 / findDistance(vtop, vbot);
+	var Rvcx = getVerticalVector();
+	//var Rvcy = {x:vbot.x, y:vbot.y, z:vbot.z};
 	for(var indx = 0; indx < vertexArray.length; indx++){
 		var v = vertexArray[indx];
 		rotateVertex(v, rotx, Rvcx);
@@ -192,6 +172,11 @@ function repositionCamera(rotx, roty){
 	rotateVertex(vtop, roty, Rvcy);
 	rotateVertex(vbot, rotx, Rvcx);
 	rotateVertex(vbot, roty, Rvcy);
+}
+function getVerticalVector() {
+	var vDistRat = 1 / findDistance(vtop, vbot);
+	var vect = {x:(vtop.x - vbot.x) * vDistRat, y:(vtop.y - vbot.y) * vDistRat, z:(vtop.z - vbot.z) * vDistRat};
+	return vect;
 }
 function calculateScreenpoint(v){
 	var orgx = window.innerWidth / 2;
@@ -361,12 +346,26 @@ function mouseMove(event){
 		var dify = mousePos.y - mouseDownPos.y;
 		var ratx = 0;
 		var raty = 0;
-		//ratx = -difx / window.innerWidth;
+		ratx = -difx / window.innerWidth;
 		raty = dify / window.innerHeight;
 		var sens = 20;
 		repositionCamera((fov * ratx) * sens, (fov * raty) * sens);
 		mouseDownPos.x = posx;
 		mouseDownPos.y = posy;
+	}
+}
+function mouseWheel(event) {
+	var posx = event.clientX;
+	var posy = event.clientY;
+	var vertex = getClosestVertex(posx, posy);
+	var tDist = event.deltaY / 10;
+	var vect = getVerticalVector();
+	vertex.x += vect.x * tDist;
+	vertex.y += vect.y * tDist;
+	vertex.z += vect.z * tDist;
+	for(var vertex of vertexArray) {
+		calculateGradientsToNeighbours(vertex);
+		calculateFlowProportions(vertex);
 	}
 }
 function rotateVertex(vertex, angle, Rvector){

@@ -30,9 +30,9 @@ canv.width = window.innerWidth;
 canv.height = window.innerHeight;
 var ctx = canv.getContext("2d");
 var movers = [];
-generateTestMovers();
-setInterval(moveMovers, 10);
-setInterval(drawMovers, 10);
+generateMovers();
+setInterval(moveMovers, 50);
+setInterval(drawMovers, 50);
 function generateTestMovers(){
 	for(var i = 0; i < 8; i++){
 		var angle = 0;
@@ -100,7 +100,7 @@ function moveMovers(){
 		mover.x += mover.speedX;
 		mover.y -= mover.speedY;
 	}
-	bounceMovers();
+	bounceMovers2();
 }
 function bounceMovers(){
 	var alreadyBounced = [];
@@ -183,6 +183,103 @@ function bounceMovers(){
 				
 				alreadyBounced.push(faster);
 				alreadyBounced.push(slower);
+			}
+		}
+	}
+}
+
+function bounceMovers2(){
+	var alreadyBounced = [];
+	for(mover of movers){
+		//mover.speedY -= 0.05;
+		if (mover.x < mover.radius || mover.x > canv.width - mover.radius){
+			mover.speedX = -mover.speedX;
+		}
+		if (mover.y < mover.radius || mover.y > canv.height - mover.radius){
+			mover.speedY = -mover.speedY;
+		}
+		for(mover2 of movers){
+			if (mover2 == mover){
+				continue;
+			}
+			if (alreadyBounced.includes(mover2) || alreadyBounced.includes(mover)){
+				continue;
+			}
+			var dist = findDistance(mover.x, mover.y, mover2.x, mover2.y);
+			var radialSum = mover.radius + mover2.radius;
+			if (dist < radialSum){
+				var moverSpeed = findDistance(0, 0, mover.speedX, mover.speedY);
+				var mover2Speed = findDistance(0, 0, mover2.speedX, mover2.speedY);
+				
+				var greaterSpeed = Math.max(moverSpeed, mover2Speed);
+				var faster = mover2;
+				var slower = mover;
+				if (greaterSpeed == moverSpeed){
+					faster = mover;
+					slower = mover2;
+				}
+
+				var leftMostX = Math.min(mover.x, mover2.x);
+				var leftMost = mover2;
+				var rightMost = mover;
+				if (mover.x == leftMostX) {
+					leftMost = mover;
+					rightMost = mover2;
+				}
+				var topMostY = Math.min(mover.y, mover2.y);
+				var topMost = mover2;
+				var bottomMost = mover;
+				if (mover.y == topMostY) {
+					topMost = mover;
+					bottomMost = mover2;
+				}
+
+				var leftMostAngle = findAngle(0, 0, leftMost.speedX, leftMost.speedY);
+				if (leftMostAngle == Infinity) {
+					leftMostAngle = findAngle(0, 0, rightMost.speedX, rightMost.speedY) + Math.PI;
+				}
+				var topMostAngle = findAngle(0, 0, topMost.speedX, topMost.speedY);
+				if (topMostAngle == Infinity) {
+					topMostAngle = findAngle(0, 0, bottomMost.speedX, bottomMost.speedY) + Math.PI;
+				}
+
+				//Adjust speeds
+				var collisionSpeed = findDistance(0, 0, leftMost.speedX - rightMost.speedX, leftMost.speedY - rightMost.speedY);
+				var halfCollisionSpeed = collisionSpeed / 2;
+				var fasterToSlowerAngle = findAngle(faster.x, faster.y, slower.x, slower.y);
+				var fasterAngle = findAngle(0, 0, faster.x, faster.y);
+				var diffAngle = Math.atan2(Math.sin(fasterAngle - fasterToSlowerAngle), -Math.cos(fasterAngle - fasterToSlowerAngle));
+
+				var leftToRightAngle = findAngle(leftMost.x, leftMost.y, rightMost.x, rightMost.y);
+				var diffAngleX = Math.atan2(Math.sin(leftMostAngle - leftToRightAngle), -Math.cos(leftMostAngle - leftToRightAngle));
+				// var diffAngleX = leftMostAngle - leftToRightAngle;
+				// diffAngleX = (diffAngleX + Math.PI) % (2 * Math.PI) - Math.PI;
+				//var speedAdjustmentX = halfCollisionSpeed * Math.sin(leftToRightAngle);
+				var speedAdjustmentX = collisionSpeed * Math.sin(leftToRightAngle) * Math.abs(Math.cos(diffAngleX));
+				leftMost.speedX -= speedAdjustmentX;
+				rightMost.speedX += speedAdjustmentX;
+				
+				var topToBottomAngle = findAngle(topMost.x, topMost.y, bottomMost.x, bottomMost.y);
+				var diffAngleY = Math.atan2(Math.sin(topMostAngle - topToBottomAngle), -Math.cos(topMostAngle - topToBottomAngle));
+				// var diffAngleY = topMostAngle - topToBottomAngle;
+				// diffAngleY = (diffAngleY + Math.PI) % (2 * Math.PI) - Math.PI;
+				//var speedAdjustmentY = halfCollisionSpeed * Math.cos(topToBottomAngle);
+				var speedAdjustmentY = collisionSpeed * -Math.cos(topToBottomAngle) * Math.abs(Math.cos(diffAngleY));
+				topMost.speedY += speedAdjustmentY;
+				bottomMost.speedY -= speedAdjustmentY;
+
+				//Adjust positions
+				var adjustmentDist = (radialSum - dist) / 2;
+				var adjustMentDistX = adjustmentDist * Math.sin(leftToRightAngle);
+				leftMost.x -= adjustMentDistX;
+				rightMost.x += adjustMentDistX;
+				
+				var adjustMentDistY = adjustmentDist * -Math.cos(topToBottomAngle);
+				topMost.y -= adjustMentDistY;
+				bottomMost.y += adjustMentDistY;
+				
+				alreadyBounced.push(mover);
+				alreadyBounced.push(mover2);
 			}
 		}
 	}
