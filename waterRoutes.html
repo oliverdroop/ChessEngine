@@ -90,7 +90,7 @@ rotateVertex(vtop, camAngleY, Rvect);
 rotateVertex(vbot, camAngleY, Rvect);
 for(var vertex of vertexArray) {
 	calculateGradientsToNeighbours(vertex);
-	calculateFlowProportions(vertex);
+	calculateFlowProportions(vertex, false);
 }
 var c = document.getElementById("myCanvas");
 c.width = window.innerWidth;
@@ -235,28 +235,44 @@ function drawPolygon(poly){
 	}
 }
 function calculateGradientsToNeighbours(vertex) {
+	//Rotate vertex back to the original frame of reference where z is the vertical axis
 	var rVect = {x:1, y:0, z:0};
-	//var rotation = camAngleY - camAngleRef.y;
 	var rotation = -camAngleRef.y;
 	var v0 = createRotatedVertex(vertex, rotation, rVect);
 	for(var neighbour of vertex.neighbours) {
 		var vxNeighbour = neighbour.vertex;
 		var v1 = createRotatedVertex(vxNeighbour, rotation, rVect);
-		// var hDist = findDistance2D(vertex.x, vertex.y, vxNeighbour.x, vxNeighbour.y);
-		// var vDist = vertex.z - vxNeighbour.z;
 		var hDist = findDistance2D(v0.x, v0.y, v1.x, v1.y);
 		var vDist = v0.z - v1.z;
 		var gradient = vDist / hDist;
 		neighbour.gradient = gradient;
-		//
-		// for(var neighbourNeighbour of vxNeighbour.neighbours) {
-		// 	if (neighbourNeighbour.vertex == vertex) {
-		// 		neighbourNeighbour.gradient = -gradient;
-		// 	}
-		// }
+		//Set the corresponding gradient from the neighbour's vertex to the input vertex
+		for(var neighbourNeighbour of vxNeighbour.neighbours) {
+			if (neighbourNeighbour.vertex == vertex) {
+				neighbourNeighbour.gradient = -gradient;
+			}
+		}
 	}
 }
-function calculateFlowProportions(vertex) {
+function calculateFlowProportions2(vertex, recursive) {
+	var lowestGradient = 1999999999;
+	var lowestNeighbour = null;
+	for(var neighbour of vertex.neighbours) {
+		if (neighbour.gradient < lowestGradient) {
+			lowestGradient = neighbour.gradient;
+			lowestNeighbour = neighbour;
+		}
+	}
+	if (lowestGradient < 0) {
+		lowestNeighbour.proportion = 1;
+	}
+	if (recursive) {
+		for(var neighbour of vertex.neighbours) {
+			calculateFlowProportions(neighbour.vertex, false);
+		}
+	}
+}
+function calculateFlowProportions(vertex, recursive) {
 	var gradientSum = 0;
 	for(var neighbour of vertex.neighbours) {
 		if (neighbour.gradient < 0) {
@@ -268,6 +284,11 @@ function calculateFlowProportions(vertex) {
 			if (neighbour.gradient < 0) {
 				neighbour.proportion = neighbour.gradient / gradientSum;
 			}
+		}
+	}
+	if (recursive) {
+		for(var neighbour of vertex.neighbours) {
+			calculateFlowProportions(neighbour.vertex, false);
 		}
 	}
 }
@@ -304,20 +325,21 @@ function highlightFlow(vertex) {
 	var openList = [];
 	var closedList = [];
 	openList.push(currentVertex);
-	while(getLowerNeighbours(currentVertex).length > 0 && (openList.length > 1 || currentVertex == vertex)) {
+	while(openList.length > 1 || currentVertex == vertex) {
 		for(var neighbour of getLowerNeighbours(currentVertex)) {
 			var vxNeighbour = neighbour.vertex;
-			if (!openList.includes(vxNeighbour)) {
+			if (!openList.includes(vxNeighbour) && !closedList.includes(vxNeighbour)) {
 				openList.push(vxNeighbour);
+				vxNeighbour.water = currentVertex.water * neighbour.proportion;
 			}
-			vxNeighbour.water = vertex.water * neighbour.proportion;
 		}
 		closedList.push(currentVertex);
 		openList.splice(0, 1);
 		currentVertex = openList[0];
 	}
 	for(var vertex2 of closedList) {
-		highlightVertex(vertex2, Math.log10(vertex2.water) / 10);
+		highlightVertex(vertex2, Math.log10(vertex2.water) / 1);
+		//highlightVertex(vertex2, vertex2.water / 50);
 	}
 }
 function getLowerNeighbours(vertex) {
@@ -336,6 +358,9 @@ function vertexHasLowerNeighbour(vertex) {
 		}
 	}
 	return false;
+}
+function vertexIsLower(testVertex, referenceVertex) {
+	
 }
 function logMouseDown(event){
 	var posx = event.clientX;
@@ -381,7 +406,7 @@ function mouseWheel(event) {
 	vertex.z += vect.z * tDist;
 	for(var vertex of vertexArray) {
 		calculateGradientsToNeighbours(vertex);
-		calculateFlowProportions(vertex);
+		calculateFlowProportions(vertex, true);
 	}
 }
 function rotateVertex(vertex, angle, Rvector){
