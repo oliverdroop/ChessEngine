@@ -20,7 +20,7 @@ var vertexArray = [];
 var vtop = {x:0, y:0, z:360, screenX:0, screenY:0};
 var vbot = {x:0, y:0, z:-360, screenX:0, screenY:0};
 var polygonArray = [];
-var arrayWidth = 35;
+var arrayWidth = 50;
 for(var i1 = 0; i1 < arrayWidth; i1++) {
     for(var i2 = 0; i2 < arrayWidth; i2++) {
 		var neighbours = [];
@@ -254,24 +254,6 @@ function calculateGradientsToNeighbours(vertex) {
 		}
 	}
 }
-function calculateFlowProportions2(vertex, recursive) {
-	var lowestGradient = 1999999999;
-	var lowestNeighbour = null;
-	for(var neighbour of vertex.neighbours) {
-		if (neighbour.gradient < lowestGradient) {
-			lowestGradient = neighbour.gradient;
-			lowestNeighbour = neighbour;
-		}
-	}
-	if (lowestGradient < 0) {
-		lowestNeighbour.proportion = 1;
-	}
-	if (recursive) {
-		for(var neighbour of vertex.neighbours) {
-			calculateFlowProportions(neighbour.vertex, false);
-		}
-	}
-}
 function calculateFlowProportions(vertex, recursive) {
 	var gradientSum = 0;
 	for(var neighbour of vertex.neighbours) {
@@ -305,21 +287,26 @@ function getClosestVertex(x, y) {
 	return closestVertex;
 }
 function highlightVertex(vertex, lineWidth) {
-	ctx.strokeStyle = "rgb(0,0,255)";	
-	for(var neighbour of vertex.neighbours) {
-		var vxNeighbour = neighbour.vertex;
-		if (neighbour.proportion > 0) {
-			//ctx.lineWidth = neighbour.proportion;
-			ctx.lineWidth = lineWidth;
-			ctx.beginPath();
-			ctx.moveTo(vertex.screenX, vertex.screenY);
-			ctx.lineTo(vxNeighbour.screenX, vxNeighbour.screenY);
-			ctx.stroke();
+	if (lineWidth > 0) {
+		ctx.strokeStyle = "rgb(0,0,255)";	
+		for(var neighbour of vertex.neighbours) {
+			var vxNeighbour = neighbour.vertex;
+			if (neighbour.proportion > 0) {
+				ctx.lineWidth = lineWidth;
+				ctx.beginPath();
+				ctx.moveTo(vertex.screenX, vertex.screenY);
+				ctx.lineTo(vxNeighbour.screenX, vxNeighbour.screenY);
+				ctx.stroke();
+			}
 		}
 	}
-	document.getElementById("firstdiv").innerHTML = camAngleRef.y * (180/ Math.PI);
+	//document.getElementById("firstdiv").innerHTML = camAngleRef.y * (180/ Math.PI);
 }
 function highlightFlow(vertex) {
+	document.getElementById("firstdiv").innerHTML = getHeight(vertex);
+	for(v1 of vertexArray) {
+		v1.water = 0;
+	}
 	vertex.water = 100;
 	var currentVertex = vertex;
 	var openList = [];
@@ -328,19 +315,55 @@ function highlightFlow(vertex) {
 	while(openList.length > 1 || currentVertex == vertex) {
 		for(var neighbour of getLowerNeighbours(currentVertex)) {
 			var vxNeighbour = neighbour.vertex;
-			if (!openList.includes(vxNeighbour) && !closedList.includes(vxNeighbour)) {
-				openList.push(vxNeighbour);
-				vxNeighbour.water = currentVertex.water * neighbour.proportion;
+			if (!closedList.includes(vxNeighbour)) {
+				if (!openList.includes(vxNeighbour)) {
+					openList.push(vxNeighbour);
+					//vxNeighbour.water += currentVertex.water * neighbour.proportion;
+				}
+				vxNeighbour.water += currentVertex.water * neighbour.proportion;
 			}
 		}
 		closedList.push(currentVertex);
-		openList.splice(0, 1);
-		currentVertex = openList[0];
+		openList.splice(openList.indexOf(currentVertex), 1);
+		currentVertex = getHighestVertex(openList);
+		// openList.splice(0, 1);
+		// currentVertex = openList[0];
 	}
 	for(var vertex2 of closedList) {
 		highlightVertex(vertex2, Math.log10(vertex2.water) / 1);
 		//highlightVertex(vertex2, vertex2.water / 50);
 	}
+}
+function getHeight(vertex) {
+	//Rotate vertex back to the original frame of reference where z is the vertical axis
+	var rVect = {x:1, y:0, z:0};
+	var rotation = -camAngleRef.y;
+	var v0 = createRotatedVertex(vertex, rotation, rVect);
+	return -v0.z;
+}
+function getHighestVertex(vertices) {
+	var highestHeight = -1999999999;
+	var highestVertex = null;
+	for(var vertex of vertices) {
+		var height = getHeight(vertex);
+		if (height > highestHeight) {
+			highestHeight = height;
+			highestVertex = vertex;
+		}
+	}
+	return highestVertex;
+}
+function getLowestVertex(vertices) {
+	var lowestHeight = 1999999999;
+	var lowestVertex = null;
+	for(var vertex of vertices) {
+		var height = getHeight(vertex);
+		if (height < lowestHeight) {
+			lowestHeight = height;
+			lowestVertex = vertex;
+		}
+	}
+	return lowestVertex;
 }
 function getLowerNeighbours(vertex) {
 	var lowerNeighbours = [];
