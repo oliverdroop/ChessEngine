@@ -20,7 +20,7 @@ var vertexArray = [];
 var vtop = {x:0, y:0, z:360, screenX:0, screenY:0};
 var vbot = {x:0, y:0, z:-360, screenX:0, screenY:0};
 var polygonArray = [];
-var arrayWidth = 50;
+var arrayWidth = 35;
 for(var i1 = 0; i1 < arrayWidth; i1++) {
     for(var i2 = 0; i2 < arrayWidth; i2++) {
 		var neighbours = [];
@@ -96,7 +96,7 @@ var c = document.getElementById("myCanvas");
 c.width = window.innerWidth;
 c.height = window.innerHeight;
 var ctx = c.getContext("2d");
-window.setInterval(myFunc, 50);
+window.setInterval(myFunc, 100);
 
 var mouseDownPos = {x:0, y:0};
 var mousePos = {x:0, y:0};
@@ -106,29 +106,23 @@ document.onmousemove = mouseMove;
 document.onwheel = mouseWheel;
 
 function myFunc(){
-	//Perform automatic rotation of vertices
 	if (mouseDownPos.x == 0 && mouseDownPos.y == 0){
 		var d1 = findDistance(vtop, vbot);
 		var Rvect = {x:(vtop.x - vbot.x) * (1 / d1), y:(vtop.y - vbot.y) * (1 / d1), z:(vtop.z - vbot.z) * (1 / d1)};
-		// for(var indx = 0; indx < vertexArray.length; indx++){
-		// 	var v = vertexArray[indx];
-		// 	rotateVertex(v, Math.PI / 240, Rvect);
-		// }
 	}
-	//repositionCamera();
 	ctx.clearRect(0,0,c.width, c.height);
 	for(var indx = 0; indx < (arrayWidth * arrayWidth); indx++) {
 		var v = vertexArray[indx];
-		calculateScreenpoint(v);
+		if (v.screenX == 0 && v.screenY == 0) {
+			calculateScreenpoint(v);
+		}
 	}
 	calculateScreenpoint(vtop);
 	calculateScreenpoint(vbot);
 	//
 	polygonArray = sortPolygonsByDistance(polygonArray);
     for(var poly of polygonArray) {
-	//for(var indx = 0; indx < polygonArray.length; indx++){
         var blck = false;
-        var poly = 
         drawPolygon(poly);
 	}
 	var closestVertex = getClosestVertex(mousePos.x, mousePos.y);
@@ -137,16 +131,6 @@ function myFunc(){
 	ctx.strokeStyle = "rgb(255,255,0)";
 	var v1 = {x:0, y:0, z:0, screenX:0, screenY:0};
 	var v2 = {x:-400, y:-100, z:-1200, screenX:0, screenY:0};
-	for(var indx = 0; indx < polygonArray.length; indx++){
-		var poly = polygonArray[indx];
-		//draw intersection of camera-focus line
-		var intersection = findIntersection(poly, v1, v2);
-		if (intersection != null){
-			calculateScreenpoint(v1);
-			calculateScreenpoint(v2);
-		}
-		
-	}
 	ctx.strokeStyle = "rgb(0,0,0)";
 }
 function initiateCamera(){
@@ -158,15 +142,14 @@ function initiateCamera(){
 	sunVector.z = sunVector.z * fac;
 }
 function repositionCamera(rotx, roty){
-	//var Rvcx = {x:0, y:1, z:0};
 	var Rvcy = {x:1, y:0, z:0};
-	//var vDistRat = 1 / findDistance(vtop, vbot);
 	var Rvcx = getVerticalVector();
 	camAngleRef.x += rotx;
 	camAngleRef.y += roty;
-	//var Rvcy = {x:vbot.x, y:vbot.y, z:vbot.z};
 	for(var indx = 0; indx < vertexArray.length; indx++){
 		var v = vertexArray[indx];
+		v.screenX = 0;
+		v.screenY = 0;
 		rotateVertex(v, rotx, Rvcx);
 		rotateVertex(v, roty, Rvcy);
 	}
@@ -247,11 +230,11 @@ function calculateGradientsToNeighbours(vertex) {
 		var gradient = vDist / hDist;
 		neighbour.gradient = gradient;
 		//Set the corresponding gradient from the neighbour's vertex to the input vertex
-		for(var neighbourNeighbour of vxNeighbour.neighbours) {
-			if (neighbourNeighbour.vertex == vertex) {
-				neighbourNeighbour.gradient = -gradient;
-			}
-		}
+		// for(var neighbourNeighbour of vxNeighbour.neighbours) {
+		// 	if (neighbourNeighbour.vertex == vertex) {
+		// 		neighbourNeighbour.gradient = -gradient;
+		// 	}
+		// }
 	}
 }
 function calculateFlowProportions(vertex, recursive) {
@@ -268,11 +251,11 @@ function calculateFlowProportions(vertex, recursive) {
 			}
 		}
 	}
-	if (recursive) {
-		for(var neighbour of vertex.neighbours) {
-			calculateFlowProportions(neighbour.vertex, false);
-		}
-	}
+	// if (recursive) {
+	// 	for(var neighbour of vertex.neighbours) {
+	// 		calculateFlowProportions(neighbour.vertex, false);
+	// 	}
+	// }
 }
 function getClosestVertex(x, y) {
 	var closestVertex = null;
@@ -289,10 +272,10 @@ function getClosestVertex(x, y) {
 function highlightVertex(vertex, lineWidth) {
 	if (lineWidth > 0) {
 		ctx.strokeStyle = "rgb(0,0,255)";	
+		ctx.lineWidth = lineWidth;
 		for(var neighbour of vertex.neighbours) {
 			var vxNeighbour = neighbour.vertex;
 			if (neighbour.proportion > 0) {
-				ctx.lineWidth = lineWidth;
 				ctx.beginPath();
 				ctx.moveTo(vertex.screenX, vertex.screenY);
 				ctx.lineTo(vxNeighbour.screenX, vxNeighbour.screenY);
@@ -300,7 +283,6 @@ function highlightVertex(vertex, lineWidth) {
 			}
 		}
 	}
-	//document.getElementById("firstdiv").innerHTML = camAngleRef.y * (180/ Math.PI);
 }
 function highlightFlow(vertex) {
 	document.getElementById("firstdiv").innerHTML = getHeight(vertex);
@@ -312,26 +294,30 @@ function highlightFlow(vertex) {
 	var openList = [];
 	var closedList = [];
 	openList.push(currentVertex);
-	while(openList.length > 1 || currentVertex == vertex) {
-		for(var neighbour of getLowerNeighbours(currentVertex)) {
+	while(openList.length > 0 || currentVertex == vertex) {
+		var lowerNeighbours = getLowerNeighbours(currentVertex);
+		for(var neighbour of lowerNeighbours) {
 			var vxNeighbour = neighbour.vertex;
 			if (!closedList.includes(vxNeighbour)) {
 				if (!openList.includes(vxNeighbour)) {
 					openList.push(vxNeighbour);
-					//vxNeighbour.water += currentVertex.water * neighbour.proportion;
 				}
 				vxNeighbour.water += currentVertex.water * neighbour.proportion;
 			}
 		}
+		//allow water to escape from a low point
+		if (lowerNeighbours.length == 0) {
+			var lowestHigherNeighbour = getLowestNeighbour(currentVertex);
+			openList.push(lowestHigherNeighbour);
+			lowestHigherNeighbour.water += currentVertex.water;
+		}
+		//Move on to the next vertex
 		closedList.push(currentVertex);
 		openList.splice(openList.indexOf(currentVertex), 1);
 		currentVertex = getHighestVertex(openList);
-		// openList.splice(0, 1);
-		// currentVertex = openList[0];
 	}
 	for(var vertex2 of closedList) {
 		highlightVertex(vertex2, Math.log10(vertex2.water) / 1);
-		//highlightVertex(vertex2, vertex2.water / 50);
 	}
 }
 function getHeight(vertex) {
@@ -382,6 +368,14 @@ function vertexHasLowerNeighbour(vertex) {
 	}
 	return false;
 }
+function getLowestNeighbour(vertex) {
+	//Can return a higher vertex
+	var vertices = [];
+	for(var neighbour of vertex.neighbours) {
+		vertices.push(neighbour.vertex);
+	}
+	return getLowestVertex(vertices);
+}
 function vertexIsLower(testVertex, referenceVertex) {
 	
 }
@@ -422,7 +416,9 @@ function mouseWheel(event) {
 	var posx = event.clientX;
 	var posy = event.clientY;
 	var vertex = getClosestVertex(posx, posy);
-	var tDist = event.deltaY / 10;
+	vertex.screenX = 0;
+	vertex.screenY = 0;
+	var tDist = event.deltaY / 4;
 	var vect = getVerticalVector();
 	vertex.x += vect.x * tDist;
 	vertex.y += vect.y * tDist;
