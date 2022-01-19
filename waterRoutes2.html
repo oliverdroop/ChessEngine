@@ -4,7 +4,7 @@
 <body>
 <div id="firstdiv">Hello</div>
 <canvas id="myCanvas" style="position:absolute; left:0px; top:0px"></canvas>
-//<script src='https://unpkg.com/paralleljs@1.0/lib/parallel.js'></script>
+<!-- <script src='https://unpkg.com/paralleljs@1.0/lib/parallel.js'></script> -->
 <script>
 //
 var vfoc = {x:0, y:0, z:-1000};
@@ -12,28 +12,30 @@ var vcam = {x:0, y:0, z:-2000};
 var fov = Math.PI * (1/4);
 var camAngleX = 0;
 var camAngleY = -Math.PI / 4;
+var camAngleY = Math.PI / 2;
 var camAngleRef = {x:camAngleX, y:camAngleY};
 var sunVector = {x:-10, y:0, z:20};
 initiateCamera();
 var img = new Image();
 img.src = "http://178.62.85.228/SpannerNut1.jpg";
 var vertexArray = [];
-var vtop = {x:0, y:0, z:360, screenX:0, screenY:0};
-var vbot = {x:0, y:0, z:-360, screenX:0, screenY:0};
 var polygonArray = [];
-var arrayWidth = 35;
+var arrayWidth = 100;
+var module = 5;
+var vtop = {x:500, y:0, z:(module * 72), screenX:0, screenY:0};
+var vbot = {x:500, y:0, z:-(module * 72), screenX:0, screenY:0};
 for(var i1 = 0; i1 < arrayWidth; i1++) {
     for(var i2 = 0; i2 < arrayWidth; i2++) {
 		var neighbours = [];
         var vertex = {
-            x:(i1 * 30) + ((i2 % 2) * 15)- 300,
-            y:(i2 * 25) - 300,
-            z:100,
+            x:(i1 * (module * 6)) + ((i2 % 2) * (module * 3)) - (module * 0),
+            y:(i2 * (module * 5)) - (module * arrayWidth * 2),
+            z:(module * 36),
             screenX:0,
             screenY:0,
 			neighbours:neighbours
         }
-        vertex.z = Math.round(-findDistance(vertex, vtop)) + 400;
+        vertex.z = Math.round(-findDistance(vertex, vtop)) + (module * 72);
         vertexArray.push(vertex);
     }
 }
@@ -81,14 +83,20 @@ for(var i1 = 1; i1 < arrayWidth; i1++) {
     }
 }
 var Rvect = {x:1, y:0, z:0};
+var cosAX = Math.cos(camAngleX);
+var sinAX = Math.sin(camAngleX);
+var cosAY = Math.cos(camAngleY);
+var sinAY = Math.sin(camAngleY);
+var rvcx = {x:0, y:0, z:1};
+var rvcy = {x:1, y:0, z:0};
 for(var indx = 0; indx < (arrayWidth * arrayWidth); indx++) {
 	var vertexArray = vertexArray;
 	var v = vertexArray[indx];
-	rotateVertex(v, camAngleY, Rvect);
+	//rotateVertex(v, cosAY, sinAY, Rvect);
 	calculateScreenpoint(v);
 }
-rotateVertex(vtop, camAngleY, Rvect);
-rotateVertex(vbot, camAngleY, Rvect);
+// rotateVertex(vtop, cosAY, sinAY, Rvect);
+// rotateVertex(vbot, cosAY, sinAY, Rvect);
 for(var vertex of vertexArray) {
 	calculateGradientsToNeighbours(vertex);
 	calculateFlowProportions(vertex, false);
@@ -96,7 +104,10 @@ for(var vertex of vertexArray) {
 var c = document.getElementById("myCanvas");
 c.width = window.innerWidth;
 c.height = window.innerHeight;
-var ctx = c.getContext("2d");
+var gl = c.getContext("experimental-webgl");
+var shaderProgram;
+setUpWebGL();
+//var ctx = c.getContext("2d");
 window.setInterval(myFunc, 100);
 
 var mouseDownPos = {x:0, y:0};
@@ -111,7 +122,7 @@ function myFunc(){
 		var d1 = findDistance(vtop, vbot);
 		var Rvect = {x:(vtop.x - vbot.x) * (1 / d1), y:(vtop.y - vbot.y) * (1 / d1), z:(vtop.z - vbot.z) * (1 / d1)};
 	}
-	ctx.clearRect(0,0,c.width, c.height);
+	//ctx.clearRect(0,0,c.width, c.height);
 	for(var indx = 0; indx < (arrayWidth * arrayWidth); indx++) {
 		var v = vertexArray[indx];
 		if (v.screenX == 0 && v.screenY == 0) {
@@ -121,19 +132,20 @@ function myFunc(){
 	calculateScreenpoint(vtop);
 	calculateScreenpoint(vbot);
 	//
-	polygonArray = sortPolygonsByDistance(polygonArray);
+	//polygonArray = sortPolygonsByDistance(polygonArray);
 	// var p = new Parallel(polygonArray);
 	// p.spawn(drawPolygon);
-    for(var poly of polygonArray) {
-        drawPolygon(poly);
-	}
+    // for(var poly of polygonArray) {
+    //     drawPolygon(poly);
+	// }
+	drawWebGLPolygons();
 	var closestVertex = getClosestVertex(mousePos.x, mousePos.y);
-	highlightFlow(closestVertex);
+	//highlightFlow(closestVertex);
 	
-	ctx.strokeStyle = "rgb(255,255,0)";
-	var v1 = {x:0, y:0, z:0, screenX:0, screenY:0};
-	var v2 = {x:-400, y:-100, z:-1200, screenX:0, screenY:0};
-	ctx.strokeStyle = "rgb(0,0,0)";
+	// ctx.strokeStyle = "rgb(255,255,0)";
+	// var v1 = {x:0, y:0, z:0, screenX:0, screenY:0};
+	// var v2 = {x:-400, y:-100, z:-1200, screenX:0, screenY:0};
+	// ctx.strokeStyle = "rgb(0,0,0)";
 }
 function initiateCamera(){
 	var vx0 = {x:0, y:0, z:0};
@@ -148,41 +160,37 @@ function repositionCamera(rotx, roty){
 	var Rvcx = getVerticalVector();
 	camAngleRef.x += rotx;
 	camAngleRef.y += roty;
-	for(var indx = 0; indx < vertexArray.length; indx++){
-		var v = vertexArray[indx];
-		v.screenX = 0;
-		v.screenY = 0;
-		rotateVertex(v, rotx, Rvcx);
-		rotateVertex(v, roty, Rvcy);
-	}
-	rotateVertex(vtop, rotx, Rvcx);
-	rotateVertex(vtop, roty, Rvcy);
-	rotateVertex(vbot, rotx, Rvcx);
-	rotateVertex(vbot, roty, Rvcy);
+	// var cosAX = Math.cos(rotx);
+	// var sinAX = Math.sin(rotx);
+	// var cosAY = Math.cos(roty);
+	// var sinAY = Math.sin(roty);
+	cosAX = Math.cos(camAngleRef.x);
+	sinAX = Math.sin(camAngleRef.x);
+	cosAY = Math.cos(camAngleRef.y);
+	sinAY = Math.sin(camAngleRef.y);
+	// for(var indx = 0; indx < vertexArray.length; indx++){
+	// 	var v = vertexArray[indx];
+	// 	v.screenX = 0;
+	// 	v.screenY = 0;
+	// 	rotateVertex(v, cosAX, sinAX, Rvcx);
+	// 	rotateVertex(v, cosAY, sinAY, Rvcy);
+	// }
+	// rotateVertex(vtop, cosAX, sinAX, Rvcx);
+	// rotateVertex(vtop, cosAY, sinAY, Rvcy);
+	// rotateVertex(vbot, cosAX, sinAX, Rvcx);
+	// rotateVertex(vbot, cosAY, sinAY, Rvcy);
 }
 function getVerticalVector() {
 	var vDistRat = 1 / findDistance(vtop, vbot);
 	var vect = {x:(vtop.x - vbot.x) * vDistRat, y:(vtop.y - vbot.y) * vDistRat, z:(vtop.z - vbot.z) * vDistRat};
 	return vect;
 }
-function calculateScreenpoint(v){
-	var orgx = window.innerWidth / 2;
-	var orgy = window.innerHeight / 2;
-	var dcam = findDistance(v, vcam);
-	var focl = findDistance(vcam, vfoc);
-	var fovf = (focl / (dcam * fov));
-	//
-	var x = v.x * fovf;
-	var y = v.y * fovf;
-	v.screenX = Math.round(x + orgx);
-	v.screenY = Math.round(y + orgy);
-}
 function drawLine(v1, v2){
-	ctx.lineWidth = "0.25";
-	ctx.beginPath();
-	ctx.moveTo(v1.screenX, v1.screenY);
-	ctx.lineTo(v2.screenX, v2.screenY);
-	ctx.stroke();
+	// ctx.lineWidth = "0.25";
+	// ctx.beginPath();
+	// ctx.moveTo(v1.screenX, v1.screenY);
+	// ctx.lineTo(v2.screenX, v2.screenY);
+	// ctx.stroke();
 }
 function drawPolygon(poly){
 	//Get vertices
@@ -206,27 +214,197 @@ function drawPolygon(poly){
 	//Remove polygons with a vertex behind the focus
 	if (v0.z > vfoc.z && v1.z > vfoc.z && v2.z > vfoc.z){
 		//Draw polygon
-		ctx.lineWidth = "0.5";
-		ctx.fillStyle = "rgb(" + byt + "," + byt + "," + byt + ")";
-		ctx.strokeStyle = "rgb(" + byt + "," + byt + "," + byt + ")";
-		ctx.beginPath();
-		ctx.moveTo(v0.screenX, v0.screenY);
-		ctx.lineTo(v1.screenX, v1.screenY);
-		ctx.lineTo(v2.screenX, v2.screenY);
-		ctx.lineTo(v0.screenX, v0.screenY);
-		ctx.closePath();
-		ctx.stroke();
-		ctx.fill();
+		// ctx.lineWidth = "0.5";
+		// ctx.fillStyle = "rgb(" + byt + "," + byt + "," + byt + ")";
+		// ctx.strokeStyle = "rgb(" + byt + "," + byt + "," + byt + ")";
+		// ctx.beginPath();
+		// ctx.moveTo(v0.screenX, v0.screenY);
+		// ctx.lineTo(v1.screenX, v1.screenY);
+		// ctx.lineTo(v2.screenX, v2.screenY);
+		// ctx.lineTo(v0.screenX, v0.screenY);
+		// ctx.closePath();
+		// ctx.stroke();
+		// ctx.fill();
 	}
+}
+function setUpWebGL() {
+	/*================ Shaders ====================*/
+	
+	// Vertex shader source code
+	var vertCode = getVertexShaderCode();
+	
+	// Create a vertex shader object
+	var vertShader = gl.createShader(gl.VERTEX_SHADER);
+
+	// Attach vertex shader source code
+	gl.shaderSource(vertShader, vertCode);
+
+	// Compile the vertex shader
+	gl.compileShader(vertShader);
+
+	//fragment shader source code
+	var fragCode =
+	'void main(void) {' +
+		' gl_FragColor = vec4(1.0, 0.5, 1.0, 1.0);' +
+	'}';
+	
+	// Create fragment shader object
+	var fragShader = gl.createShader(gl.FRAGMENT_SHADER);
+
+	// Attach fragment shader source code
+	gl.shaderSource(fragShader, fragCode); 
+	
+	// Compile the fragmentt shader
+	gl.compileShader(fragShader);
+
+	// Create a shader program object to store
+	// the combined shader program
+	shaderProgram = gl.createProgram();
+
+	// Attach a vertex shader
+	gl.attachShader(shaderProgram, vertShader);
+
+	// Attach a fragment shader
+	gl.attachShader(shaderProgram, fragShader);
+
+	// Link both the programs
+	gl.linkProgram(shaderProgram);
+
+	// Use the combined shader program object
+	gl.useProgram(shaderProgram);
+}
+function drawWebGLPolygons() {
+	/*============== Creating a canvas ====================*/
+	// var canvas = document.getElementById('myCanvas');
+	// gl = canvas.getContext('experimental-webgl');
+
+	/*======== Defining and storing the geometry ===========*/
+
+	var vertices = [];
+	var indices = [];
+	var index = 0;
+	var cWidth = c.width;
+	for(var poly of polygonArray) {
+		pushToVertices(poly.v0, vertices);
+		pushToVertices(poly.v1, vertices);
+		pushToVertices(poly.v1, vertices);
+		pushToVertices(poly.v2, vertices);
+		pushToVertices(poly.v2, vertices);
+		pushToVertices(poly.v0, vertices);
+		indices.push(index, index + 1);
+		index += 2;
+		// var iMax = 2;
+		// for(var i = 0; i < iMax; i++) {
+		// 	indices.push(index + i);
+		// }
+		// index += iMax;
+	}
+	
+	// Create an empty buffer object to store vertex buffer
+	var vertex_buffer = gl.createBuffer();
+
+	// Bind appropriate array buffer to it
+	gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+	
+	// Pass the vertex data to the buffer
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+
+	// Unbind the buffer
+	gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+	// Create an empty buffer object to store Index buffer
+	var Index_Buffer = gl.createBuffer();
+
+	// Bind appropriate array buffer to it
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, Index_Buffer);
+
+	// Pass the vertex data to the buffer
+	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+	
+	// Unbind the buffer
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+
+	/*================ Shaders ====================*/
+	
+	// Defined and compiled earlier
+
+	/*======= Associating shaders to buffer objects =======*/
+
+	// Bind vertex buffer object
+	gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+
+	// Bind index buffer object
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, Index_Buffer);
+	
+	// Get the attribute location
+	var coord = gl.getAttribLocation(shaderProgram, "cdts");
+
+	// Point an attribute to the currently bound VBO
+	var numComponents = 3;  // (x, y, z)
+	var type = gl.FLOAT;    // 32bit floating point values
+	var normalize = false;  // leave the values as they are
+	var offset = 0;         // start at the beginning of the buffer
+	var stride = 0;         // how many bytes to move to the next vertex
+							// 0 = use the correct stride for type and numComponents
+	  
+	gl.vertexAttribPointer(coord, numComponents, type, normalize, stride, offset);
+	
+	// Enable the attribute
+	gl.enableVertexAttribArray(coord);
+	
+	// Get the uniform values
+	var uCosAX = gl.getUniformLocation(shaderProgram, "u_cosAX");
+	var uSinAX = gl.getUniformLocation(shaderProgram, "u_sinAX");
+	var uRvectorX = gl.getUniformLocation(shaderProgram, "u_RvectorX");
+	var uCosAY = gl.getUniformLocation(shaderProgram, "u_cosAY");
+	var uSinAY = gl.getUniformLocation(shaderProgram, "u_sinAY");
+	var uRvectorY = gl.getUniformLocation(shaderProgram, "u_RvectorY");
+	var uFocl = gl.getUniformLocation(shaderProgram, "u_focl");
+	var uVcam = gl.getUniformLocation(shaderProgram, "u_vcam");
+	var uFov = gl.getUniformLocation(shaderProgram, "u_fov");
+
+	// Enable the uniform values
+	gl.uniform1f(uCosAX, cosAX);
+	gl.uniform1f(uSinAX, sinAX);
+	gl.uniform3f(uRvectorX, rvcx.x, rvcx.y, rvcx.z);
+	gl.uniform1f(uCosAY, cosAY);
+	gl.uniform1f(uSinAY, sinAY);
+	gl.uniform3f(uRvectorY, rvcy.x, rvcy.y, rvcy.z);
+	gl.uniform1f(uFocl, findDistance(vcam, vfoc) * 0.001);
+	gl.uniform3f(uVcam, vcam.x * 0.001, vcam.y * 0.001, vcam.z * 0.001);
+	gl.uniform1f(uFov, fov);
+
+	/*=========Drawing the triangle===========*/
+
+	// Clear the canvas
+	gl.clearColor(0.5, 0.5, 0.5, 1.0);
+
+	// Enable the depth test
+	gl.enable(gl.DEPTH_TEST);
+
+	// Clear the color buffer bit
+	gl.clear(gl.COLOR_BUFFER_BIT);
+
+	// Set the view port
+	gl.viewport(0,0,c.width,c.height);
+
+	// Draw the triangle
+	gl.drawElements(gl.LINES, indices.length, gl.UNSIGNED_SHORT,0);
+}
+function pushToVertices(vertex, vertices) {
+	//vertices.push((vertex.screenX * 0.001) - 0.5, -(vertex.screenY * 0.001), 0.0);
+	vertices.push((vertex.x * 0.001) - 0.5, (vertex.y * 0.001), vertex.z * 0.001);
 }
 function calculateGradientsToNeighbours(vertex) {
 	//Rotate vertex back to the original frame of reference where z is the vertical axis
 	var rVect = {x:1, y:0, z:0};
 	var rotation = -camAngleRef.y;
-	var v0 = createRotatedVertex(vertex, rotation, rVect);
+	var cosA = Math.cos(rotation);
+	var sinA = Math.sin(rotation);
+	var v0 = createRotatedVertex(vertex, cosA, sinA, rVect);
 	for(var neighbour of vertex.neighbours) {
 		var vxNeighbour = neighbour.vertex;
-		var v1 = createRotatedVertex(vxNeighbour, rotation, rVect);
+		var v1 = createRotatedVertex(vxNeighbour, cosA, sinA, rVect);
 		var hDist = findDistance2D(v0.x, v0.y, v1.x, v1.y);
 		var vDist = v0.z - v1.z;
 		var gradient = vDist / hDist;
@@ -272,19 +450,19 @@ function getClosestVertex(x, y) {
 	return closestVertex;
 }
 function highlightVertex(vertex, lineWidth) {
-	if (lineWidth > 0) {
-		ctx.strokeStyle = "rgb(0,0,255)";	
-		ctx.lineWidth = lineWidth;
-		for(var neighbour of vertex.neighbours) {
-			var vxNeighbour = neighbour.vertex;
-			if (neighbour.proportion > 0) {
-				ctx.beginPath();
-				ctx.moveTo(vertex.screenX, vertex.screenY);
-				ctx.lineTo(vxNeighbour.screenX, vxNeighbour.screenY);
-				ctx.stroke();
-			}
-		}
-	}
+	// if (lineWidth > 0) {
+	// 	ctx.strokeStyle = "rgb(0,0,255)";	
+	// 	ctx.lineWidth = lineWidth;
+	// 	for(var neighbour of vertex.neighbours) {
+	// 		var vxNeighbour = neighbour.vertex;
+	// 		if (neighbour.proportion > 0) {
+	// 			ctx.beginPath();
+	// 			ctx.moveTo(vertex.screenX, vertex.screenY);
+	// 			ctx.lineTo(vxNeighbour.screenX, vxNeighbour.screenY);
+	// 			ctx.stroke();
+	// 		}
+	// 	}
+	// }
 }
 function highlightFlow(vertex) {
 	document.getElementById("firstdiv").innerHTML = getHeight(vertex);
@@ -326,7 +504,7 @@ function getHeight(vertex) {
 	//Rotate vertex back to the original frame of reference where z is the vertical axis
 	var rVect = {x:1, y:0, z:0};
 	var rotation = -camAngleRef.y;
-	var v0 = createRotatedVertex(vertex, rotation, rVect);
+	var v0 = createRotatedVertex(vertex, Math.cos(rotation), Math.sin(rotation), rVect);
 	return -v0.z;
 }
 function getHighestVertex(vertices) {
@@ -430,24 +608,24 @@ function mouseWheel(event) {
 		calculateFlowProportions(vertex, true);
 	}
 }
-function rotateVertex(vertex, angle, Rvector){
-	var v2 = createRotatedVertex(vertex, angle, Rvector);
+function rotateVertex(vertex, cosA, sinA, Rvector){
+	var v2 = createRotatedVertex(vertex, cosA, sinA, Rvector);
 	vertex.x = v2.x;
 	vertex.y = v2.y;
 	vertex.z = v2.z;
 }
-function createRotatedVertex(vertex, angle, Rvector) {
-	var c = Math.cos(angle);
-	var s = Math.sin(angle);
-	var t = 1 - c;
-	var Rvect = Rvector;
-	var x = Rvect.x;
-	var y = Rvect.y;
-	var z = Rvect.z;
+function createRotatedVertex(vertex, cosA, sinA, Rvector) {
+	// var c = cosA;
+	// var s = sinA;
+	var t = 1 - cosA;
+	//var Rvect = Rvector;
+	var x = Rvector.x;
+	var y = Rvector.y;
+	var z = Rvector.z;
 	var Rmatrix = [
-		[(t * Math.pow(x, 2)) + c, (t * x * y) - (s * z), (t * x * z) + (s * y), 0],
-		[(t * x * y) + (s * z), (t * Math.pow(y, 2)) + c, (t * y * z) - (s * x), 0],
-		[(t * x * z) - (s * y), (t * y * z) + (s * x), (t * Math.pow(z, 2)) + c, 0],
+		[(t * Math.pow(x, 2)) + cosA, (t * x * y) - (sinA * z), (t * x * z) + (sinA * y), 0],
+		[(t * x * y) + (sinA * z), (t * Math.pow(y, 2)) + cosA, (t * y * z) - (sinA * x), 0],
+		[(t * x * z) - (sinA * y), (t * y * z) + (sinA * x), (t * Math.pow(z, 2)) + cosA, 0],
 		[0, 0, 0, 1]
 	];
 	var Vmatrix1 = [];
@@ -464,6 +642,78 @@ function createRotatedVertex(vertex, angle, Rvector) {
 	//
 	var v2 = {x:Vmatrix2[0], y:Vmatrix2[1], z:Vmatrix2[2]};
 	return v2;
+}
+function calculateScreenpoint(v){
+	var orgx = window.innerWidth / 2;
+	var orgy = window.innerHeight / 2;
+	var dcam = findDistance(v, vcam);
+	var focl = findDistance(vcam, vfoc);
+	var fovf = (focl / (dcam * fov));
+	//
+	var x = v.x * fovf;
+	var y = v.y * fovf;
+	v.screenX = Math.round(x + orgx);
+	v.screenY = Math.round(y + orgy);
+}
+function getVertexShaderCode() {
+	return "attribute vec3 cdts;\n" +
+	"uniform float u_cosAX;\n" +
+	"uniform float u_sinAX;\n" +
+	"uniform vec3 u_RvectorX;\n" +
+	"uniform float u_cosAY;\n" +
+	"uniform float u_sinAY;\n" +
+	"uniform vec3 u_RvectorY;\n" +
+	"uniform float u_focl;\n" +
+	"uniform vec3 u_vcam;\n" +
+	"uniform float u_fov;\n" +
+	"float findDistance(vec4 v1, vec3 v2) {\n" +
+	"	float dsxy = sqrt(pow(v2[0] - v1[0], 2.0) + pow(v2[1] - v1[1], 2.0));\n" +
+	"	float dsz = v2[2] - v1[2];\n" +
+	"	float dist = 0.0;\n" +
+	"	if (dsz != 0.0)\n" +
+	"		dist = sqrt(pow(dsxy, 2.0) + pow(dsz, 2.0));\n" +
+	"	else\n" +
+	"		dist = dsxy;\n" +
+	"	\n" +
+	"	return dist;\n" +
+	"}\n" +
+	"void main(void) {\n" +
+	"	float t = 1.0 - u_cosAX;\n" +
+	"	float x = u_RvectorX[0];\n" +
+	"	float y = u_RvectorX[1];\n" +
+	"	float z = u_RvectorX[2];\n" +
+	"	vec4 rm0 = vec4((t * pow(x, 2.0)) + u_cosAX, (t * x * y) - (u_sinAX * z), (t * x * z) + (u_sinAX * y), 0);\n" +
+	"	vec4 rm1 = vec4((t * x * y) + (u_sinAX * z), (t * pow(y, 2.0)) + u_cosAX, (t * y * z) - (u_sinAX * x), 0);\n" +
+	"	vec4 rm2 = vec4((t * x * z) - (u_sinAX * y), (t * y * z) + (u_sinAX * x), (t * pow(z, 2.0)) + u_cosAX, 0);\n" +
+	"	vec4 rm3 = vec4(0, 0, 0, 1);\n" +
+	"	mat4 rm = mat4(rm0, rm1, rm2, rm3);\n" +
+	"	vec4 vm1 = vec4(cdts[0], cdts[1], cdts[2], 1);\n" +
+	"	float vm2_0 = (rm[0][0] * vm1[0]) + (rm[0][1] * vm1[1]) + (rm[0][2] * vm1[2]) + (rm[0][3] * vm1[3]);\n" +
+	"	float vm2_1 = (rm[1][0] * vm1[0]) + (rm[1][1] * vm1[1]) + (rm[1][2] * vm1[2]) + (rm[1][3] * vm1[3]);\n" +
+	"	float vm2_2 = (rm[2][0] * vm1[0]) + (rm[2][1] * vm1[1]) + (rm[2][2] * vm1[2]) + (rm[2][3] * vm1[3]);\n" +
+	"	float vm2_3 = (rm[3][0] * vm1[0]) + (rm[3][1] * vm1[1]) + (rm[3][2] * vm1[2]) + (rm[3][3] * vm1[3]);\n" +
+	"	vec4 vm2 = vec4(vm2_0, vm2_1, vm2_2, vm2_3);\n" +
+	"	t = 1.0 - u_cosAY;\n" +
+	"	x = u_RvectorY[0];\n" +
+	"	y = u_RvectorY[1];\n" +
+	"	z = u_RvectorY[2];\n" +
+	"	rm0 = vec4((t * pow(x, 2.0)) + u_cosAY, (t * x * y) - (u_sinAY * z), (t * x * z) + (u_sinAY * y), 0);\n" +
+	"	rm1 = vec4((t * x * y) + (u_sinAY * z), (t * pow(y, 2.0)) + u_cosAY, (t * y * z) - (u_sinAY * x), 0);\n" +
+	"	rm2 = vec4((t * x * z) - (u_sinAY * y), (t * y * z) + (u_sinAY * x), (t * pow(z, 2.0)) + u_cosAY, 0);\n" +
+	"	rm3 = vec4(0, 0, 0, 1);\n" +
+	"	rm = mat4(rm0, rm1, rm2, rm3);\n" +
+	"	vm1 = vec4(vm2_0, vm2_1, vm2_2, vm2_3);\n" +
+	"	vm2_0 = (rm[0][0] * vm1[0]) + (rm[0][1] * vm1[1]) + (rm[0][2] * vm1[2]) + (rm[0][3] * vm1[3]);\n" +
+	"	vm2_1 = (rm[1][0] * vm1[0]) + (rm[1][1] * vm1[1]) + (rm[1][2] * vm1[2]) + (rm[1][3] * vm1[3]);\n" +
+	"	vm2_2 = (rm[2][0] * vm1[0]) + (rm[2][1] * vm1[1]) + (rm[2][2] * vm1[2]) + (rm[2][3] * vm1[3]);\n" +
+	"	vm2_3 = (rm[3][0] * vm1[0]) + (rm[3][1] * vm1[1]) + (rm[3][2] * vm1[2]) + (rm[3][3] * vm1[3]);\n" +
+	"	vm2 = vec4(vm2_0, vm2_1, vm2_2, vm2_3);\n" +
+	"	float dcam = findDistance(vm2, u_vcam);\n" +
+	"	float fovf = u_focl / (dcam * u_fov);\n" +
+	"	vm2[0] = vm2[0] * fovf;\n" +
+	"	vm2[1] = vm2[1] * fovf;\n" +
+	"	gl_Position = vec4(vm2[0], vm2[1], vm2[2], 1.0);\n" +
+	"}";
 }
 function findNormal(v0, v1, v2){
 	var vec1 = {x:v1.x - v0.x, y:v1.y - v0.y, z:v1.z - v0.z};
