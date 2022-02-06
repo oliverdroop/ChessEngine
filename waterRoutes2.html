@@ -9,10 +9,9 @@
 //
 var vfoc = {x:0, y:0, z:-1000};
 var vcam = {x:0, y:0, z:-2000};
-var fov = Math.PI * (1/4);
+var fov = Math.PI * (1/8);
 var camAngleX = 0;
-var camAngleY = -Math.PI / 4;
-var camAngleY = Math.PI / 2;
+var camAngleY = Math.PI / 4;
 var camAngleRef = {x:camAngleX, y:camAngleY};
 var sunVector = {x:-10, y:0, z:20};
 initiateCamera();
@@ -21,24 +20,32 @@ img.src = "http://178.62.85.228/SpannerNut1.jpg";
 var vertexArray = [];
 var polygonArray = [];
 var arrayWidth = 100;
-var module = 5;
-var vtop = {x:500, y:0, z:(module * 72), screenX:0, screenY:0};
-var vbot = {x:500, y:0, z:-(module * 72), screenX:0, screenY:0};
+var module = 2.5;
+var vtop = {x:0, y:0, z:(module * 72), screenX:0, screenY:0};
+var vbot = {x:0, y:0, z:-(module * 72), screenX:0, screenY:0};
+// Create the vertices
 for(var i1 = 0; i1 < arrayWidth; i1++) {
     for(var i2 = 0; i2 < arrayWidth; i2++) {
 		var neighbours = [];
         var vertex = {
-            x:(i1 * (module * 6)) + ((i2 % 2) * (module * 3)) - (module * 0),
-            y:(i2 * (module * 5)) - (module * arrayWidth * 2),
-            z:(module * 36),
+            x:((i1 - (arrayWidth / 2)) * (module * 6)) + ((i2 % 2) * (module * 3)),
+            y:((i2 - (arrayWidth / 2)) * (module * 5)),
+            z:-(module * 36),
+			colour: {
+				r:Math.random(1.0),
+				g:Math.random(1.0),
+				b:Math.random(1.0),
+				a:1.0
+			},
             screenX:0,
             screenY:0,
 			neighbours:neighbours
         }
-        vertex.z = Math.round(-findDistance(vertex, vtop)) + (module * 72);
+        vertex.z = Math.round(-findDistance(vertex, vtop)) + (module * 200);
         vertexArray.push(vertex);
     }
 }
+// Link up the vertices
 for(var i1 = 1; i1 < arrayWidth; i1++) {
     for(var i2 = 1; i2 < arrayWidth; i2++) {
         if (i2 % 2 == 0) {
@@ -102,13 +109,13 @@ for(var vertex of vertexArray) {
 	calculateFlowProportions(vertex, false);
 }
 var c = document.getElementById("myCanvas");
-c.width = window.innerWidth;
+c.width = window.innerHeight;
 c.height = window.innerHeight;
 var gl = c.getContext("experimental-webgl");
 var shaderProgram;
 setUpWebGL();
 //var ctx = c.getContext("2d");
-window.setInterval(myFunc, 100);
+window.setInterval(myFunc, 10);
 
 var mouseDownPos = {x:0, y:0};
 var mousePos = {x:0, y:0};
@@ -123,14 +130,14 @@ function myFunc(){
 		var Rvect = {x:(vtop.x - vbot.x) * (1 / d1), y:(vtop.y - vbot.y) * (1 / d1), z:(vtop.z - vbot.z) * (1 / d1)};
 	}
 	//ctx.clearRect(0,0,c.width, c.height);
-	for(var indx = 0; indx < (arrayWidth * arrayWidth); indx++) {
-		var v = vertexArray[indx];
-		if (v.screenX == 0 && v.screenY == 0) {
-			calculateScreenpoint(v);
-		}
-	}
-	calculateScreenpoint(vtop);
-	calculateScreenpoint(vbot);
+	// for(var indx = 0; indx < (arrayWidth * arrayWidth); indx++) {
+	// 	var v = vertexArray[indx];
+	// 	if (v.screenX == 0 && v.screenY == 0) {
+	// 		calculateScreenpoint(v);
+	// 	}
+	// }
+	// calculateScreenpoint(vtop);
+	// calculateScreenpoint(vbot);
 	//
 	//polygonArray = sortPolygonsByDistance(polygonArray);
 	// var p = new Parallel(polygonArray);
@@ -139,7 +146,7 @@ function myFunc(){
     //     drawPolygon(poly);
 	// }
 	drawWebGLPolygons();
-	var closestVertex = getClosestVertex(mousePos.x, mousePos.y);
+	//var closestVertex = getClosestVertex(mousePos.x, mousePos.y);
 	//highlightFlow(closestVertex);
 	
 	// ctx.strokeStyle = "rgb(255,255,0)";
@@ -243,10 +250,7 @@ function setUpWebGL() {
 	gl.compileShader(vertShader);
 
 	//fragment shader source code
-	var fragCode =
-	'void main(void) {' +
-		' gl_FragColor = vec4(1.0, 0.5, 1.0, 1.0);' +
-	'}';
+	var fragCode = getFragmentShaderCode();
 	
 	// Create fragment shader object
 	var fragShader = gl.createShader(gl.FRAGMENT_SHADER);
@@ -281,30 +285,43 @@ function drawWebGLPolygons() {
 	/*======== Defining and storing the geometry ===========*/
 
 	var vertices = [];
+	var colours = [];
 	var indices = [];
 	var index = 0;
 	var cWidth = c.width;
+	var scale = 0.001;
 	for(var poly of polygonArray) {
-		pushToVertices(poly.v0, vertices);
-		pushToVertices(poly.v1, vertices);
-		pushToVertices(poly.v1, vertices);
-		pushToVertices(poly.v2, vertices);
-		pushToVertices(poly.v2, vertices);
-		pushToVertices(poly.v0, vertices);
-		indices.push(index, index + 1);
-		index += 2;
+		pushToVertices(poly.v0, vertices, scale);
+		pushToColours(poly.v0, vertices);
+		pushToVertices(poly.v1, vertices, scale);
+		pushToColours(poly.v1, vertices);
+		// pushToVertices(poly.v1, vertices, scale);
+		// pushToColours(poly.v1, vertices);
+		pushToVertices(poly.v2, vertices, scale);
+		pushToColours(poly.v2, vertices);
+		// pushToVertices(poly.v2, vertices, scale);
+		// pushToColours(poly.v2, vertices);
+		// pushToVertices(poly.v0, vertices, scale);
+		// pushToColours(poly.v0, vertices);
+		
 		// var iMax = 2;
 		// for(var i = 0; i < iMax; i++) {
 		// 	indices.push(index + i);
 		// }
 		// index += iMax;
+		indices.push(index, index + 1);
+		indices.push(index + 1, index + 2);
+		indices.push(index + 2, index);
+		index += 3;
 	}
 	
 	// Create an empty buffer object to store vertex buffer
 	var vertex_buffer = gl.createBuffer();
+	//var colour_buffer = gl.createBuffer();
 
 	// Bind appropriate array buffer to it
 	gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+	//gl.bindBuffer(gl.ARRAY_BUFFER, colour_buffer);
 	
 	// Pass the vertex data to the buffer
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
@@ -338,19 +355,25 @@ function drawWebGLPolygons() {
 	
 	// Get the attribute location
 	var coord = gl.getAttribLocation(shaderProgram, "cdts");
+	var colour = gl.getAttribLocation(shaderProgram, "clr");
 
 	// Point an attribute to the currently bound VBO
-	var numComponents = 3;  // (x, y, z)
+	var numDimensionComponents = 3;  // (x, y, z)
+	var numColourComponents = 4;  // (r, g, b, a)
 	var type = gl.FLOAT;    // 32bit floating point values
 	var normalize = false;  // leave the values as they are
-	var offset = 0;         // start at the beginning of the buffer
-	var stride = 0;         // how many bytes to move to the next vertex
+	var positionOffset = 0;         // start at the beginning of the buffer
+	var colourOffset = 12;         // start at the beginning of the buffer
+	var positionStride = 28;         // how many bytes to move to the next vertex
+	var colourStride = 28;         // how many bytes to move to the next vertex
 							// 0 = use the correct stride for type and numComponents
 	  
-	gl.vertexAttribPointer(coord, numComponents, type, normalize, stride, offset);
+	gl.vertexAttribPointer(coord, numDimensionComponents, type, normalize, positionStride, positionOffset);
+	gl.vertexAttribPointer(colour, numColourComponents, type, normalize, colourStride, colourOffset);
 	
 	// Enable the attribute
 	gl.enableVertexAttribArray(coord);
+	gl.enableVertexAttribArray(colour);
 	
 	// Get the uniform values
 	var uCosAX = gl.getUniformLocation(shaderProgram, "u_cosAX");
@@ -370,8 +393,8 @@ function drawWebGLPolygons() {
 	gl.uniform1f(uCosAY, cosAY);
 	gl.uniform1f(uSinAY, sinAY);
 	gl.uniform3f(uRvectorY, rvcy.x, rvcy.y, rvcy.z);
-	gl.uniform1f(uFocl, findDistance(vcam, vfoc) * 0.001);
-	gl.uniform3f(uVcam, vcam.x * 0.001, vcam.y * 0.001, vcam.z * 0.001);
+	gl.uniform1f(uFocl, findDistance(vcam, vfoc) * scale);
+	gl.uniform3f(uVcam, vcam.x * scale, vcam.y * scale, vcam.z * scale);
 	gl.uniform1f(uFov, fov);
 
 	/*=========Drawing the triangle===========*/
@@ -390,10 +413,15 @@ function drawWebGLPolygons() {
 
 	// Draw the triangle
 	gl.drawElements(gl.LINES, indices.length, gl.UNSIGNED_SHORT,0);
+	gl.deleteBuffer(vertex_buffer);
+	//gl.deleteBuffer(colour_buffer);
+	gl.deleteBuffer(Index_Buffer);
 }
-function pushToVertices(vertex, vertices) {
-	//vertices.push((vertex.screenX * 0.001) - 0.5, -(vertex.screenY * 0.001), 0.0);
-	vertices.push((vertex.x * 0.001) - 0.5, (vertex.y * 0.001), vertex.z * 0.001);
+function pushToVertices(vertex, vertices, scale) {
+	vertices.push(vertex.x * scale, vertex.y * scale, vertex.z * scale);
+}
+function pushToColours(vertex, vertices) {
+	vertices.push(vertex.colour.r, vertex.colour.g, vertex.colour.b, vertex.colour.a);
 }
 function calculateGradientsToNeighbours(vertex) {
 	//Rotate vertex back to the original frame of reference where z is the vertical axis
@@ -584,8 +612,8 @@ function mouseMove(event){
 		var dify = mousePos.y - mouseDownPos.y;
 		var ratx = 0;
 		var raty = 0;
-		ratx = -difx / window.innerWidth;
-		raty = dify / window.innerHeight;
+		ratx = difx / window.innerWidth;
+		raty = -dify / window.innerHeight;
 		var sens = 20;
 		repositionCamera((fov * ratx) * sens, (fov * raty) * sens);
 		mouseDownPos.x = posx;
@@ -657,6 +685,7 @@ function calculateScreenpoint(v){
 }
 function getVertexShaderCode() {
 	return "attribute vec3 cdts;\n" +
+	"varying lowp vec4 clr;\n" +
 	"uniform float u_cosAX;\n" +
 	"uniform float u_sinAX;\n" +
 	"uniform vec3 u_RvectorX;\n" +
@@ -677,42 +706,39 @@ function getVertexShaderCode() {
 	"	\n" +
 	"	return dist;\n" +
 	"}\n" +
-	"void main(void) {\n" +
-	"	float t = 1.0 - u_cosAX;\n" +
-	"	float x = u_RvectorX[0];\n" +
-	"	float y = u_RvectorX[1];\n" +
-	"	float z = u_RvectorX[2];\n" +
-	"	vec4 rm0 = vec4((t * pow(x, 2.0)) + u_cosAX, (t * x * y) - (u_sinAX * z), (t * x * z) + (u_sinAX * y), 0);\n" +
-	"	vec4 rm1 = vec4((t * x * y) + (u_sinAX * z), (t * pow(y, 2.0)) + u_cosAX, (t * y * z) - (u_sinAX * x), 0);\n" +
-	"	vec4 rm2 = vec4((t * x * z) - (u_sinAX * y), (t * y * z) + (u_sinAX * x), (t * pow(z, 2.0)) + u_cosAX, 0);\n" +
+	"vec4 getRotatedVertex(vec4 v, vec3 rVect, float cosA, float sinA) {\n" +
+	"	float t = 1.0 - cosA;\n" +
+	"	float x = rVect[0];\n" +
+	"	float y = rVect[1];\n" +
+	"	float z = rVect[2];\n" +
+	"	vec4 rm0 = vec4((t * pow(x, 2.0)) + cosA, (t * x * y) - (sinA * z), (t * x * z) + (sinA * y), 0);\n" +
+	"	vec4 rm1 = vec4((t * x * y) + (sinA * z), (t * pow(y, 2.0)) + cosA, (t * y * z) - (sinA * x), 0);\n" +
+	"	vec4 rm2 = vec4((t * x * z) - (sinA * y), (t * y * z) + (sinA * x), (t * pow(z, 2.0)) + cosA, 0);\n" +
 	"	vec4 rm3 = vec4(0, 0, 0, 1);\n" +
 	"	mat4 rm = mat4(rm0, rm1, rm2, rm3);\n" +
-	"	vec4 vm1 = vec4(cdts[0], cdts[1], cdts[2], 1);\n" +
+	"	vec4 vm1 = vec4(v[0], v[1], v[2], v[3]);\n" +
 	"	float vm2_0 = (rm[0][0] * vm1[0]) + (rm[0][1] * vm1[1]) + (rm[0][2] * vm1[2]) + (rm[0][3] * vm1[3]);\n" +
 	"	float vm2_1 = (rm[1][0] * vm1[0]) + (rm[1][1] * vm1[1]) + (rm[1][2] * vm1[2]) + (rm[1][3] * vm1[3]);\n" +
 	"	float vm2_2 = (rm[2][0] * vm1[0]) + (rm[2][1] * vm1[1]) + (rm[2][2] * vm1[2]) + (rm[2][3] * vm1[3]);\n" +
 	"	float vm2_3 = (rm[3][0] * vm1[0]) + (rm[3][1] * vm1[1]) + (rm[3][2] * vm1[2]) + (rm[3][3] * vm1[3]);\n" +
 	"	vec4 vm2 = vec4(vm2_0, vm2_1, vm2_2, vm2_3);\n" +
-	"	t = 1.0 - u_cosAY;\n" +
-	"	x = u_RvectorY[0];\n" +
-	"	y = u_RvectorY[1];\n" +
-	"	z = u_RvectorY[2];\n" +
-	"	rm0 = vec4((t * pow(x, 2.0)) + u_cosAY, (t * x * y) - (u_sinAY * z), (t * x * z) + (u_sinAY * y), 0);\n" +
-	"	rm1 = vec4((t * x * y) + (u_sinAY * z), (t * pow(y, 2.0)) + u_cosAY, (t * y * z) - (u_sinAY * x), 0);\n" +
-	"	rm2 = vec4((t * x * z) - (u_sinAY * y), (t * y * z) + (u_sinAY * x), (t * pow(z, 2.0)) + u_cosAY, 0);\n" +
-	"	rm3 = vec4(0, 0, 0, 1);\n" +
-	"	rm = mat4(rm0, rm1, rm2, rm3);\n" +
-	"	vm1 = vec4(vm2_0, vm2_1, vm2_2, vm2_3);\n" +
-	"	vm2_0 = (rm[0][0] * vm1[0]) + (rm[0][1] * vm1[1]) + (rm[0][2] * vm1[2]) + (rm[0][3] * vm1[3]);\n" +
-	"	vm2_1 = (rm[1][0] * vm1[0]) + (rm[1][1] * vm1[1]) + (rm[1][2] * vm1[2]) + (rm[1][3] * vm1[3]);\n" +
-	"	vm2_2 = (rm[2][0] * vm1[0]) + (rm[2][1] * vm1[1]) + (rm[2][2] * vm1[2]) + (rm[2][3] * vm1[3]);\n" +
-	"	vm2_3 = (rm[3][0] * vm1[0]) + (rm[3][1] * vm1[1]) + (rm[3][2] * vm1[2]) + (rm[3][3] * vm1[3]);\n" +
-	"	vm2 = vec4(vm2_0, vm2_1, vm2_2, vm2_3);\n" +
+	"	return vm2;\n" +
+	"}\n" +
+	"void main(void) {\n" +
+	"	vec4 vm1 = vec4(cdts[0], cdts[1], cdts[2], 1.0);\n" +
+	"	vec4 vm2 = getRotatedVertex(vm1, u_RvectorX, u_cosAX, u_sinAX);\n" +
+	"	vm2 = getRotatedVertex(vm2, u_RvectorY, u_cosAY, u_sinAY);\n" +
 	"	float dcam = findDistance(vm2, u_vcam);\n" +
 	"	float fovf = u_focl / (dcam * u_fov);\n" +
 	"	vm2[0] = vm2[0] * fovf;\n" +
 	"	vm2[1] = vm2[1] * fovf;\n" +
 	"	gl_Position = vec4(vm2[0], vm2[1], vm2[2], 1.0);\n" +
+	"}";
+}
+function getFragmentShaderCode() {
+	return "varying lowp vec4 clr;\n" +
+	"void main(void) {\n" +
+	"	gl_FragColor = clr;\n" +
 	"}";
 }
 function findNormal(v0, v1, v2){
