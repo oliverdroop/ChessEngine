@@ -109,7 +109,7 @@ for(var vertex of vertexArray) {
 	calculateFlowProportions(vertex, false);
 }
 var c = document.getElementById("myCanvas");
-c.width = window.innerHeight;
+c.width = window.innerWidth;
 c.height = window.innerHeight;
 var gl = c.getContext("experimental-webgl");
 var shaderProgram;
@@ -304,15 +304,15 @@ function drawWebGLPolygons() {
 		// pushToVertices(poly.v0, vertices, scale);
 		// pushToColours(poly.v0, vertices);
 		
-		// var iMax = 2;
-		// for(var i = 0; i < iMax; i++) {
-		// 	indices.push(index + i);
-		// }
-		// index += iMax;
-		indices.push(index, index + 1);
-		indices.push(index + 1, index + 2);
-		indices.push(index + 2, index);
-		index += 3;
+		var iMax = 3;
+		for(var i = 0; i < iMax; i++) {
+			indices.push(index + i);
+		}
+		index += iMax;
+		// indices.push(index, index + 1);
+		// indices.push(index + 1, index + 2);
+		// indices.push(index + 2, index);
+		// index += 3;
 	}
 	
 	// Create an empty buffer object to store vertex buffer
@@ -409,10 +409,10 @@ function drawWebGLPolygons() {
 	gl.clear(gl.COLOR_BUFFER_BIT);
 
 	// Set the view port
-	gl.viewport(0,0,c.width,c.height);
+	gl.viewport(0, -c.width / 4, c.width, c.width);
 
 	// Draw the triangle
-	gl.drawElements(gl.LINES, indices.length, gl.UNSIGNED_SHORT,0);
+	gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT,0);
 	gl.deleteBuffer(vertex_buffer);
 	//gl.deleteBuffer(colour_buffer);
 	gl.deleteBuffer(Index_Buffer);
@@ -685,7 +685,8 @@ function calculateScreenpoint(v){
 }
 function getVertexShaderCode() {
 	return "attribute vec3 cdts;\n" +
-	"varying lowp vec4 clr;\n" +
+	"attribute vec4 clr;\n" +
+	"varying lowp vec4 vClr;\n" +
 	"uniform float u_cosAX;\n" +
 	"uniform float u_sinAX;\n" +
 	"uniform vec3 u_RvectorX;\n" +
@@ -733,12 +734,13 @@ function getVertexShaderCode() {
 	"	vm2[0] = vm2[0] * fovf;\n" +
 	"	vm2[1] = vm2[1] * fovf;\n" +
 	"	gl_Position = vec4(vm2[0], vm2[1], vm2[2], 1.0);\n" +
+	"	vClr = clr;\n" +
 	"}";
 }
 function getFragmentShaderCode() {
-	return "varying lowp vec4 clr;\n" +
+	return "varying lowp vec4 vClr;\n" +
 	"void main(void) {\n" +
-	"	gl_FragColor = clr;\n" +
+	"	gl_FragColor = vClr;\n" +
 	"}";
 }
 function findNormal(v0, v1, v2){
