@@ -3,20 +3,24 @@
 </head>
 <body>
 <div id="firstdiv">Hello</div>
-<canvas id="myCanvas" style="position:absolute; left:0px; top:0px"></canvas>
+<canvas id="webGlCanvas" style="position:absolute; left:0px; top:0px"></canvas>
+<canvas id="overlayCanvas" style="position:absolute; left:0px; top:0px"></canvas>
 <!-- <script src='https://unpkg.com/paralleljs@1.0/lib/parallel.js'></script> -->
 <script>
 //
 var vfoc = {x:0, y:0, z:-1000};
-var vcam = {x:0, y:0, z:-2000};
+var vcam = {x:0, y:-1000, z:-2000};
 var fov = Math.PI * (1/8);
 var camAngleX = 0;
 var camAngleY = Math.PI / 4;
 var camAngleRef = {x:camAngleX, y:camAngleY};
-var sunVector = {x:1, y:1, z:-2};
+var sunVector = {x:-1, y:2, z:-0.5};
 initiateCamera();
 var img = new Image();
 img.src = "http://178.62.85.228/SpannerNut1.jpg";
+var contours_1 = new Image();
+contours_1.src = "http://178.62.85.228/contours_1.png";
+contours_1.crossOrigin = "anonymous";
 var vertexArray = [];
 var polygonArray = [];
 var arrayWidth = 100;
@@ -27,19 +31,23 @@ var vbot = {x:0, y:0, z:-(module * 72), screenX:0, screenY:0};
 for(var i1 = 0; i1 < arrayWidth; i1++) {
     for(var i2 = 0; i2 < arrayWidth; i2++) {
 		var neighbours = [];
+		var stagger = i2 % 2;
         var vertex = {
-            x:((i1 - (arrayWidth / 2)) * (module * 6)) + ((i2 % 2) * (module * 3)),
+            x:((i1 - (arrayWidth / 2)) * (module * 6)) + (stagger * module * 3),
             y:((i2 - (arrayWidth / 2)) * (module * 5)),
             z:-(module * 36),
 			colour: {
-				r:i1 / arrayWidth,
-				g:i2 / arrayWidth,
+				// r:i1 / arrayWidth,
+				// g:i2 / arrayWidth,
+				r:0.5,
+				g:0.5,
 				b:0.0,
 				a:1.0
 			},
             screenX:0,
             screenY:0,
-			neighbours:neighbours
+			neighbours:neighbours,
+			stagger:stagger
         }
         vertex.z = Math.round(-findDistance(vertex, vtop)) + (module * 200);
         vertexArray.push(vertex);
@@ -97,26 +105,36 @@ var sinAY = Math.sin(camAngleY);
 var rvcx = {x:0, y:0, z:1};
 var rvcy = {x:1, y:0, z:0};
 var scale = 0.001;
+var webGlCanvas = document.getElementById("webGlCanvas");
+webGlCanvas.style.cursor = "none";
+webGlCanvas.width = window.innerWidth;
+webGlCanvas.height = window.innerHeight;
+var gl = webGlCanvas.getContext("experimental-webgl");
+var shaderProgram;
+setUpWebGL();
+var overlayCanvas = document.getElementById("overlayCanvas");
+overlayCanvas.style.cursor = "none";
+overlayCanvas.width = window.innerWidth;
+overlayCanvas.height = window.innerHeight;
+var ctx = overlayCanvas.getContext("2d");
+//Initialise buttons
+var buttons = [];
+buttons.push(createButton(0, 0, 100, 100, function(){applyCountours(contours_1)}, "Apply Contours"));
+//Calculate screenpoints for vertices
 for(var indx = 0; indx < (arrayWidth * arrayWidth); indx++) {
 	var vertexArray = vertexArray;
 	var v = vertexArray[indx];
-	//rotateVertex(v, cosAY, sinAY, Rvect);
 	calculateScreenpoint(v);
 }
-// rotateVertex(vtop, cosAY, sinAY, Rvect);
-// rotateVertex(vbot, cosAY, sinAY, Rvect);
+//Calculate flow for vertices
 for(var vertex of vertexArray) {
 	calculateGradientsToNeighbours(vertex);
 	calculateFlowProportions(vertex, false);
 }
-var c = document.getElementById("myCanvas");
-c.width = window.innerWidth;
-c.height = window.innerHeight;
-var gl = c.getContext("experimental-webgl");
-var shaderProgram;
-setUpWebGL();
-//var ctx = c.getContext("2d");
-window.setInterval(myFunc, 10);
+
+//Calculate the lowest point(s) of the surface
+var lowpointVertices = [];
+calculateLowpoints();
 
 var mouseDownPos = {x:0, y:0};
 var mousePos = {x:0, y:0};
@@ -125,35 +143,44 @@ document.onmouseup = mouseUp;
 document.onmousemove = mouseMove;
 document.onwheel = mouseWheel;
 
+window.setInterval(myFunc, 10);
+
+function calculateLowpoints() {
+	//Calculate the lowest point(s) of the surface
+	lowpointVertices = [];
+	for(var vertex of vertexArray) {
+		if (getLowerNeighbours(vertex).length == 0) {
+			//Add vertex to list of ultimate low points
+			lowpointVertices.push(vertex);
+		}
+	}
+}
+function applyCountours(contourImage) {
+	var offscreenCanvas = document.createElement('canvas');
+	offscreenCanvas.width = contourImage.width;
+	offscreenCanvas.height = contourImage.height;
+	var offscreenCtx = offscreenCanvas.getContext('2d');
+	offscreenCtx.drawImage(contourImage, 0, 0);
+	flattenSurface();
+	for(var x = 0; x < arrayWidth; x++) {
+		for(var y = 0; y < arrayWidth; y++) {
+			var imgData = offscreenCtx.getImageData(x, y, 1, 1).data;
+			var vertex = vertexArray[(x * arrayWidth) + y];
+			var increment = 10;
+			vertex.z -= imgData[0];
+		}
+	}
+	calculateLowpoints();
+	for(var vertex of vertexArray) {
+		calculateGradientsToNeighbours(vertex);
+		calculateFlowProportions(vertex);
+	}
+}
 function myFunc(){
-	// if (mouseDownPos.x == 0 && mouseDownPos.y == 0){
-	// 	var d1 = findDistance(vtop, vbot);
-	// 	var Rvect = {x:(vtop.x - vbot.x) * (1 / d1), y:(vtop.y - vbot.y) * (1 / d1), z:(vtop.z - vbot.z) * (1 / d1)};
-	// }
-	//ctx.clearRect(0,0,c.width, c.height);
-	// for(var indx = 0; indx < (arrayWidth * arrayWidth); indx++) {
-	// 	var v = vertexArray[indx];
-	// 	if (v.screenX == 0 && v.screenY == 0) {
-	// 		calculateScreenpoint(v);
-	// 	}
-	// }
-	// calculateScreenpoint(vtop);
-	// calculateScreenpoint(vbot);
-	//
-	//polygonArray = sortPolygonsByDistance(polygonArray);
-	// var p = new Parallel(polygonArray);
-	// p.spawn(drawPolygon);
-    // for(var poly of polygonArray) {
-    //     drawPolygon(poly);
-	// }
 	var closestVertex = getClosestVertex(mousePos.x, mousePos.y);
 	highlightFlow(closestVertex);
 	drawWebGLPolygons();
-	
-	// ctx.strokeStyle = "rgb(255,255,0)";
-	// var v1 = {x:0, y:0, z:0, screenX:0, screenY:0};
-	// var v2 = {x:-400, y:-100, z:-1200, screenX:0, screenY:0};
-	// ctx.strokeStyle = "rgb(0,0,0)";
+	drawOverlay();
 }
 function initiateCamera(){
 	var vx0 = {x:0, y:0, z:0};
@@ -166,12 +193,6 @@ function initiateCamera(){
 function repositionCamera(rotx, roty){
 	var Rvcy = {x:sunVector.x + 1, y:sunVector.y, z:sunVector.z};
 	var Rvcx = {x:sunVector.x, y:sunVector.y + 1, z:sunVector.z};
-	// var cosDiffX = Math.cos(rotx);
-	// var sinDiffX = Math.sin(rotx);
-	// var cosDiffY = Math.cos(-roty);
-	// var sinDiffY = Math.sin(-roty);
-	// sunVector = createRotatedVertex(sunVector, cosDiffX, sinDiffX, Rvcx);
-	// sunVector = createRotatedVertex(sunVector, cosDiffY, sinDiffY, Rvcy);
 
 	camAngleRef.x += rotx;
 	camAngleRef.y += roty;
@@ -179,64 +200,11 @@ function repositionCamera(rotx, roty){
 	sinAX = Math.sin(camAngleRef.x);
 	cosAY = Math.cos(camAngleRef.y);
 	sinAY = Math.sin(camAngleRef.y);
-	// for(var indx = 0; indx < vertexArray.length; indx++){
-	// 	var v = vertexArray[indx];
-	// 	v.screenX = 0;
-	// 	v.screenY = 0;
-	// 	rotateVertex(v, cosAX, sinAX, Rvcx);
-	// 	rotateVertex(v, cosAY, sinAY, Rvcy);
-	// }
-	// rotateVertex(vtop, cosAX, sinAX, Rvcx);
-	// rotateVertex(vtop, cosAY, sinAY, Rvcy);
-	// rotateVertex(vbot, cosAX, sinAX, Rvcx);
-	// rotateVertex(vbot, cosAY, sinAY, Rvcy);
 }
 function getVerticalVector() {
 	var vDistRat = 1 / findDistance(vtop, vbot);
 	var vect = {x:(vtop.x - vbot.x) * vDistRat, y:(vtop.y - vbot.y) * vDistRat, z:(vtop.z - vbot.z) * vDistRat};
 	return vect;
-}
-function drawLine(v1, v2){
-	// ctx.lineWidth = "0.25";
-	// ctx.beginPath();
-	// ctx.moveTo(v1.screenX, v1.screenY);
-	// ctx.lineTo(v2.screenX, v2.screenY);
-	// ctx.stroke();
-}
-function drawPolygon(poly){
-	//Get vertices
-	var v0 = poly.v0;
-	var v1 = poly.v1;
-	var v2 = poly.v2;
-	var vecn = findNormal(v0,v1,v2);
-	//Shade polygon
-	var vecs = sunVector;
-	var vcmp = compareVectors(vecn, vecs);
-	var vx0 = {x:0, y:0, z:0};
-	var vx1 = {x:vx0.x + vecn.x + vecs.x, y:vx0.y + vecn.y + vecs.y, z:vx0.z + vecn.z + vecs.z};
-	var sim = findDistance(vx0, vx1);
-	var byt = 255 - Math.round(sim * 255 * 0.5);
-	if (byt > 255){
-		byt = 255;
-	}
-	if (byt < 0){
-		byt = 0;
-	}
-	//Remove polygons with a vertex behind the focus
-	if (v0.z > vfoc.z && v1.z > vfoc.z && v2.z > vfoc.z){
-		//Draw polygon
-		// ctx.lineWidth = "0.5";
-		// ctx.fillStyle = "rgb(" + byt + "," + byt + "," + byt + ")";
-		// ctx.strokeStyle = "rgb(" + byt + "," + byt + "," + byt + ")";
-		// ctx.beginPath();
-		// ctx.moveTo(v0.screenX, v0.screenY);
-		// ctx.lineTo(v1.screenX, v1.screenY);
-		// ctx.lineTo(v2.screenX, v2.screenY);
-		// ctx.lineTo(v0.screenX, v0.screenY);
-		// ctx.closePath();
-		// ctx.stroke();
-		// ctx.fill();
-	}
 }
 function setUpWebGL() {
 	/*================ Shaders ====================*/
@@ -282,9 +250,6 @@ function setUpWebGL() {
 	gl.useProgram(shaderProgram);
 }
 function drawWebGLPolygons() {
-	/*============== Creating a canvas ====================*/
-	// var canvas = document.getElementById('myCanvas');
-	// gl = canvas.getContext('experimental-webgl');
 
 	/*======== Defining and storing the geometry ===========*/
 
@@ -292,8 +257,11 @@ function drawWebGLPolygons() {
 	var colours = [];
 	var indices = [];
 	var index = 0;
-	var cWidth = c.width;
+	var cWidth = webGlCanvas.width;
 	for(var poly of polygonArray) {
+		// pushToVertices(poly.v0, vertices, scale);
+		// pushToVertices(poly.v1, vertices, scale);
+		// pushToVertices(poly.v2, vertices, scale);
 		pushToVertices(poly.v0, poly.v1, poly.v2, vertices, scale);
 		pushToVertices(poly.v1, poly.v2, poly.v0, vertices, scale);
 		pushToVertices(poly.v2, poly.v0, poly.v1, vertices, scale);
@@ -303,19 +271,13 @@ function drawWebGLPolygons() {
 			indices.push(index + i);
 		}
 		index += iMax;
-		// indices.push(index, index + 1);
-		// indices.push(index + 1, index + 2);
-		// indices.push(index + 2, index);
-		// index += 3;
 	}
 	
 	// Create an empty buffer object to store vertex buffer
 	var vertex_buffer = gl.createBuffer();
-	//var colour_buffer = gl.createBuffer();
 
 	// Bind appropriate array buffer to it
 	gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
-	//gl.bindBuffer(gl.ARRAY_BUFFER, colour_buffer);
 	
 	// Pass the vertex data to the buffer
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
@@ -351,6 +313,7 @@ function drawWebGLPolygons() {
 	var coord = gl.getAttribLocation(shaderProgram, "cdts");
 	var sibV1 = gl.getAttribLocation(shaderProgram, "sibV1");
 	var sibV2 = gl.getAttribLocation(shaderProgram, "sibV2");
+	var sibV3 = gl.getAttribLocation(shaderProgram, "sibV3");
 	var colour = gl.getAttribLocation(shaderProgram, "clr");
 
 	// Point an attribute to the currently bound VBO
@@ -358,22 +321,25 @@ function drawWebGLPolygons() {
 	var numColourComponents = 4;  // (r, g, b, a)
 	var type = gl.FLOAT;    // 32bit floating point values
 	var normalize = false;  // leave the values as they are
-	var positionOffset = 0;         // start at the beginning of the buffer
-	var sibV1Offset = 12;         
-	var sibV2Offset = 24;         
-	var colourOffset = 36;         
-	var stride = 52;        // how many bytes to move to the next vertex
+	var positionOffset = 0; // start at the beginning of the buffer
+	var sibV1Offset = 12;
+	var sibV2Offset = 24;
+	var sibV3Offset = 36;
+	var colourOffset = 48;         
+	var stride = 64;        // how many bytes to move to the next vertex
 							// 0 = use the correct stride for type and numComponents
 	
 	gl.vertexAttribPointer(coord, numDimensionComponents, type, normalize, stride, positionOffset);
 	gl.vertexAttribPointer(sibV1, numDimensionComponents, type, normalize, stride, sibV1Offset);
 	gl.vertexAttribPointer(sibV2, numDimensionComponents, type, normalize, stride, sibV2Offset);
+	gl.vertexAttribPointer(sibV3, numDimensionComponents, type, normalize, stride, sibV3Offset);
 	gl.vertexAttribPointer(colour, numColourComponents, type, normalize, stride, colourOffset);
 	
 	// Enable the attribute
 	gl.enableVertexAttribArray(coord);
 	gl.enableVertexAttribArray(sibV1);
 	gl.enableVertexAttribArray(sibV2);
+	gl.enableVertexAttribArray(sibV3);
 	gl.enableVertexAttribArray(colour);
 	
 	// Get the uniform values
@@ -412,7 +378,7 @@ function drawWebGLPolygons() {
 	gl.clear(gl.COLOR_BUFFER_BIT);
 
 	// Set the view port
-	gl.viewport(0, -c.width / 4, c.width, c.width);
+	gl.viewport(0, -webGlCanvas.width / 4, webGlCanvas.width, webGlCanvas.width);
 
 	// Draw the triangle
 	gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT,0);
@@ -420,32 +386,57 @@ function drawWebGLPolygons() {
 	//gl.deleteBuffer(colour_buffer);
 	gl.deleteBuffer(Index_Buffer);
 }
-function pushToVertices(vertex, sibling1, sibling2, vertices, scale) {
+function pushToVertices(v0, v1, v2, vertices, scale) {
+	vertices.push(v0.x * scale, v0.y * scale, v0.z * scale);
+	vertices.push(v1.x * scale, v1.y * scale, v1.z * scale);
+	vertices.push(v2.x * scale, v2.y * scale, v2.z * scale);
+	vertices.push(v0.x * scale, v0.y * scale, v0.z * scale);
+	vertices.push(v0.colour.r, v0.colour.g, v0.colour.b, v0.colour.a);
+}
+function pushToVertices2(vertex, vertices, scale) {
 	vertices.push(vertex.x * scale, vertex.y * scale, vertex.z * scale);
-	vertices.push(sibling1.x * scale, sibling1.y * scale, sibling1.z * scale);
-	vertices.push(sibling2.x * scale, sibling2.y * scale, sibling2.z * scale);
+	var neighbour0 = vertex;
+	var neighbour2 = vertex;
+	var neighbour4 = vertex;
+	var stagger = vertex.stagger;
+	//var stagger = 0;
+	if (vertex.neighbours[1 - stagger] != null) {
+		neighbour0 = vertex.neighbours[1 - stagger].vertex;
+	}
+	if (vertex.neighbours[3 - stagger] != null) {
+		neighbour2 = vertex.neighbours[3 - stagger].vertex;
+	}
+	if (vertex.neighbours[5 - stagger] != null) {
+		neighbour4 = vertex.neighbours[5 - stagger].vertex;
+	}
+	vertices.push(neighbour0.x * scale, neighbour0.y * scale, neighbour0.z * scale);
+	vertices.push(neighbour2.x * scale, neighbour2.y * scale, neighbour2.z * scale);
+	vertices.push(neighbour4.x * scale, neighbour4.y * scale, neighbour4.z * scale);
 	vertices.push(vertex.colour.r, vertex.colour.g, vertex.colour.b, vertex.colour.a);
 }
+function drawOverlay() {
+	ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+	drawButtons();
+}
+function drawButtons() {
+	ctx.strokeStyle = "#BBBBBB";
+	ctx.fillStyle = "#BBBBBB";
+	ctx.lineWidth = 2;
+	ctx.beginPath();
+	for(var button of buttons) {
+		ctx.rect(button.x, button.y, button.width, button.height);
+		ctx.fillText(button.text, button.x + 2, button.y + (button.height / 2));
+		ctx.stroke();
+		ctx.drawImage(contours_1, button.x, button.y);
+	}
+}
 function calculateGradientsToNeighbours(vertex) {
-	//Rotate vertex back to the original frame of reference where z is the vertical axis
-	// var rVect = {x:1, y:0, z:0};
-	// var rotation = -camAngleRef.y;
-	// var cosA = Math.cos(rotation);
-	// var sinA = Math.sin(rotation);
-	// var v0 = createRotatedVertex(vertex, cosA, sinA, rVect);
 	for(var neighbour of vertex.neighbours) {
 		var vxNeighbour = neighbour.vertex;
-		// var v1 = createRotatedVertex(vxNeighbour, cosA, sinA, rVect);
 		var hDist = findDistance2D(vertex.x, vertex.y, vxNeighbour.x, vxNeighbour.y);
 		var vDist = vertex.z - vxNeighbour.z;
 		var gradient = vDist / hDist;
 		neighbour.gradient = gradient;
-		//Set the corresponding gradient from the neighbour's vertex to the input vertex
-		// for(var neighbourNeighbour of vxNeighbour.neighbours) {
-		// 	if (neighbourNeighbour.vertex == vertex) {
-		// 		neighbourNeighbour.gradient = -gradient;
-		// 	}
-		// }
 	}
 }
 function calculateFlowProportions(vertex, recursive) {
@@ -462,24 +453,31 @@ function calculateFlowProportions(vertex, recursive) {
 			}
 		}
 	}
-	// if (recursive) {
-	// 	for(var neighbour of vertex.neighbours) {
-	// 		calculateFlowProportions(neighbour.vertex, false);
-	// 	}
-	// }
 }
 function getClosestVertex(x, y) {
+	var closestVertex = null;
+	var smallestDistance = 999999999;
+	for(var vertex of vertexArray) {
+		calculateScreenpoint(vertex);
+		var d = findDistance2D(x, y, vertex.screenX, vertex.screenY);
+		if (d < smallestDistance) {
+			smallestDistance = d;
+			closestVertex = vertex;
+		}
+	}
+	return closestVertex;
+}
+function getClosestVertex2(x, y) {
 	//Get the mouse position as a 3d vector and do the reverse of what the vertex shader does
 	var orgx = window.innerWidth / 2;
 	var orgy = window.innerHeight / 2;
 	x = (x - orgx) / orgx;
 	y = -(y - orgy) / orgx; // divided by orgx because coordinate space extends above and below landscape screen
 	var vm = {x:x, y:y, z:0};
+
 	//Reverse of perspective function
-	var vcamScaled = {x:vcam.x / scale, y: vcam.y / scale, z: vcam.z / scale};
-	var vfocScaled = {x:vfoc.x / scale, y: vfoc.y / scale, z: vfoc.z / scale};
-	var dcam = findDistance(vm, vcamScaled);
-	var focl = findDistance(vcam, vfoc) / scale;
+	var dcam = findDistance(vm, vcam);// / scale;
+	var focl = findDistance(vcam, vfoc);// / scale;
 	var fovf = focl / (dcam * fov);
 	vm.x = vm.x / fovf;
 	vm.y = vm.y / fovf;
@@ -504,20 +502,14 @@ function getClosestVertex(x, y) {
 	}
 	return closestVertex;
 }
-function getClosestVertex2(x, y) {
-	var closestVertex = null;
-	var smallestDistance = 999999999;
-	for(var vertex of vertexArray) {
-		var d = findDistance2D(x, y, vertex.screenX, vertex.screenY);
-		if (d < smallestDistance) {
-			smallestDistance = d;
-			closestVertex = vertex;
-		}
-	}
-	return closestVertex;
-}
 function highlightWater(vertex) {
-	vertex.colour.b = vertex.water / 100;
+	vertex.colour.b += Math.pow(vertex.water, 0.0625);
+	if (vertex.water >= 100) {
+		vertex.colour.b = 1.0;
+	}
+	if (vertex.colour.b > 1) {
+		vertex.colour.b = 0.99;
+	}
 }
 function highlightFlow(vertex) {
 	document.getElementById("firstdiv").innerHTML = getHeight(vertex);
@@ -542,10 +534,13 @@ function highlightFlow(vertex) {
 			}
 		}
 		//allow water to escape from a low point
-		if (lowerNeighbours.length == 0) {
-			var lowestHigherNeighbour = getLowestNeighbour(currentVertex);
-			openList.push(lowestHigherNeighbour);
-			lowestHigherNeighbour.water += currentVertex.water;
+		if (lowerNeighbours.length == 0 && !lowpointVertices.includes(currentVertex)) {
+			currentVertex.z -= 1;
+			calculateGradientsToNeighbours(currentVertex);
+			calculateFlowProportions(currentVertex);
+			// var lowestHigherNeighbour = getLowestNeighbour(currentVertex);
+			// openList.push(lowestHigherNeighbour);
+			// lowestHigherNeighbour.water += currentVertex.water;
 		}
 		//Move on to the next vertex
 		closedList.push(currentVertex);
@@ -557,10 +552,6 @@ function highlightFlow(vertex) {
 	}
 }
 function getHeight(vertex) {
-	//Rotate vertex back to the original frame of reference where z is the vertical axis
-	// var rVect = {x:1, y:0, z:0};
-	// var rotation = -camAngleRef.y;
-	// var v0 = createRotatedVertex(vertex, Math.cos(rotation), Math.sin(rotation), rVect);
 	return vertex.z;
 }
 function getHighestVertex(vertices) {
@@ -613,15 +604,44 @@ function getLowestNeighbour(vertex) {
 	return getLowestVertex(vertices);
 }
 function vertexIsLower(testVertex, referenceVertex) {
-	
+	return testVertex.z < referenceVertex.z;
+}
+function createButton(x, y, width, height, func, text) {
+	var button = {
+		x:x,
+		y:y,
+		width:width,
+		height:height,
+		function:func,
+		text:text
+	}
+	return button;
+}
+function flattenSurface() {
+	for(var vertex of vertexArray) {
+		vertex.z = 0;
+	}
+}
+function getButton(x, y) {
+	for(var button of buttons) {
+		if (x >= button.x && x < button.x + button.width && y >= button.y && y < button.y + button.height) {
+			return button;
+		}
+	}
+	return null;
 }
 function logMouseDown(event){
 	var posx = event.clientX;
 	var posy = event.clientY;
 	mouseDownPos.x = posx;
 	mouseDownPos.y = posy;
-	//camAngleRef.x = camAngleX;
-	//camAngleRef.y = camAngleY;
+	if (event.button == 0) {
+		//left mouse button clicked
+		var uiButton = getButton(posx, posy);
+		if (uiButton != null) {
+			uiButton.function();
+		}
+	}
 }
 function mouseUp(event){
 	var posx = event.clientX;
@@ -654,15 +674,12 @@ function mouseWheel(event) {
 	var vertex = getClosestVertex(posx, posy);
 	vertex.screenX = 0;
 	vertex.screenY = 0;
-	var tDist = event.deltaY / 4;
-	var vect = getVerticalVector();
-	vertex.x += vect.x * tDist;
-	vertex.y += vect.y * tDist;
-	vertex.z += vect.z * tDist;
-	// for(var vertex of vertexArray) {
-	// 	calculateGradientsToNeighbours(vertex);
-	// 	calculateFlowProportions(vertex, true);
-	// }
+	var tDist = event.deltaY / 8;
+	vertex.z += tDist;
+	for(var v of vertexArray) {
+		calculateGradientsToNeighbours(v);
+		calculateFlowProportions(v, true);
+	}
 }
 function rotateVertex(vertex, cosA, sinA, Rvector){
 	var v2 = createRotatedVertex(vertex, cosA, sinA, Rvector);
@@ -671,10 +688,7 @@ function rotateVertex(vertex, cosA, sinA, Rvector){
 	vertex.z = v2.z;
 }
 function createRotatedVertex(vertex, cosA, sinA, Rvector) {
-	// var c = cosA;
-	// var s = sinA;
 	var t = 1 - cosA;
-	//var Rvect = Rvector;
 	var x = Rvector.x;
 	var y = Rvector.y;
 	var z = Rvector.z;
@@ -700,21 +714,25 @@ function createRotatedVertex(vertex, cosA, sinA, Rvector) {
 	return v2;
 }
 function calculateScreenpoint(v){
-	var orgx = window.innerWidth / 2;
-	var orgy = window.innerHeight / 2;
-	var dcam = findDistance(v, vcam);
+	var rotatedV = createRotatedVertex(v, cosAX, sinAX, rvcx);
+	rotatedV = createRotatedVertex(rotatedV, cosAY, sinAY, rvcy);
+
+	var orgx = webGlCanvas.width / 2;
+	var orgy = webGlCanvas.height / 2;
+	var dcam = findDistance(rotatedV, vcam);
 	var focl = findDistance(vcam, vfoc);
 	var fovf = (focl / (dcam * fov));
 	//
-	var x = v.x * fovf;
-	var y = v.y * fovf;
-	v.screenX = Math.round(x + orgx);
-	v.screenY = Math.round(y + orgy);
+	var x = rotatedV.x * fovf;
+	var y = rotatedV.y * fovf;
+	v.screenX = (x + orgx);
+	v.screenY = (-y + orgy);
 }
 function getVertexShaderCode() {
 	return "attribute vec3 cdts;\n" +
 	"attribute vec3 sibV1;\n" +
 	"attribute vec3 sibV2;\n" +
+	"attribute vec3 sibV3;\n" +
 	"attribute vec4 clr;\n" +
 	"varying lowp vec4 vClr;\n" +
 	"uniform float u_cosAX;\n" +
@@ -761,10 +779,10 @@ function getVertexShaderCode() {
 	"	return vm2;\n" +
 	"}\n" +
 	"vec3 findNormal(vec3 v0, vec3 v1, vec3 v2) {\n" +
+	"	vec3 vx0 = vec3(0.0, 0.0, 0.0);\n" +
 	"	vec3 vx1 = vec3(v1[0] - v0[0], v1[1] - v0[1], v1[2] - v0[2]);\n" +
 	"	vec3 vx2 = vec3(v2[0] - v0[0], v2[1] - v0[1], v2[2] - v0[2]);\n" +
 	"	vec3 cp = vec3((vx1[1] * vx2[2]) - (vx1[2] * vx2[1]), (vx1[2] * vx2[0]) - (vx1[0] * vx2[2]), (vx1[0] * vx2[1]) - (vx1[1] * vx2[0]));\n" +
-	"	vec3 vx0 = vec3(0.0, 0.0, 0.0);\n" +
 	"	float fac = 1.00 / findDistance(vx0, cp);\n" +
 	"	cp[0] = cp[0] * fac;\n" +
 	"	cp[1] = cp[1] * fac;\n" +
@@ -775,26 +793,45 @@ function getVertexShaderCode() {
 	"	return vec3(vertex[0] + vector[0], vertex[1] + vector[1], vertex[2] + vector[2]);\n" +
 	"}\n" +
 	"void calculateColour(void) {\n" +
-	"	vec3 norm = findNormal(cdts, sibV1, sibV2);\n" +
+	"	vec3 norm = findNormal(sibV1, sibV2, sibV3);\n" +
+	"	vec3 orgn = vec3(0.0, 0.0, 0.0);\n" +
 	"	vec4 sv4 = vec4(u_sunVect[0], u_sunVect[1], u_sunVect[2], 1.0);\n" +
-	"	sv4 = getRotatedVertex(sv4, u_RvectorY, cos(-acos(u_cosAY)), sin(-asin(u_sinAY)));\n" +
-	"	sv4 = getRotatedVertex(sv4, u_RvectorX, cos(-acos(u_cosAX)), sin(-asin(u_sinAX)));\n" +
-	"	vec3 sunVect = vec3(sv4[0], sv4[1], sv4[2]);\n" +
-	"	vec3 svt = transform(cdts, sunVect);\n" +
-	"	vec3 nt = transform(cdts, norm);\n" +
-	"	float d = findDistance(svt, nt);\n" +
-	"	float root2 = 1.41421356237;\n" +
+	"	float cosMAY = u_cosAY;\n" +
+	"	float sinMAY = -u_sinAY;\n" +
+	"	float cosMAX = u_cosAX;\n" +
+	"	float sinMAX = -u_sinAX;\n" +
+	"	sv4 = getRotatedVertex(sv4, u_RvectorY, cosMAY, sinMAY);\n" +
+	"	sv4 = getRotatedVertex(sv4, u_RvectorX, cosMAX, sinMAX);\n" +
+	"	vec4 sunRflc = getRotatedVertex(sv4, norm, -1.0, 0.0);\n" +
+	"	vec3 sunRfl3 = vec3(sunRflc[0], sunRflc[1], sunRflc[2]);\n" +
+	"	float dCamVect = findDistance(u_vcam, orgn);\n" +
+	"	vec4 cv4 = vec4(u_vcam[0] / dCamVect, u_vcam[1] / dCamVect, u_vcam[2] / dCamVect, 1.0);\n" +
+	"	cv4 = getRotatedVertex(cv4, u_RvectorY, cosMAY, sinMAY);\n" +
+	"	cv4 = getRotatedVertex(cv4, u_RvectorX, cosMAX, sinMAX);\n" +
+	"	vec3 cv3 = vec3(cv4[0], cv4[1], cv4[2]);\n" +
+	"	vec3 svt = transform(orgn, cv3);\n" +
+	"	vec3 rft = transform(orgn, sunRfl3);\n" +
+	"	float d = findDistance(svt, rft);\n" +
+	//"	float root2 = 1.41421356237;\n" +
+	"	float root2 = 2.0;\n" +
 	"	if (d > root2)\n" +
 	"		d = root2;\n" +
 	"	float f = 1.0 - (d / root2);\n" +
 	"	vClr = vec4(f * clr[0], f * clr[1], f * clr[2], 1.0);\n" +
+	"	if (clr[2] == 1.0) {\n" +
+	"		vClr[0] = 1.0;\n" +
+	"		vClr[1] = 1.0;\n" +
+	"		vClr[2] = 1.0; }\n" +
 	"}" +
 	"void main(void) {\n" +
 	"	vec4 vm1 = vec4(cdts[0], cdts[1], cdts[2], 1.0);\n" +
 	"	vec4 vm2 = getRotatedVertex(vm1, u_RvectorX, u_cosAX, u_sinAX);\n" +
 	"	vm2 = getRotatedVertex(vm2, u_RvectorY, u_cosAY, u_sinAY);\n" +
+	// "	float dcam = 1.0 + vm2[2];\n" +
 	"	float dcam = findDistance(vm2, u_vcam);\n" +
 	"	float fovf = u_focl / (dcam * u_fov);\n" +
+	// "	vm2[0] = vm2[0] * fovf * 0.4;\n" +
+	// "	vm2[1] = vm2[1] * fovf * 0.4;\n" +
 	"	vm2[0] = vm2[0] * fovf;\n" +
 	"	vm2[1] = vm2[1] * fovf;\n" +
 	"	gl_Position = vec4(vm2[0], vm2[1], vm2[2], 1.0);\n" +
@@ -808,21 +845,14 @@ function getFragmentShaderCode() {
 	"}";
 }
 function findNormal(v0, v1, v2){
+	var vx0 = {x:0, y:0, z:0};
 	var vec1 = {x:v1.x - v0.x, y:v1.y - v0.y, z:v1.z - v0.z};
 	var vec2 = {x:v2.x - v0.x, y:v2.y - v0.y, z:v2.z - v0.z};
 	var crossProduct = {x:((vec1.y * vec2.z) - (vec1.z * vec2.y)), y:((vec1.z * vec2.x) - (vec1.x * vec2.z)), z:((vec1.x * vec2.y) - (vec1.y * vec2.x))};
-	var vx0 = {x:0, y:0, z:0};
 	var fac = 1 / (findDistance(vx0, crossProduct));
 	crossProduct.x = crossProduct.x * fac;
 	crossProduct.y = crossProduct.y * fac;
 	crossProduct.z = crossProduct.z * fac;
-	return crossProduct;
-}
-function findNormal2(v0, v1, v2){
-	//this is a rounded and unscaled version
-	var vec1 = {x:v1.x - v0.x, y:v1.y - v0.y, z:v1.z - v0.z};
-	var vec2 = {x:v2.x - v0.x, y:v2.y - v0.y, z:v2.z - v0.z};
-	var crossProduct = {x:(Math.round(vec1.y * vec2.z) - Math.round(vec1.z * vec2.y)), y:(Math.round(vec1.z * vec2.x) - Math.round(vec1.x * vec2.z)), z:(Math.round(vec1.x * vec2.y) - Math.round(vec1.y * vec2.x))};
 	return crossProduct;
 }
 function findIntersection(poly, vL0, vL1){
@@ -867,62 +897,12 @@ function findIntersection(poly, vL0, vL1){
 		return null;
 	}
 }
-function getBlockingPolygons(vtx1, vtx2){
-	var out = [];
-	for(var indx = 0; indx < polygonArray.length; indx++){
-		var poly = polygonArray[indx];
-		if (findIntersection(poly, vtx1, vtx2) != null){
-			out.push(poly);
-		}
-	}
-	return out;
-}
 function compareVectors(vec1, vec2){
 	var x = vec2.x - vec1.x;
 	var y = vec2.y - vec1.y;
 	var z = vec2.z - vec1.z;
 	var out = {x:x, y:y, z:z};
 	return out;
-}
-function sortPolygonsByDistance(pAry){
-	var pAr2 = [];
-	var dAr = [];
-	for(var idx1 = 0; idx1 < pAry.length; idx1++){
-		var p1 = pAry[idx1];
-		var clos = 1999999999;
-		var d0 = findDistance(p1.v0, vcam);
-		var d1 = findDistance(p1.v1, vcam);
-		var d2 = findDistance(p1.v2, vcam);
-		//Obtain a mean distance value for each polygon
-		clos = (d0 + d1 + d2) / 3;
-		//Add minimum distance value to array of distance values
-		dAr[idx1] = clos;
-	}
-	var cnt = 0;
-	//Start to grow output array of polygons
-	while (cnt < pAry.length){
-		//Find the largest value in the array of distances
-		var bgst = 0;
-		for(var idx3 = 0; idx3 < dAr.length; idx3++){
-			if (dAr[idx3] > bgst){
-				bgst = dAr[idx3];
-			}
-		}
-		//Find the index of the largest value
-		var idx2 = 0;
-		for(var idx4 = 0; idx4 < dAr.length; idx4++){
-			var d = dAr[idx4];
-			if (d == bgst){
-				idx2 = idx4;
-			}
-		}
-		//Wipe the largest value
-		dAr[idx2] = 0;
-		//Add the instance to the output array
-		pAr2.push(pAry[idx2]);
-		cnt += 1;
-	}
-	return pAr2;
 }
 function findAngle2D(p1, p2) {
 	var a = 0;
