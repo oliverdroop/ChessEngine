@@ -11,7 +11,7 @@
 var vfoc = {x:0, y:0, z:-1000};
 var vcam = {x:0, y:-1000, z:-2000};
 var fov = Math.PI * (1/8);
-var camAngleX = 0;
+var camAngleX = Math.PI;
 var camAngleY = Math.PI / 4;
 var camAngleRef = {x:camAngleX, y:camAngleY};
 var sunVector = {x:-1, y:2, z:-0.5};
@@ -120,6 +120,7 @@ var ctx = overlayCanvas.getContext("2d");
 //Initialise buttons
 var buttons = [];
 buttons.push(createButton(0, 0, 100, 100, function(){applyCountours(contours_1)}, "Apply Contours"));
+buttons.push(createButton(0, 100, 100, 100, function(){flattenSurface()}, "Flatten"));
 //Calculate screenpoints for vertices
 for(var indx = 0; indx < (arrayWidth * arrayWidth); indx++) {
 	var vertexArray = vertexArray;
@@ -135,6 +136,8 @@ for(var vertex of vertexArray) {
 //Calculate the lowest point(s) of the surface
 var lowpointVertices = [];
 calculateLowpoints();
+var cursorVertex = null;
+var waterSources = [];
 
 var mouseDownPos = {x:0, y:0};
 var mousePos = {x:0, y:0};
@@ -162,23 +165,40 @@ function applyCountours(contourImage) {
 	var offscreenCtx = offscreenCanvas.getContext('2d');
 	offscreenCtx.drawImage(contourImage, 0, 0);
 	flattenSurface();
+	waterSources = [];
 	for(var x = 0; x < arrayWidth; x++) {
 		for(var y = 0; y < arrayWidth; y++) {
-			var imgData = offscreenCtx.getImageData(x, y, 1, 1).data;
+			var imgData1 = offscreenCtx.getImageData(x, y, 1, 1).data;
+			var greyscaleValue = imgData1[0];
+			if (y % 2 == 1 && x < arrayWidth - 1) {
+				var imgData2 = offscreenCtx.getImageData(x + 1, y, 1, 1).data;
+				greyscaleValue = (greyscaleValue + imgData2[0]) / 2;
+			}
 			var vertex = vertexArray[(x * arrayWidth) + y];
-			var increment = 10;
-			vertex.z -= imgData[0];
+			var increment = 2;
+			vertex.z -= greyscaleValue * increment;
+			//Set water sources
+			if (imgData1[2] == 255) {
+				waterSources.push(vertex);
+			}
 		}
 	}
-	calculateLowpoints();
 	for(var vertex of vertexArray) {
 		calculateGradientsToNeighbours(vertex);
 		calculateFlowProportions(vertex);
 	}
+	calculateLowpoints();
 }
 function myFunc(){
-	var closestVertex = getClosestVertex(mousePos.x, mousePos.y);
-	highlightFlow(closestVertex);
+	cursorVertex = getClosestVertex(mousePos.x, mousePos.y);
+	var springVertices = [];
+	for(var waterSource of waterSources) {
+		springVertices.push(waterSource);
+	}
+	// if (!springVertices.includes(closestVertex)) {
+	// 	springVertices.push(closestVertex);
+	// }
+	highlightFlow(springVertices);
 	drawWebGLPolygons();
 	drawOverlay();
 }
@@ -353,6 +373,7 @@ function drawWebGLPolygons() {
 	var uVcam = gl.getUniformLocation(shaderProgram, "u_vcam");
 	var uFov = gl.getUniformLocation(shaderProgram, "u_fov");
 	var uSunVect = gl.getUniformLocation(shaderProgram, "u_sunVect");
+	var uVxCursor = gl.getUniformLocation(shaderProgram, "u_vxCursor");
 
 	// Enable the uniform values
 	gl.uniform1f(uCosAX, cosAX);
@@ -365,6 +386,7 @@ function drawWebGLPolygons() {
 	gl.uniform3f(uVcam, vcam.x * scale, vcam.y * scale, vcam.z * scale);
 	gl.uniform1f(uFov, fov);
 	gl.uniform3f(uSunVect, sunVector.x, sunVector.y, sunVector.z);
+	gl.uniform3f(uVxCursor, cursorVertex.x * scale, cursorVertex.y * scale, cursorVertex.z * scale);
 
 	/*=========Drawing the triangle===========*/
 
@@ -454,6 +476,21 @@ function calculateFlowProportions(vertex, recursive) {
 		}
 	}
 }
+function calculateFlowProportions2(vertex, recursive) {
+	var gradientSum = 0;
+	for(var neighbour of vertex.neighbours) {
+		if (neighbour.gradient < 0) {
+			gradientSum += neighbour.gradient;
+		}
+	}
+	if (gradientSum != 0) {
+		for(var neighbour of vertex.neighbours) {
+			if (neighbour.gradient < 0) {
+				neighbour.proportion = neighbour.gradient / gradientSum;
+			}
+		}
+	}
+}
 function getClosestVertex(x, y) {
 	var closestVertex = null;
 	var smallestDistance = 999999999;
@@ -511,18 +548,21 @@ function highlightWater(vertex) {
 		vertex.colour.b = 0.99;
 	}
 }
-function highlightFlow(vertex) {
-	document.getElementById("firstdiv").innerHTML = getHeight(vertex);
+function highlightFlow(vertices) {
+	//document.getElementById("firstdiv").innerHTML = getHeight(vertex);
 	for(v1 of vertexArray) {
 		v1.water = 0;
 		v1.colour.b = 0.0;
 	}
-	vertex.water = 100;
-	var currentVertex = vertex;
 	var openList = [];
 	var closedList = [];
-	openList.push(currentVertex);
-	while(openList.length > 0 || currentVertex == vertex) {
+	for(var vertex of vertices) {
+		vertex.water = 100;
+		openList.push(vertex);
+	}
+	//openList.push(currentVertex);
+	while(openList.length > 0) {
+		var currentVertex = getHighestVertex(openList);
 		var lowerNeighbours = getLowerNeighbours(currentVertex);
 		for(var neighbour of lowerNeighbours) {
 			var vxNeighbour = neighbour.vertex;
@@ -533,26 +573,23 @@ function highlightFlow(vertex) {
 				vxNeighbour.water += currentVertex.water * neighbour.proportion;
 			}
 		}
-		//allow water to escape from a low point
+		//allow water to escape from a low point (gradually fill in holes)
 		if (lowerNeighbours.length == 0 && !lowpointVertices.includes(currentVertex)) {
 			currentVertex.z -= 1;
 			calculateGradientsToNeighbours(currentVertex);
 			calculateFlowProportions(currentVertex);
-			// var lowestHigherNeighbour = getLowestNeighbour(currentVertex);
-			// openList.push(lowestHigherNeighbour);
-			// lowestHigherNeighbour.water += currentVertex.water;
 		}
 		//Move on to the next vertex
 		closedList.push(currentVertex);
 		openList.splice(openList.indexOf(currentVertex), 1);
-		currentVertex = getHighestVertex(openList);
+		//currentVertex = getHighestVertex(openList);
 	}
 	for(var vertex2 of closedList) {
 		highlightWater(vertex2);
 	}
 }
 function getHeight(vertex) {
-	return vertex.z;
+	return -vertex.z;
 }
 function getHighestVertex(vertices) {
 	var highestHeight = -1999999999;
@@ -745,6 +782,7 @@ function getVertexShaderCode() {
 	"uniform vec3 u_vcam;\n" +
 	"uniform float u_fov;\n" +
 	"uniform vec3 u_sunVect;\n" +
+	"uniform vec3 u_vxCursor;\n" +
 	"float findDistance(vec4 v1, vec3 v2) {\n" +
 	"	float dsxy = sqrt(pow(v2[0] - v1[0], 2.0) + pow(v2[1] - v1[1], 2.0));\n" +
 	"	float dsz = v2[2] - v1[2];\n" +
@@ -818,7 +856,7 @@ function getVertexShaderCode() {
 	"		d = root2;\n" +
 	"	float f = 1.0 - (d / root2);\n" +
 	"	vClr = vec4(f * clr[0], f * clr[1], f * clr[2], 1.0);\n" +
-	"	if (clr[2] == 1.0) {\n" +
+	"	if (cdts[0] == u_vxCursor[0] && cdts[1] == u_vxCursor[1] && cdts[2] == u_vxCursor[2]) {\n" +
 	"		vClr[0] = 1.0;\n" +
 	"		vClr[1] = 1.0;\n" +
 	"		vClr[2] = 1.0; }\n" +
