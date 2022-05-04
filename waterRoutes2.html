@@ -36,12 +36,13 @@ for(var i1 = 0; i1 < arrayWidth; i1++) {
             x:((i1 - (arrayWidth / 2)) * (module * 6)) + (stagger * module * 3),
             y:((i2 - (arrayWidth / 2)) * (module * 5)),
             z:-(module * 36),
+			minZ:-(module * 36),
 			colour: {
 				// r:i1 / arrayWidth,
 				// g:i2 / arrayWidth,
 				r:0.5,
 				g:0.5,
-				b:0.0,
+				b:0.5,
 				a:1.0
 			},
             screenX:0,
@@ -138,6 +139,8 @@ var lowpointVertices = [];
 calculateLowpoints();
 var cursorVertex = null;
 var waterSources = [];
+var dryPoints = [];
+var wetPoints = [];
 
 var mouseDownPos = {x:0, y:0};
 var mousePos = {x:0, y:0};
@@ -166,20 +169,34 @@ function applyCountours(contourImage) {
 	offscreenCtx.drawImage(contourImage, 0, 0);
 	flattenSurface();
 	waterSources = [];
+	var increment = 2;
 	for(var x = 0; x < arrayWidth; x++) {
 		for(var y = 0; y < arrayWidth; y++) {
-			var imgData1 = offscreenCtx.getImageData(x, y, 1, 1).data;
-			var greyscaleValue = imgData1[0];
+			var pixel1Data = offscreenCtx.getImageData(x, y, 1, 1).data;
+			var greyscaleValue = getMode(pixel1Data[0], pixel1Data[1], pixel1Data[2]);
+			//Use average of 2 neighbouring values for offset (odd) rows to prevent zigzag effect
+			var adjustedGreyscaleValue = greyscaleValue;
 			if (y % 2 == 1 && x < arrayWidth - 1) {
-				var imgData2 = offscreenCtx.getImageData(x + 1, y, 1, 1).data;
-				greyscaleValue = (greyscaleValue + imgData2[0]) / 2;
+				var pixel2Data = offscreenCtx.getImageData(x + 1, y, 1, 1).data;
+				adjustedGreyscaleValue = (greyscaleValue + getMode(pixel2Data[0], pixel2Data[1], pixel2Data[2])) / 2;
 			}
 			var vertex = vertexArray[(x * arrayWidth) + y];
-			var increment = 2;
-			vertex.z -= greyscaleValue * increment;
+			vertex.z -= adjustedGreyscaleValue * increment;
+			vertex.minZ = vertex.z;
+			//Set desired dry areas
+			if (pixel1Data[0] == 255 && greyscaleValue != 255) {
+				dryPoints.push(vertex);
+				vertex.colour.r = 1.0;
+			}
+			//Set desired wet areas
+			if (pixel1Data[1] == 255 && greyscaleValue != 255) {
+				wetPoints.push(vertex);
+				vertex.colour.g = 1.0;
+			}
 			//Set water sources
-			if (imgData1[2] == 255) {
+			if (pixel1Data[2] == 255 && greyscaleValue != 255) {
 				waterSources.push(vertex);
+				vertex.colour.b = 1.0;
 			}
 		}
 	}
@@ -189,15 +206,21 @@ function applyCountours(contourImage) {
 	}
 	calculateLowpoints();
 }
+function getMode(val0, val1, val2) {
+	if (val0 == val1 || val0 == val2) {
+		return val0;
+	}
+	if (val1 == val2) {
+		return val1;
+	}
+	return null;
+}
 function myFunc(){
 	cursorVertex = getClosestVertex(mousePos.x, mousePos.y);
 	var springVertices = [];
 	for(var waterSource of waterSources) {
 		springVertices.push(waterSource);
 	}
-	// if (!springVertices.includes(closestVertex)) {
-	// 	springVertices.push(closestVertex);
-	// }
 	highlightFlow(springVertices);
 	drawWebGLPolygons();
 	drawOverlay();
@@ -279,9 +302,6 @@ function drawWebGLPolygons() {
 	var index = 0;
 	var cWidth = webGlCanvas.width;
 	for(var poly of polygonArray) {
-		// pushToVertices(poly.v0, vertices, scale);
-		// pushToVertices(poly.v1, vertices, scale);
-		// pushToVertices(poly.v2, vertices, scale);
 		pushToVertices(poly.v0, poly.v1, poly.v2, vertices, scale);
 		pushToVertices(poly.v1, poly.v2, poly.v0, vertices, scale);
 		pushToVertices(poly.v2, poly.v0, poly.v1, vertices, scale);
@@ -415,27 +435,6 @@ function pushToVertices(v0, v1, v2, vertices, scale) {
 	vertices.push(v0.x * scale, v0.y * scale, v0.z * scale);
 	vertices.push(v0.colour.r, v0.colour.g, v0.colour.b, v0.colour.a);
 }
-function pushToVertices2(vertex, vertices, scale) {
-	vertices.push(vertex.x * scale, vertex.y * scale, vertex.z * scale);
-	var neighbour0 = vertex;
-	var neighbour2 = vertex;
-	var neighbour4 = vertex;
-	var stagger = vertex.stagger;
-	//var stagger = 0;
-	if (vertex.neighbours[1 - stagger] != null) {
-		neighbour0 = vertex.neighbours[1 - stagger].vertex;
-	}
-	if (vertex.neighbours[3 - stagger] != null) {
-		neighbour2 = vertex.neighbours[3 - stagger].vertex;
-	}
-	if (vertex.neighbours[5 - stagger] != null) {
-		neighbour4 = vertex.neighbours[5 - stagger].vertex;
-	}
-	vertices.push(neighbour0.x * scale, neighbour0.y * scale, neighbour0.z * scale);
-	vertices.push(neighbour2.x * scale, neighbour2.y * scale, neighbour2.z * scale);
-	vertices.push(neighbour4.x * scale, neighbour4.y * scale, neighbour4.z * scale);
-	vertices.push(vertex.colour.r, vertex.colour.g, vertex.colour.b, vertex.colour.a);
-}
 function drawOverlay() {
 	ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
 	drawButtons();
@@ -462,21 +461,6 @@ function calculateGradientsToNeighbours(vertex) {
 	}
 }
 function calculateFlowProportions(vertex, recursive) {
-	var gradientSum = 0;
-	for(var neighbour of vertex.neighbours) {
-		if (neighbour.gradient < 0) {
-			gradientSum += neighbour.gradient;
-		}
-	}
-	if (gradientSum != 0) {
-		for(var neighbour of vertex.neighbours) {
-			if (neighbour.gradient < 0) {
-				neighbour.proportion = neighbour.gradient / gradientSum;
-			}
-		}
-	}
-}
-function calculateFlowProportions2(vertex, recursive) {
 	var gradientSum = 0;
 	for(var neighbour of vertex.neighbours) {
 		if (neighbour.gradient < 0) {
@@ -544,25 +528,24 @@ function highlightWater(vertex) {
 	if (vertex.water >= 100) {
 		vertex.colour.b = 1.0;
 	}
-	if (vertex.colour.b > 1) {
-		vertex.colour.b = 0.99;
-	}
 }
 function highlightFlow(vertices) {
-	//document.getElementById("firstdiv").innerHTML = getHeight(vertex);
 	for(v1 of vertexArray) {
 		v1.water = 0;
-		v1.colour.b = 0.0;
+		v1.colour.b = 0.5;
 	}
 	var openList = [];
 	var closedList = [];
+	var lowestWaterHeight = 1999999999;
 	for(var vertex of vertices) {
 		vertex.water = 100;
 		openList.push(vertex);
 	}
-	//openList.push(currentVertex);
 	while(openList.length > 0) {
 		var currentVertex = getHighestVertex(openList);
+		if (getHeight(currentVertex) < lowestWaterHeight) {
+			lowestWaterHeight = getHeight(currentVertex);
+		}
 		var lowerNeighbours = getLowerNeighbours(currentVertex);
 		for(var neighbour of lowerNeighbours) {
 			var vxNeighbour = neighbour.vertex;
@@ -573,20 +556,71 @@ function highlightFlow(vertices) {
 				vxNeighbour.water += currentVertex.water * neighbour.proportion;
 			}
 		}
-		//allow water to escape from a low point (gradually fill in holes)
-		if (lowerNeighbours.length == 0 && !lowpointVertices.includes(currentVertex)) {
-			currentVertex.z -= 1;
+		//allow water to collect in a low point (gradually fill in holes)
+		if (!lowpointVertices.includes(currentVertex)) {
+			var increment = 1;
+			if (lowerNeighbours.length == 0) {
+				currentVertex.z -= increment;
+			} else if (currentVertex.z < currentVertex.minZ && currentVertex.z < getLowestNeighbour(currentVertex).z - increment) {
+				currentVertex.z += increment;
+			}
 			calculateGradientsToNeighbours(currentVertex);
 			calculateFlowProportions(currentVertex);
 		}
 		//Move on to the next vertex
 		closedList.push(currentVertex);
 		openList.splice(openList.indexOf(currentVertex), 1);
-		//currentVertex = getHighestVertex(openList);
 	}
 	for(var vertex2 of closedList) {
 		highlightWater(vertex2);
 	}
+}
+function getHighestHeight(vertices) {
+	var highestHeight = -1999999999;
+	for(var vertex of vertices) {
+		var height = getHeight(vertex);
+		if (height > highestHeight) {
+			highestHeight = height;
+		}
+	}
+	return highestHeight;
+}
+function getLowestHeight(vertices) {
+	var lowestHeight = 1999999999;
+	for(var vertex of vertices) {
+		var height = getHeight(vertex);
+		if (height < lowestHeight) {
+			lowestHeight = height;
+		}
+	}
+	return lowestHeight;
+}
+function anyIncludedIn(listA, listB) {
+	for(var member of listA) {
+		if (listB.includes(member)) {
+			return true;
+		}
+	}
+	return false;
+}
+function allIncludedIn(listA, listB) {
+	for(var member of listA) {
+		if (!listB.includes(member)) {
+			return false;
+		}
+	}
+	return true;
+}
+function allAreWet(vertices) {
+	for(var vertex of vertices) {
+		if (!isWet(vertex)) {
+			return false;
+		}
+	}
+	return true;
+}
+function isWet(vertex) {
+	return vertex.water > 0;
 }
 function getHeight(vertex) {
 	return -vertex.z;
@@ -624,6 +658,15 @@ function getLowerNeighbours(vertex) {
 	}
 	return lowerNeighbours;
 }
+function getSameHeightNeighbours(vertex) {
+	var sameHeightNeighbours = [];
+	for(var neighbour of vertex.neighbours) {
+		if (neighbour.gradient == 0) {
+			sameHeightNeighbours.push(neighbour);
+		}
+	}
+	return sameHeightNeighbours;
+}
 function vertexHasLowerNeighbour(vertex) {
 	for(var neighbour of vertex.neighbours) {
 		if (neighbour.gradient < 0) {
@@ -641,7 +684,7 @@ function getLowestNeighbour(vertex) {
 	return getLowestVertex(vertices);
 }
 function vertexIsLower(testVertex, referenceVertex) {
-	return testVertex.z < referenceVertex.z;
+	return testVertex.z > referenceVertex.z;
 }
 function createButton(x, y, width, height, func, text) {
 	var button = {
@@ -657,6 +700,7 @@ function createButton(x, y, width, height, func, text) {
 function flattenSurface() {
 	for(var vertex of vertexArray) {
 		vertex.z = 0;
+		vertex.minZ = 0;
 	}
 }
 function getButton(x, y) {
@@ -713,6 +757,7 @@ function mouseWheel(event) {
 	vertex.screenY = 0;
 	var tDist = event.deltaY / 8;
 	vertex.z += tDist;
+	vertex.minZ += tDist;
 	for(var v of vertexArray) {
 		calculateGradientsToNeighbours(v);
 		calculateFlowProportions(v, true);
