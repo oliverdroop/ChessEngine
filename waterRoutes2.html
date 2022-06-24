@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
 <head>
 </head>
@@ -147,8 +148,14 @@ var cursorVertex = null;
 var waterSources = [];
 var dryPoints = [];
 var wetPoints = [];
+
+var level = 0;
+var levels = [];
 var victoryCountdownMax = 100;
 var victoryCountdown = victoryCountdownMax;
+var testingForVictory = false;
+
+loadLevels();
 
 var mouseDownPos = {x:0, y:0};
 var mousePos = {x:0, y:0};
@@ -215,6 +222,7 @@ function applyCountours(contourImage) {
 		calculateFlowProportions(vertex);
 	}
 	calculateLowpoints();
+	testingForVictory = true;
 }
 function getMode(val0, val1, val2) {
 	if (val0 == val1 || val0 == val2) {
@@ -233,7 +241,9 @@ function myFunc(){
 	}
 	highlightFlow(springVertices);
 	drawWebGLPolygons();
-	testVictory();
+	if (testingForVictory) {
+		testVictory();
+	}
 	drawOverlay();
 }
 function testVictory() {
@@ -253,13 +263,87 @@ function testVictory() {
 
 	if (victoryConditionsMet) {
 		victoryCountdown --;
+		messages = [];
+		messages.push("That's good... Try to keep the water flowing like that.");
 	} else {
-		victoryCountdown = victoryCountdownMax;
+		if (victoryCountdown < victoryCountdownMax) {
+			victoryCountdown = victoryCountdownMax;
+			messages = [];
+			messages.push("You need to satisfy the victory conditions for 10 seconds.");
+		}
 	}
 	if (victoryCountdown <= 0) {
 		messages = [];
-		messages.push("Congratulations! You won.")
+		messages.push("Congratulations! You completed level " + (level + 1));
+		level ++;
+		testingForVictory = false;
+		window.setTimeout(loadNextLevel, 3000);
 	}
+}
+function loadLevels() {
+	levels.push({
+		contours:null,
+		waterSources:null,
+		dryPoints:null,
+		wetPoints:null,
+		messages:null
+	});
+	levels.push({
+		contours:contours_1,
+		waterSources:null,
+		dryPoints:[{x:47, y:49}, {x:48, y:49}, {x:49, y:49}, {x:50, y:49}, {x:51, y:49}, {x:52, y:49}, {x:53, y:49}, {x:54, y:49}, {x:55, y:49}],
+		wetPoints:null,
+		messages:["Try to dam the river upstream."]
+	});
+	levels.push({
+		contours:null,
+		waterSources:null,
+		dryPoints:null,
+		wetPoints:[{x:57, y:63}],
+		messages:["Try to irrigate the farmer's field."]
+	});
+}
+function loadNextLevel() {
+	var nextLevel = levels[level];
+	if (nextLevel == null) {
+		messages.push("Congratulations! You completed Ditch Digger.");
+	}
+
+	if (nextLevel.contours != null) {
+		applyCountours(nextLevel.contours);
+	}
+
+	if (nextLevel.dryPoints != null) {
+		dryPoints = [];
+		for(var vertex of vertexArray) {
+			vertex.colour.r = 0.5;
+		}
+		for(var dryPoint of nextLevel.dryPoints) {
+			var vertexNumber = (dryPoint.x * arrayWidth) + dryPoint.y;
+			var vertex = vertexArray[vertexNumber];
+			vertex.colour.r = 1.0;
+			dryPoints.push(vertex);
+		}
+	}
+
+	if (nextLevel.wetPoints != null) {
+		wetPoints = [];
+		for(var vertex of vertexArray) {
+			vertex.colour.g = 0.5;
+		}
+		for(var wetPoint of nextLevel.wetPoints) {
+			var vertexNumber = (wetPoint.x * arrayWidth) + wetPoint.y;
+			var vertex = vertexArray[vertexNumber];
+			vertex.colour.g = 1.0;
+			wetPoints.push(vertex);
+		}
+	}
+
+	if (nextLevel.messages != null) {
+		messages = nextLevel.messages;
+	}
+	victoryCountdown = victoryCountdownMax;
+	testingForVictory = true;
 }
 function initiateCamera(){
 	var vx0 = {x:0, y:0, z:0};
@@ -284,192 +368,6 @@ function getVerticalVector() {
 	var vDistRat = 1 / findDistance(vtop, vbot);
 	var vect = {x:(vtop.x - vbot.x) * vDistRat, y:(vtop.y - vbot.y) * vDistRat, z:(vtop.z - vbot.z) * vDistRat};
 	return vect;
-}
-function setUpWebGL() {
-	/*================ Shaders ====================*/
-	
-	// Vertex shader source code
-	var vertCode = getVertexShaderCode();
-	
-	// Create a vertex shader object
-	var vertShader = gl.createShader(gl.VERTEX_SHADER);
-
-	// Attach vertex shader source code
-	gl.shaderSource(vertShader, vertCode);
-
-	// Compile the vertex shader
-	gl.compileShader(vertShader);
-
-	//fragment shader source code
-	var fragCode = getFragmentShaderCode();
-	
-	// Create fragment shader object
-	var fragShader = gl.createShader(gl.FRAGMENT_SHADER);
-
-	// Attach fragment shader source code
-	gl.shaderSource(fragShader, fragCode); 
-	
-	// Compile the fragmentt shader
-	gl.compileShader(fragShader);
-
-	// Create a shader program object to store
-	// the combined shader program
-	shaderProgram = gl.createProgram();
-
-	// Attach a vertex shader
-	gl.attachShader(shaderProgram, vertShader);
-
-	// Attach a fragment shader
-	gl.attachShader(shaderProgram, fragShader);
-
-	// Link both the programs
-	gl.linkProgram(shaderProgram);
-
-	// Use the combined shader program object
-	gl.useProgram(shaderProgram);
-}
-function drawWebGLPolygons() {
-
-	/*======== Defining and storing the geometry ===========*/
-
-	var vertices = [];
-	var colours = [];
-	var indices = [];
-	var index = 0;
-	var cWidth = webGlCanvas.width;
-	for(var poly of polygonArray) {
-		pushToVertices(poly.v0, poly.v1, poly.v2, vertices, scale);
-		pushToVertices(poly.v1, poly.v2, poly.v0, vertices, scale);
-		pushToVertices(poly.v2, poly.v0, poly.v1, vertices, scale);
-		
-		var iMax = 3;
-		for(var i = 0; i < iMax; i++) {
-			indices.push(index + i);
-		}
-		index += iMax;
-	}
-	
-	// Create an empty buffer object to store vertex buffer
-	var vertex_buffer = gl.createBuffer();
-
-	// Bind appropriate array buffer to it
-	gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
-	
-	// Pass the vertex data to the buffer
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-
-	// Unbind the buffer
-	gl.bindBuffer(gl.ARRAY_BUFFER, null);
-
-	// Create an empty buffer object to store Index buffer
-	var Index_Buffer = gl.createBuffer();
-
-	// Bind appropriate array buffer to it
-	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, Index_Buffer);
-
-	// Pass the vertex data to the buffer
-	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
-	
-	// Unbind the buffer
-	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
-
-	/*================ Shaders ====================*/
-	
-	// Defined and compiled earlier
-
-	/*======= Associating shaders to buffer objects =======*/
-
-	// Bind vertex buffer object
-	gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
-
-	// Bind index buffer object
-	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, Index_Buffer);
-	
-	// Get the attribute location
-	var coord = gl.getAttribLocation(shaderProgram, "cdts");
-	var sibV1 = gl.getAttribLocation(shaderProgram, "sibV1");
-	var sibV2 = gl.getAttribLocation(shaderProgram, "sibV2");
-	var sibV3 = gl.getAttribLocation(shaderProgram, "sibV3");
-	var colour = gl.getAttribLocation(shaderProgram, "clr");
-
-	// Point an attribute to the currently bound VBO
-	var numDimensionComponents = 3;  // (x, y, z)
-	var numColourComponents = 4;  // (r, g, b, a)
-	var type = gl.FLOAT;    // 32bit floating point values
-	var normalize = false;  // leave the values as they are
-	var positionOffset = 0; // start at the beginning of the buffer
-	var sibV1Offset = 12;
-	var sibV2Offset = 24;
-	var sibV3Offset = 36;
-	var colourOffset = 48;         
-	var stride = 64;        // how many bytes to move to the next vertex
-							// 0 = use the correct stride for type and numComponents
-	
-	gl.vertexAttribPointer(coord, numDimensionComponents, type, normalize, stride, positionOffset);
-	gl.vertexAttribPointer(sibV1, numDimensionComponents, type, normalize, stride, sibV1Offset);
-	gl.vertexAttribPointer(sibV2, numDimensionComponents, type, normalize, stride, sibV2Offset);
-	gl.vertexAttribPointer(sibV3, numDimensionComponents, type, normalize, stride, sibV3Offset);
-	gl.vertexAttribPointer(colour, numColourComponents, type, normalize, stride, colourOffset);
-	
-	// Enable the attribute
-	gl.enableVertexAttribArray(coord);
-	gl.enableVertexAttribArray(sibV1);
-	gl.enableVertexAttribArray(sibV2);
-	gl.enableVertexAttribArray(sibV3);
-	gl.enableVertexAttribArray(colour);
-	
-	// Get the uniform values
-	var uCosAX = gl.getUniformLocation(shaderProgram, "u_cosAX");
-	var uSinAX = gl.getUniformLocation(shaderProgram, "u_sinAX");
-	var uRvectorX = gl.getUniformLocation(shaderProgram, "u_RvectorX");
-	var uCosAY = gl.getUniformLocation(shaderProgram, "u_cosAY");
-	var uSinAY = gl.getUniformLocation(shaderProgram, "u_sinAY");
-	var uRvectorY = gl.getUniformLocation(shaderProgram, "u_RvectorY");
-	var uFocl = gl.getUniformLocation(shaderProgram, "u_focl");
-	var uVcam = gl.getUniformLocation(shaderProgram, "u_vcam");
-	var uFov = gl.getUniformLocation(shaderProgram, "u_fov");
-	var uSunVect = gl.getUniformLocation(shaderProgram, "u_sunVect");
-	var uVxCursor = gl.getUniformLocation(shaderProgram, "u_vxCursor");
-
-	// Enable the uniform values
-	gl.uniform1f(uCosAX, cosAX);
-	gl.uniform1f(uSinAX, sinAX);
-	gl.uniform3f(uRvectorX, rvcx.x, rvcx.y, rvcx.z);
-	gl.uniform1f(uCosAY, cosAY);
-	gl.uniform1f(uSinAY, sinAY);
-	gl.uniform3f(uRvectorY, rvcy.x, rvcy.y, rvcy.z);
-	gl.uniform1f(uFocl, findDistance(vcam, vfoc) * scale);
-	gl.uniform3f(uVcam, vcam.x * scale, vcam.y * scale, vcam.z * scale);
-	gl.uniform1f(uFov, fov);
-	gl.uniform3f(uSunVect, sunVector.x, sunVector.y, sunVector.z);
-	gl.uniform3f(uVxCursor, cursorVertex.x * scale, cursorVertex.y * scale, cursorVertex.z * scale);
-
-	/*=========Drawing the triangle===========*/
-
-	// Clear the canvas
-	gl.clearColor(0.5, 0.5, 0.5, 1.0);
-
-	// Enable the depth test
-	gl.enable(gl.DEPTH_TEST);
-
-	// Clear the color buffer bit
-	gl.clear(gl.COLOR_BUFFER_BIT);
-
-	// Set the view port
-	gl.viewport(0, -webGlCanvas.width / 4, webGlCanvas.width, webGlCanvas.width);
-
-	// Draw the triangle
-	gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT,0);
-	gl.deleteBuffer(vertex_buffer);
-	//gl.deleteBuffer(colour_buffer);
-	gl.deleteBuffer(Index_Buffer);
-}
-function pushToVertices(v0, v1, v2, vertices, scale) {
-	vertices.push(v0.x * scale, v0.y * scale, v0.z * scale);
-	vertices.push(v1.x * scale, v1.y * scale, v1.z * scale);
-	vertices.push(v2.x * scale, v2.y * scale, v2.z * scale);
-	vertices.push(v0.x * scale, v0.y * scale, v0.z * scale);
-	vertices.push(v0.colour.r, v0.colour.g, v0.colour.b, v0.colour.a);
 }
 function drawOverlay() {
 	ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
@@ -628,7 +526,7 @@ function highlightFlow(vertices) {
 function removeSilt(increment) {
 	for(var vertex of vertexArray) {
 		if (vertex.z < vertex.minZ && !isWet(vertex)) {
-			vertex.z += increment / 4;
+			vertex.z += increment / 8;
 		}
 	}
 }
@@ -866,6 +764,192 @@ function calculateScreenpoint(v){
 	var y = rotatedV.y * fovf;
 	v.screenX = (x + orgx);
 	v.screenY = (-y + orgy);
+}
+function setUpWebGL() {
+	/*================ Shaders ====================*/
+	
+	// Vertex shader source code
+	var vertCode = getVertexShaderCode();
+	
+	// Create a vertex shader object
+	var vertShader = gl.createShader(gl.VERTEX_SHADER);
+
+	// Attach vertex shader source code
+	gl.shaderSource(vertShader, vertCode);
+
+	// Compile the vertex shader
+	gl.compileShader(vertShader);
+
+	//fragment shader source code
+	var fragCode = getFragmentShaderCode();
+	
+	// Create fragment shader object
+	var fragShader = gl.createShader(gl.FRAGMENT_SHADER);
+
+	// Attach fragment shader source code
+	gl.shaderSource(fragShader, fragCode); 
+	
+	// Compile the fragmentt shader
+	gl.compileShader(fragShader);
+
+	// Create a shader program object to store
+	// the combined shader program
+	shaderProgram = gl.createProgram();
+
+	// Attach a vertex shader
+	gl.attachShader(shaderProgram, vertShader);
+
+	// Attach a fragment shader
+	gl.attachShader(shaderProgram, fragShader);
+
+	// Link both the programs
+	gl.linkProgram(shaderProgram);
+
+	// Use the combined shader program object
+	gl.useProgram(shaderProgram);
+}
+function drawWebGLPolygons() {
+
+	/*======== Defining and storing the geometry ===========*/
+
+	var vertices = [];
+	var colours = [];
+	var indices = [];
+	var index = 0;
+	var cWidth = webGlCanvas.width;
+	for(var poly of polygonArray) {
+		pushToVertices(poly.v0, poly.v1, poly.v2, vertices, scale);
+		pushToVertices(poly.v1, poly.v2, poly.v0, vertices, scale);
+		pushToVertices(poly.v2, poly.v0, poly.v1, vertices, scale);
+		
+		var iMax = 3;
+		for(var i = 0; i < iMax; i++) {
+			indices.push(index + i);
+		}
+		index += iMax;
+	}
+	
+	// Create an empty buffer object to store vertex buffer
+	var vertex_buffer = gl.createBuffer();
+
+	// Bind appropriate array buffer to it
+	gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+	
+	// Pass the vertex data to the buffer
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+
+	// Unbind the buffer
+	gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+	// Create an empty buffer object to store Index buffer
+	var Index_Buffer = gl.createBuffer();
+
+	// Bind appropriate array buffer to it
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, Index_Buffer);
+
+	// Pass the vertex data to the buffer
+	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+	
+	// Unbind the buffer
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+
+	/*================ Shaders ====================*/
+	
+	// Defined and compiled earlier
+
+	/*======= Associating shaders to buffer objects =======*/
+
+	// Bind vertex buffer object
+	gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+
+	// Bind index buffer object
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, Index_Buffer);
+	
+	// Get the attribute location
+	var coord = gl.getAttribLocation(shaderProgram, "cdts");
+	var sibV1 = gl.getAttribLocation(shaderProgram, "sibV1");
+	var sibV2 = gl.getAttribLocation(shaderProgram, "sibV2");
+	var sibV3 = gl.getAttribLocation(shaderProgram, "sibV3");
+	var colour = gl.getAttribLocation(shaderProgram, "clr");
+
+	// Point an attribute to the currently bound VBO
+	var numDimensionComponents = 3;  // (x, y, z)
+	var numColourComponents = 4;  // (r, g, b, a)
+	var type = gl.FLOAT;    // 32bit floating point values
+	var normalize = false;  // leave the values as they are
+	var positionOffset = 0; // start at the beginning of the buffer
+	var sibV1Offset = 12;
+	var sibV2Offset = 24;
+	var sibV3Offset = 36;
+	var colourOffset = 48;         
+	var stride = 64;        // how many bytes to move to the next vertex
+							// 0 = use the correct stride for type and numComponents
+	
+	gl.vertexAttribPointer(coord, numDimensionComponents, type, normalize, stride, positionOffset);
+	gl.vertexAttribPointer(sibV1, numDimensionComponents, type, normalize, stride, sibV1Offset);
+	gl.vertexAttribPointer(sibV2, numDimensionComponents, type, normalize, stride, sibV2Offset);
+	gl.vertexAttribPointer(sibV3, numDimensionComponents, type, normalize, stride, sibV3Offset);
+	gl.vertexAttribPointer(colour, numColourComponents, type, normalize, stride, colourOffset);
+	
+	// Enable the attribute
+	gl.enableVertexAttribArray(coord);
+	gl.enableVertexAttribArray(sibV1);
+	gl.enableVertexAttribArray(sibV2);
+	gl.enableVertexAttribArray(sibV3);
+	gl.enableVertexAttribArray(colour);
+	
+	// Get the uniform values
+	var uCosAX = gl.getUniformLocation(shaderProgram, "u_cosAX");
+	var uSinAX = gl.getUniformLocation(shaderProgram, "u_sinAX");
+	var uRvectorX = gl.getUniformLocation(shaderProgram, "u_RvectorX");
+	var uCosAY = gl.getUniformLocation(shaderProgram, "u_cosAY");
+	var uSinAY = gl.getUniformLocation(shaderProgram, "u_sinAY");
+	var uRvectorY = gl.getUniformLocation(shaderProgram, "u_RvectorY");
+	var uFocl = gl.getUniformLocation(shaderProgram, "u_focl");
+	var uVcam = gl.getUniformLocation(shaderProgram, "u_vcam");
+	var uFov = gl.getUniformLocation(shaderProgram, "u_fov");
+	var uSunVect = gl.getUniformLocation(shaderProgram, "u_sunVect");
+	var uVxCursor = gl.getUniformLocation(shaderProgram, "u_vxCursor");
+
+	// Enable the uniform values
+	gl.uniform1f(uCosAX, cosAX);
+	gl.uniform1f(uSinAX, sinAX);
+	gl.uniform3f(uRvectorX, rvcx.x, rvcx.y, rvcx.z);
+	gl.uniform1f(uCosAY, cosAY);
+	gl.uniform1f(uSinAY, sinAY);
+	gl.uniform3f(uRvectorY, rvcy.x, rvcy.y, rvcy.z);
+	gl.uniform1f(uFocl, findDistance(vcam, vfoc) * scale);
+	gl.uniform3f(uVcam, vcam.x * scale, vcam.y * scale, vcam.z * scale);
+	gl.uniform1f(uFov, fov);
+	gl.uniform3f(uSunVect, sunVector.x, sunVector.y, sunVector.z);
+	gl.uniform3f(uVxCursor, cursorVertex.x * scale, cursorVertex.y * scale, cursorVertex.z * scale);
+
+	/*=========Drawing the triangle===========*/
+
+	// Clear the canvas
+	gl.clearColor(0.5, 0.5, 0.5, 1.0);
+
+	// Enable the depth test
+	gl.enable(gl.DEPTH_TEST);
+
+	// Clear the color buffer bit
+	gl.clear(gl.COLOR_BUFFER_BIT);
+
+	// Set the view port
+	gl.viewport(0, -webGlCanvas.width / 4, webGlCanvas.width, webGlCanvas.width);
+
+	// Draw the triangle
+	gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT,0);
+	gl.deleteBuffer(vertex_buffer);
+	//gl.deleteBuffer(colour_buffer);
+	gl.deleteBuffer(Index_Buffer);
+}
+function pushToVertices(v0, v1, v2, vertices, scale) {
+	vertices.push(v0.x * scale, v0.y * scale, v0.z * scale);
+	vertices.push(v1.x * scale, v1.y * scale, v1.z * scale);
+	vertices.push(v2.x * scale, v2.y * scale, v2.z * scale);
+	vertices.push(v0.x * scale, v0.y * scale, v0.z * scale);
+	vertices.push(v0.colour.r, v0.colour.g, v0.colour.b, v0.colour.a);
 }
 function getVertexShaderCode() {
 	return "attribute vec3 cdts;\n" +
