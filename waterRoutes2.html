@@ -19,7 +19,7 @@ initiateCamera();
 var img = new Image();
 img.src = "http://178.62.85.228/SpannerNut1.jpg";
 var contours_1 = new Image();
-contours_1.src = "http://178.62.85.228/contours_1.png";
+contours_1.src = "http://178.62.85.228/contours_2.png";
 contours_1.crossOrigin = "anonymous";
 var vertexArray = [];
 var polygonArray = [];
@@ -120,8 +120,14 @@ overlayCanvas.height = window.innerHeight;
 var ctx = overlayCanvas.getContext("2d");
 //Initialise buttons
 var buttons = [];
-buttons.push(createButton(0, 0, 100, 100, function(){applyCountours(contours_1)}, "Apply Contours"));
-buttons.push(createButton(0, 100, 100, 100, function(){flattenSurface()}, "Flatten"));
+//buttons.push(createButton(0, 0, 100, 100, function(){applyCountours(contours_1)}, "Apply Contours"));
+//buttons.push(createButton(0, 100, 100, 100, function(){flattenSurface()}, "Flatten"));
+//Initialise messages
+var messages = [];
+messages.push("Welcome to Ditch Digger!");
+messages.push("Use the mouse wheel to create ditches and mounds.");
+messages.push("Divert water away from red areas and towards green areas.");
+
 //Calculate screenpoints for vertices
 for(var indx = 0; indx < (arrayWidth * arrayWidth); indx++) {
 	var vertexArray = vertexArray;
@@ -141,6 +147,8 @@ var cursorVertex = null;
 var waterSources = [];
 var dryPoints = [];
 var wetPoints = [];
+var victoryCountdownMax = 100;
+var victoryCountdown = victoryCountdownMax;
 
 var mouseDownPos = {x:0, y:0};
 var mousePos = {x:0, y:0};
@@ -149,7 +157,9 @@ document.onmouseup = mouseUp;
 document.onmousemove = mouseMove;
 document.onwheel = mouseWheel;
 
-window.setInterval(myFunc, 10);
+window.setInterval(myFunc, 100);
+window.setTimeout(function(){applyCountours(contours_1)}, 500);
+//applyCountours(contours_1);
 
 function calculateLowpoints() {
 	//Calculate the lowest point(s) of the surface
@@ -223,7 +233,33 @@ function myFunc(){
 	}
 	highlightFlow(springVertices);
 	drawWebGLPolygons();
+	testVictory();
 	drawOverlay();
+}
+function testVictory() {
+	var victoryConditionsMet = true;
+	for(var dryPoint of dryPoints) {
+		if (isWet(dryPoint)) {
+			victoryConditionsMet = false;
+			break;
+		}
+	}
+	for(var wetPoint of wetPoints) {
+		if (!isWet(wetPoint)) {
+			victoryConditionsMet = false;
+			break;
+		}
+	}
+
+	if (victoryConditionsMet) {
+		victoryCountdown --;
+	} else {
+		victoryCountdown = victoryCountdownMax;
+	}
+	if (victoryCountdown <= 0) {
+		messages = [];
+		messages.push("Congratulations! You won.")
+	}
 }
 function initiateCamera(){
 	var vx0 = {x:0, y:0, z:0};
@@ -437,11 +473,13 @@ function pushToVertices(v0, v1, v2, vertices, scale) {
 }
 function drawOverlay() {
 	ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+	drawMessages();
 	drawButtons();
 }
 function drawButtons() {
 	ctx.strokeStyle = "#BBBBBB";
 	ctx.fillStyle = "#BBBBBB";
+	ctx.font = "10px Arial";
 	ctx.lineWidth = 2;
 	ctx.beginPath();
 	for(var button of buttons) {
@@ -450,6 +488,17 @@ function drawButtons() {
 		ctx.stroke();
 		ctx.drawImage(contours_1, button.x, button.y);
 	}
+}
+function drawMessages() {
+	ctx.fillStyle = "#BBBBBB";
+	ctx.font = "20px Arial";
+	for(var i = 0; i < messages.length; i++) {
+		var message = messages[i];
+		drawMessage(message, 110, 25 + (i * 30));
+	}
+}
+function drawMessage(text, x, y) {
+	ctx.fillText(text, x, y);
 }
 function calculateGradientsToNeighbours(vertex) {
 	for(var neighbour of vertex.neighbours) {
@@ -537,6 +586,7 @@ function highlightFlow(vertices) {
 	var openList = [];
 	var closedList = [];
 	var lowestWaterHeight = 1999999999;
+	var increment = 1;
 	for(var vertex of vertices) {
 		vertex.water = 100;
 		openList.push(vertex);
@@ -558,7 +608,6 @@ function highlightFlow(vertices) {
 		}
 		//allow water to collect in a low point (gradually fill in holes)
 		if (!lowpointVertices.includes(currentVertex)) {
-			var increment = 1;
 			if (lowerNeighbours.length == 0) {
 				currentVertex.z -= increment;
 			} else if (currentVertex.z < currentVertex.minZ && currentVertex.z < getLowestNeighbour(currentVertex).z - increment) {
@@ -573,6 +622,14 @@ function highlightFlow(vertices) {
 	}
 	for(var vertex2 of closedList) {
 		highlightWater(vertex2);
+	}
+	removeSilt(increment);
+}
+function removeSilt(increment) {
+	for(var vertex of vertexArray) {
+		if (vertex.z < vertex.minZ && !isWet(vertex)) {
+			vertex.z += increment / 4;
+		}
 	}
 }
 function getHighestHeight(vertices) {
