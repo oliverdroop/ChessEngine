@@ -1,5 +1,4 @@
-package chess;
-import java.awt.Point;
+package chess.old;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;

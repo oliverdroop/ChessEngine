@@ -1,4 +1,4 @@
-package chess;
+package chess.old;
 
 public class CoordinateHolder {
 	protected int x;

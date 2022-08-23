@@ -1,6 +1,4 @@
-package chess;
-
-import java.util.List;
+package chess.old;
 
 public class FENWriter {
 	public String write(Board board){

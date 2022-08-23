@@ -1,4 +1,5 @@
 package chessTests;
+import chess.api.Position;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.Rule;
 import org.junit.Test;
@@ -7,11 +8,11 @@ import org.junit.runners.BlockJUnit4ClassRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import chess.Board;
-import chess.FENReader;
-import chess.Game;
-import chess.Piece;
-import chess.Team;
+import chess.old.Board;
+import chess.old.FENReader;
+import chess.old.Game;
+import chess.old.Piece;
+import chess.old.Team;
 
 @RunWith (BlockJUnit4ClassRunner.class)
 public class MovementTest {

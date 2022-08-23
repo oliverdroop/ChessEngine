@@ -1,14 +1,13 @@
-package chess;
+package chess.old;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import chess.Game.GameState;
+import chess.old.Game.GameState;
 
 public class AIHoner {
 	private static final Logger LOGGER = LoggerFactory.getLogger(AIHoner.class);

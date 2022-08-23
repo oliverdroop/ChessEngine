@@ -4,11 +4,11 @@ import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.Rule;
 import org.junit.Test;
 
-import chess.Board;
-import chess.FENReader;
-import chess.FENWriter;
-import chess.Game;
-import chess.Move;
+import chess.old.Board;
+import chess.old.FENReader;
+import chess.old.FENWriter;
+import chess.old.Game;
+import chess.old.Move;
 
 public class AITest {
 	

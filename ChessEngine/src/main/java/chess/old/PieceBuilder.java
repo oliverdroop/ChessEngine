@@ -1,4 +1,4 @@
-package chess;
+package chess.old;
 
 public class PieceBuilder {
 	private Board board;
