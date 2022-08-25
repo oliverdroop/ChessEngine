@@ -160,86 +160,61 @@ public abstract class Piece {
         return positionBitFlags;
     }
 
-//    protected int setDirectionalFlagsOld(int number, int x, int y) {
-//        int xDirectionFlag = Math.abs(x);
-//        int yDirectionFlag = Math.abs(y);
-//        if (x < 0) {
-//            xDirectionFlag = xDirectionFlag | 4;
-//        }
-//        if (y < 0) {
-//            yDirectionFlag = yDirectionFlag | 4;
-//        }
-//        xDirectionFlag = xDirectionFlag << PieceConfiguration.BIT_SHIFT_X_FLAG;
-//        yDirectionFlag = yDirectionFlag << PieceConfiguration.BIT_SHIFT_Y_FLAG;
-//        return number | xDirectionFlag | yDirectionFlag;
-//    }
-
     protected int setDirectionalFlags(int number, int x, int y) {
 
         if (Math.abs(x) > 1 || Math.abs(y) > 1) {
-            return number | PieceConfiguration.ANY_KNIGHT_DIRECTION;
-        } else if (x == 0) {
-            return number | PieceConfiguration.VERTICAL_DIRECTION;
-        } else if (y == 0) {
-            return number | PieceConfiguration.HORIZONTAL_DIRECTION;
-        } else if (Integer.signum(x) == Integer.signum(y)) {
-            return number | PieceConfiguration.NE_SW_DIRECTION;
+            return number | PieceConfiguration.DIRECTION_KNIGHT;
+        } else if (x > 0) {
+            if (y > 0) {
+                return number | PieceConfiguration.DIRECTION_NE;
+            } else if (y < 0) {
+                return number | PieceConfiguration.DIRECTION_SE;
+            } else {
+                return number | PieceConfiguration.DIRECTION_E;
+            }
+        } else if (x < 0) {
+            if (y > 0) {
+                return number | PieceConfiguration.DIRECTION_NW;
+            } else if (y < 0) {
+                return number | PieceConfiguration.DIRECTION_SW;
+            } else {
+                return number | PieceConfiguration.DIRECTION_W;
+            }
+        } else if (y > 0) {
+            return number | PieceConfiguration.DIRECTION_N;
         }
-        return number | PieceConfiguration.NW_SE_DIRECTION;
+        return number | PieceConfiguration.DIRECTION_S;
     }
-
-//    protected int[] getDirectionalFlagsOld(int number) {
-//        int xDirectionFlag = (number >> PieceConfiguration.BIT_SHIFT_X_FLAG) & 7;
-//        int yDirectionFlag = (number >> PieceConfiguration.BIT_SHIFT_Y_FLAG) & 7;
-//        int signedX = (xDirectionFlag & 3) == xDirectionFlag ? xDirectionFlag : -(xDirectionFlag & 3);
-//        int signedY = (yDirectionFlag & 3) == yDirectionFlag ? yDirectionFlag : -(yDirectionFlag & 3);
-//        return new int[] {signedX, signedY};
-//    }
 
     public static int getDirectionalFlags(int number) {
-        return number & (PieceConfiguration.HORIZONTAL_DIRECTION | PieceConfiguration.VERTICAL_DIRECTION
-                | PieceConfiguration.NW_SE_DIRECTION | PieceConfiguration.NE_SW_DIRECTION
-                | PieceConfiguration.ANY_KNIGHT_DIRECTION);
+        return number & (PieceConfiguration.DIRECTION_N | PieceConfiguration.DIRECTION_NE
+                | PieceConfiguration.DIRECTION_E | PieceConfiguration.DIRECTION_SE | PieceConfiguration.DIRECTION_S
+                | PieceConfiguration.DIRECTION_SW | PieceConfiguration.DIRECTION_W | PieceConfiguration.DIRECTION_NW);
     }
-
-//    protected boolean hasDirectionalFlagsOld(int[] potentialDirectionalFlags) {
-//        return potentialDirectionalFlags[0] != 0 && potentialDirectionalFlags[1] != 0;
-//    }
 
     protected boolean hasDirectionalFlags(int number) {
         return getDirectionalFlags(number) != 0;
     }
 
-//    private int[][] restrictDirectionsOld(int[] kingThreatDirection) {
-//        return restrictDirections(getDirectionalLimits(), kingThreatDirection);
-//    }
-//
-//    protected int[][]restrictDirectionsOld(int[][] directionalLimits, int[] kingThreatDirection) {
-//        int[][] restrictedDirections = new int[2][3];
-//        for(int[] directionalLimit : directionalLimits) {
-//            if (directionalLimit[0] == kingThreatDirection[0] && directionalLimit[1] == kingThreatDirection[1]) {
-//                restrictedDirections[0] = directionalLimit;
-//            } else if (directionalLimit[0] == -kingThreatDirection[0] && directionalLimit[1] == -kingThreatDirection[1]) {
-//                restrictedDirections[1] = directionalLimit;
-//            }
-//        }
-//        return restrictedDirections;
-//    }
-
     protected int[][] restrictDirections(int directionalBitFlags) {
         return restrictDirections(getDirectionalLimits(), directionalBitFlags);
     }
+
     protected int[][] restrictDirections(int[][] directionalLimits, int directionalBitFlags) {
         switch(directionalBitFlags) {
-            case PieceConfiguration.HORIZONTAL_DIRECTION:
-                return filterDirectionalLimitsByPredicate(directionalLimits, dl -> dl[1] == 0);
-            case PieceConfiguration.VERTICAL_DIRECTION:
+            case PieceConfiguration.DIRECTION_N:
+            case PieceConfiguration.DIRECTION_S:
                 return filterDirectionalLimitsByPredicate(directionalLimits, dl -> dl[0] == 0);
-            case PieceConfiguration.NE_SW_DIRECTION:
+            case PieceConfiguration.DIRECTION_NE:
+            case PieceConfiguration.DIRECTION_SW:
                 return filterDirectionalLimitsByPredicate(directionalLimits, dl -> dl[0] == dl[1]);
-            case PieceConfiguration.NW_SE_DIRECTION:
+            case PieceConfiguration.DIRECTION_E:
+            case PieceConfiguration.DIRECTION_W:
+                return filterDirectionalLimitsByPredicate(directionalLimits, dl -> dl[1] == 0);
+            case PieceConfiguration.DIRECTION_SE:
+            case PieceConfiguration.DIRECTION_NW:
                 return filterDirectionalLimitsByPredicate(directionalLimits, dl -> dl[0] == -dl[1]);
-            case PieceConfiguration.ANY_KNIGHT_DIRECTION:
+            case PieceConfiguration.DIRECTION_KNIGHT:
             default:
                 return directionalLimits;
         }
@@ -250,14 +225,6 @@ public abstract class Piece {
                 .filter(predicate)
                 .toArray(size1 -> new int[size1][]);
     }
-
-//    protected int[][] getMovableDirectionalLimitsOld(int[] positionBitFlags) {
-//        int[] kingThreatDirection = getDirectionalFlags(positionBitFlags[position]);
-//        if (hasDirectionalFlags(kingThreatDirection)) {
-//            return restrictDirections(kingThreatDirection);
-//        }
-//        return getDirectionalLimits();
-//    }
 
     protected int[][] getMovableDirectionalLimits(int[] positionBitFlags) {
         int number = positionBitFlags[position];

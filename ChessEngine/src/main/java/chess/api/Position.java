@@ -1,17 +1,12 @@
 package chess.api;
 
+import chess.api.pieces.Piece;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Position {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Position.class);
-
-    private static final int[] KING_TRANSLATIONS = {-9, -8, -7, -2, -1, 1, 2, 7, 8, 9};
-
-    private static final int[] KNIGHT_TRANSLATIONS = {6, 10, 15, 17};
-
-    private static final int[] PAWN_TRANSLATIONS = {7, 8, 9, 16};
 
     public static final int[] POSITIONS = {
             0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
@@ -50,6 +45,30 @@ public class Position {
             return -1;
         }
         return getPosition(newX, newY);
+    }
+
+    public static int applyTranslationTowardsThreat(int directionBitFlag, int positionBitFlag) {
+
+        // Move in the opposite direction to the threat direction
+        switch(directionBitFlag) {
+            case PieceConfiguration.DIRECTION_N:
+                return Position.applyTranslation(positionBitFlag, 0, -1);
+            case PieceConfiguration.DIRECTION_NE:
+                return Position.applyTranslation(positionBitFlag, -1, -1);
+            case PieceConfiguration.DIRECTION_E:
+                return Position.applyTranslation(positionBitFlag, -1, 0);
+            case PieceConfiguration.DIRECTION_SE:
+                return Position.applyTranslation(positionBitFlag, -1, 1);
+            case PieceConfiguration.DIRECTION_S:
+                return Position.applyTranslation(positionBitFlag, 0, 1);
+            case PieceConfiguration.DIRECTION_SW:
+                return Position.applyTranslation(positionBitFlag, 1, 1);
+            case PieceConfiguration.DIRECTION_W:
+                return Position.applyTranslation(positionBitFlag, 1, 0);
+            case PieceConfiguration.DIRECTION_NW:
+                return Position.applyTranslation(positionBitFlag, 1, -1);
+        }
+        return -1;
     }
 
     public static int getPositionFromCoordinateString(String coordinateString) {

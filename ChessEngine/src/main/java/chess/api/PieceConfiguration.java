@@ -6,7 +6,6 @@ import com.google.common.collect.ImmutableSet;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
-import java.util.function.IntPredicate;
 import java.util.stream.Collectors;
 
 public class PieceConfiguration {
@@ -23,20 +22,28 @@ public class PieceConfiguration {
 
     public static final int CASTLE_AVAILABLE = 2048;
 
-    public static final int HORIZONTAL_DIRECTION = 4096;
+    public static final int DOES_NOT_BLOCK_CHECK = 4096;
 
-    public static final int VERTICAL_DIRECTION = 8192;
+    public static final int DIRECTION_N = 8192;
 
-    public static final int NW_SE_DIRECTION = 16384;
+    public static final int DIRECTION_NE = 16384;
 
-    public static final int NE_SW_DIRECTION = 32768;
+    public static final int DIRECTION_E = 32768;
 
-    public static final int ANY_KNIGHT_DIRECTION = 65536;
+    public static final int DIRECTION_SE = 65536;
 
-    public static final int DOES_NOT_BLOCK_CHECK = 131072;
+    public static final int DIRECTION_S = 131072;
 
-    public static final ImmutableSet<Integer> ALL_DIRECTIONAL_FLAGS = ImmutableSet.of(HORIZONTAL_DIRECTION,
-            VERTICAL_DIRECTION, NW_SE_DIRECTION, NE_SW_DIRECTION, ANY_KNIGHT_DIRECTION);
+    public static final int DIRECTION_SW = 262144;
+
+    public static final int DIRECTION_W = 524288;
+
+    public static final int DIRECTION_NW = 1048576;
+
+    public static final int DIRECTION_KNIGHT = 2097152;
+
+    public static final ImmutableSet<Integer> ALL_DIRECTIONAL_FLAGS = ImmutableSet.of(DIRECTION_N, DIRECTION_NE,
+            DIRECTION_E, DIRECTION_SE, DIRECTION_S, DIRECTION_SW, DIRECTION_W, DIRECTION_NW, DIRECTION_KNIGHT);
 
     private Set<Piece> pieces = new HashSet<>();
 
@@ -105,38 +112,29 @@ public class PieceConfiguration {
     private int[] stampCheckNonBlockerFlags(int[] positionBitFlags) {
         int checkedPlayerKingBitFlag = isPlayerInCheck(positionBitFlags);
         if (checkedPlayerKingBitFlag >= 0) {
-            for(int checkNonBlockerBitFlag : getCheckNonBlockerPositionBitFlags(checkedPlayerKingBitFlag, positionBitFlags)) {
-                positionBitFlags[checkNonBlockerBitFlag & 63] = BitUtil.applyBitFlag(
-                        positionBitFlags[checkNonBlockerBitFlag & 63], DOES_NOT_BLOCK_CHECK);
-            }
+            return getCheckNonBlockerPositionBitFlags(checkedPlayerKingBitFlag, positionBitFlags);
         }
         return positionBitFlags;
     }
 
     public static int[] getCheckNonBlockerPositionBitFlags(int kingPositionBitFlag, int[] positionBitFlags) {
         int kingPositionDirectionalFlags = Piece.getDirectionalFlags(kingPositionBitFlag);
-        if (!ALL_DIRECTIONAL_FLAGS.contains(kingPositionDirectionalFlags)) {
-            return positionBitFlags;
-        }
-        return Arrays.stream(positionBitFlags)
-                .filter(getCheckBlockerPredicate(kingPositionBitFlag).negate())
-                .toArray();
-    }
+        if (ALL_DIRECTIONAL_FLAGS.contains(kingPositionDirectionalFlags)) {
+            int currentPosition = kingPositionBitFlag;
+            int nextPositionIndex = Position.applyTranslationTowardsThreat(kingPositionDirectionalFlags, currentPosition);
 
-    private static IntPredicate getCheckBlockerPredicate(int kingPositionBitFlag) {
-        switch(Piece.getDirectionalFlags(kingPositionBitFlag)) {
-            case PieceConfiguration.HORIZONTAL_DIRECTION:
-                return i -> Position.getY(i) == Position.getY(kingPositionBitFlag);
-            case PieceConfiguration.VERTICAL_DIRECTION:
-                return i -> Position.getX(i) == Position.getX(kingPositionBitFlag);
-            case PieceConfiguration.NE_SW_DIRECTION:
-                return i -> ((i & 63) - (kingPositionBitFlag & 63)) % 9 == 0;
-            case PieceConfiguration.NW_SE_DIRECTION:
-                return i -> ((i & 63) - (kingPositionBitFlag & 63)) % 7 == 0;
-            case PieceConfiguration.ANY_KNIGHT_DIRECTION:
-            default:
-                return i -> true;
+            while(!BitUtil.hasBitFlag(currentPosition, PieceConfiguration.OPPONENT_OCCUPIED) && nextPositionIndex >= 0) {
+                positionBitFlags[nextPositionIndex] = BitUtil.applyBitFlag(positionBitFlags[nextPositionIndex], PieceConfiguration.DOES_NOT_BLOCK_CHECK);
+                currentPosition = positionBitFlags[nextPositionIndex];
+                nextPositionIndex = Position.applyTranslationTowardsThreat(kingPositionDirectionalFlags, currentPosition);
+            }
         }
+
+        // Now reverse the bit DOES_NOT_BLOCK_CHECK bit flags because they're on the squares which can block check
+        for(int position : Position.POSITIONS) {
+            positionBitFlags[position] = BitUtil.reverseBitFlag(positionBitFlags[position], PieceConfiguration.DOES_NOT_BLOCK_CHECK);
+        }
+        return positionBitFlags;
     }
 
     public static int isPlayerInCheck(int[] positionBitFlags) {

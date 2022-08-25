@@ -8,4 +8,8 @@ public class BitUtil {
     public static boolean hasBitFlag(int number, int bitFlag) {
         return (number & bitFlag) == bitFlag;
     }
+
+    public static int reverseBitFlag(int number, int bitFlag) {
+        return number ^ bitFlag;
+    }
 }
