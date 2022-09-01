@@ -161,35 +161,16 @@ public abstract class Piece {
     }
 
     protected int setDirectionalFlags(int number, int x, int y) {
-
-        if (Math.abs(x) > 1 || Math.abs(y) > 1) {
-            return number | PieceConfiguration.DIRECTION_KNIGHT;
-        } else if (x > 0) {
-            if (y > 0) {
-                return number | PieceConfiguration.DIRECTION_NE;
-            } else if (y < 0) {
-                return number | PieceConfiguration.DIRECTION_SE;
-            } else {
-                return number | PieceConfiguration.DIRECTION_E;
-            }
-        } else if (x < 0) {
-            if (y > 0) {
-                return number | PieceConfiguration.DIRECTION_NW;
-            } else if (y < 0) {
-                return number | PieceConfiguration.DIRECTION_SW;
-            } else {
-                return number | PieceConfiguration.DIRECTION_W;
-            }
-        } else if (y > 0) {
-            return number | PieceConfiguration.DIRECTION_N;
-        }
-        return number | PieceConfiguration.DIRECTION_S;
+        return number | Position.DIRECTIONAL_BIT_FLAGS[y + 2][x + 2];
     }
 
     public static int getDirectionalFlags(int number) {
-        return number & (PieceConfiguration.DIRECTION_N | PieceConfiguration.DIRECTION_NE
-                | PieceConfiguration.DIRECTION_E | PieceConfiguration.DIRECTION_SE | PieceConfiguration.DIRECTION_S
-                | PieceConfiguration.DIRECTION_SW | PieceConfiguration.DIRECTION_W | PieceConfiguration.DIRECTION_NW);
+        return number & (PieceConfiguration.DIRECTION_N | PieceConfiguration.DIRECTION_NNE
+                | PieceConfiguration.DIRECTION_NE | PieceConfiguration.DIRECTION_ENE | PieceConfiguration.DIRECTION_E
+                | PieceConfiguration.DIRECTION_ESE | PieceConfiguration.DIRECTION_SE | PieceConfiguration.DIRECTION_SSE
+                | PieceConfiguration.DIRECTION_S | PieceConfiguration.DIRECTION_SSW | PieceConfiguration.DIRECTION_SW
+                | PieceConfiguration.DIRECTION_WSW | PieceConfiguration.DIRECTION_W | PieceConfiguration.DIRECTION_WNW
+                | PieceConfiguration.DIRECTION_NW | PieceConfiguration.DIRECTION_NNW);
     }
 
     protected boolean hasDirectionalFlags(int number) {
@@ -214,7 +195,14 @@ public abstract class Piece {
             case PieceConfiguration.DIRECTION_SE:
             case PieceConfiguration.DIRECTION_NW:
                 return filterDirectionalLimitsByPredicate(directionalLimits, dl -> dl[0] == -dl[1]);
-            case PieceConfiguration.DIRECTION_KNIGHT:
+            case PieceConfiguration.DIRECTION_NNE:
+            case PieceConfiguration.DIRECTION_ENE:
+            case PieceConfiguration.DIRECTION_ESE:
+            case PieceConfiguration.DIRECTION_SSE:
+            case PieceConfiguration.DIRECTION_SSW:
+            case PieceConfiguration.DIRECTION_WSW:
+            case PieceConfiguration.DIRECTION_WNW:
+            case PieceConfiguration.DIRECTION_NNW:
             default:
                 return directionalLimits;
         }

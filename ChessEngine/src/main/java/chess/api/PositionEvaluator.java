@@ -1,12 +1,14 @@
 package chess.api;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class PositionEvaluator {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(PositionEvaluator.class);
 
     public static int getValueDifferential(PieceConfiguration pieceConfiguration) {
         Map<Side, Integer> valueMap = pieceConfiguration.getPieces().stream()
@@ -26,18 +28,50 @@ public class PositionEvaluator {
     }
 
     public static PieceConfiguration getBestMoveRecursively(PieceConfiguration pieceConfiguration, int depth) {
-        int currentDepth = depth;
-        while (currentDepth > 0) {
-            List<PieceConfiguration> nextConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
-            Optional<PieceConfiguration> bestConfiguration = nextConfigurations.stream()
-                    .sorted(Comparator.comparingInt(PositionEvaluator::getValueDifferential))
-                    .findFirst();
-
-            currentDepth--;
-            if (bestConfiguration.isPresent()) {
-                return getBestMoveRecursively(bestConfiguration.get(), currentDepth);
-            }
+        Optional<Map.Entry<PieceConfiguration, Integer>> optionalBestEntry = getBestPieceConfigurationToValueEntryRecursively(pieceConfiguration, depth);
+        if (optionalBestEntry.isPresent()) {
+            return optionalBestEntry.get().getKey();
         }
         return null;
+    }
+
+    public static int getBestValueDifferentialRecursively(PieceConfiguration pieceConfiguration, int depth) {
+        Optional<Map.Entry<PieceConfiguration, Integer>> optionalBestEntry = getBestPieceConfigurationToValueEntryRecursively(pieceConfiguration, depth);
+        if (optionalBestEntry.isPresent()) {
+            return optionalBestEntry.get().getValue();
+        }
+        return Integer.MIN_VALUE;
+    }
+
+    public static Optional<Map.Entry<PieceConfiguration, Integer>> getBestPieceConfigurationToValueEntryRecursively(PieceConfiguration pieceConfiguration, int depth) {
+        Map<PieceConfiguration, Integer> pieceConfigurationValueMap = new HashMap<>();
+
+        depth--;
+        for (PieceConfiguration onwardPieceConfiguration : pieceConfiguration.getPossiblePieceConfigurations()) {
+            if (onwardPieceConfiguration == null) {
+                continue;
+            }
+
+            Integer valueDiff = null;
+            if (depth > 0) {
+                int turnSideFactor = 1 - ((depth % 2) * 2);
+                valueDiff = turnSideFactor * getBestValueDifferentialRecursively(onwardPieceConfiguration, depth);
+            } else {
+                valueDiff = -getValueDifferential(onwardPieceConfiguration);
+            }
+            pieceConfigurationValueMap.put(onwardPieceConfiguration, valueDiff);
+        }
+
+        return pieceConfigurationValueMap.entrySet().stream()
+                .sorted(entryComparator())
+                .findFirst();
+    }
+
+    public static Comparator<PieceConfiguration> pieceConfigurationComparator() {
+        return Comparator.comparingInt(PositionEvaluator::getValueDifferential).reversed();
+    }
+
+    public static Comparator<Map.Entry<PieceConfiguration, Integer>> entryComparator() {
+        return Comparator.comparingInt(Map.Entry::getValue);
     }
 }

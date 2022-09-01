@@ -471,4 +471,26 @@ public class MovementTest {
                 .as("Unexpected number of available moves when the king has been checked by a pawn")
                 .hasSize(7);
     }
+
+    @Test
+    public void testInCheck_tryingToMoveAwayFromCheckingKnight() {
+        PieceConfiguration pieceConfiguration = FENReader.read("8/8/8/8/8/1nn5/8/K2n4 w - - 0 1");
+
+        List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
+
+        assertThat(pieceConfigurations)
+                .as("Unexpected number of available moves when the king has been checked and cornered by knights")
+                .isEmpty();
+    }
+
+    @Test
+    public void testInCheck_whenKingCannotMoveButPawnCanTakeChecker() {
+        PieceConfiguration pieceConfiguration = FENReader.read("7k/6pp/6N1/8/8/8/B7/8 b - - 0 1");
+
+        List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
+
+        assertThat(pieceConfigurations)
+                .as("Unexpected number of available moves when the king has been checked by a takeable knight")
+                .hasSize(1);
+    }
 }

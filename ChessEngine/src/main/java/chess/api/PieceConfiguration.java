@@ -1,6 +1,7 @@
 package chess.api;
 
 import chess.api.pieces.King;
+import chess.api.pieces.Knight;
 import chess.api.pieces.Piece;
 import com.google.common.collect.ImmutableSet;
 
@@ -10,40 +11,55 @@ import java.util.stream.Collectors;
 
 public class PieceConfiguration {
 
-    public static final int PLAYER_OCCUPIED = 64;
+    public static final int PLAYER_OCCUPIED = 64; // 6
 
-    public static final int OPPONENT_OCCUPIED = 128;
+    public static final int OPPONENT_OCCUPIED = 128; // 7
 
-    public static final int THREATENED = 256;
+    public static final int THREATENED = 256; // 8
 
-    public static final int KING_OCCUPIED = 512;
+    public static final int KING_OCCUPIED = 512; // 9
 
-    public static final int EN_PASSANT_SQUARE = 1024;
+    public static final int EN_PASSANT_SQUARE = 1024; // 10
 
-    public static final int CASTLE_AVAILABLE = 2048;
+    public static final int CASTLE_AVAILABLE = 2048; // 11
 
-    public static final int DOES_NOT_BLOCK_CHECK = 4096;
+    public static final int DOES_NOT_BLOCK_CHECK = 4096; // 12
 
-    public static final int DIRECTION_N = 8192;
+    public static final int DIRECTION_N = 8192; // 13
 
-    public static final int DIRECTION_NE = 16384;
+    public static final int DIRECTION_NE = 16384; // 14
 
-    public static final int DIRECTION_E = 32768;
+    public static final int DIRECTION_E = 32768; // 15
 
-    public static final int DIRECTION_SE = 65536;
+    public static final int DIRECTION_SE = 65536; // 16
 
-    public static final int DIRECTION_S = 131072;
+    public static final int DIRECTION_S = 131072; // 17
 
-    public static final int DIRECTION_SW = 262144;
+    public static final int DIRECTION_SW = 262144; // 18
 
-    public static final int DIRECTION_W = 524288;
+    public static final int DIRECTION_W = 524288; // 19
 
-    public static final int DIRECTION_NW = 1048576;
+    public static final int DIRECTION_NW = 1048576; // 20
 
-    public static final int DIRECTION_KNIGHT = 2097152;
+    public static final int DIRECTION_NNE = 2097152; // 21
 
-    public static final ImmutableSet<Integer> ALL_DIRECTIONAL_FLAGS = ImmutableSet.of(DIRECTION_N, DIRECTION_NE,
-            DIRECTION_E, DIRECTION_SE, DIRECTION_S, DIRECTION_SW, DIRECTION_W, DIRECTION_NW, DIRECTION_KNIGHT);
+    public static final int DIRECTION_ENE = 4194304; // 22
+
+    public static final int DIRECTION_ESE = 8388608; // 23
+
+    public static final int DIRECTION_SSE = 16777216; // 24
+
+    public static final int DIRECTION_SSW = 33554432; // 25
+
+    public static final int DIRECTION_WSW = 67108864; // 26
+
+    public static final int DIRECTION_WNW = 134217728; // 27
+
+    public static final int DIRECTION_NNW = 268435456; // 28
+
+    public static final ImmutableSet<Integer> ALL_DIRECTIONAL_FLAGS = ImmutableSet.of(DIRECTION_N, DIRECTION_NNE,
+            DIRECTION_NE, DIRECTION_ENE, DIRECTION_E, DIRECTION_ESE, DIRECTION_SE, DIRECTION_SSE, DIRECTION_S,
+            DIRECTION_SSW, DIRECTION_SW, DIRECTION_WSW, DIRECTION_W, DIRECTION_WNW, DIRECTION_NW, DIRECTION_NNW);
 
     private Set<Piece> pieces = new HashSet<>();
 

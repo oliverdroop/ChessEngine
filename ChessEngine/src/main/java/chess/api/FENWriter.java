@@ -5,6 +5,8 @@ import com.google.common.collect.ImmutableMap;
 
 public class FENWriter {
 
+	public static final String STARTING_POSITION = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
 	private static final ImmutableMap<Integer, Character> CASTLE_POSITION_CODES = ImmutableMap.of(2, 'Q', 6, 'K', 58, 'q', 62, 'k');
 	public static String write(PieceConfiguration pieceConfiguration){
 		StringBuilder fenBuilder = new StringBuilder();

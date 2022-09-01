@@ -18,6 +18,10 @@ public class Knight extends Piece{
         return DIRECTIONAL_LIMITS;
     }
 
+    public static int[][] getKnightDirectionalLimits() {
+        return DIRECTIONAL_LIMITS;
+    }
+
     @Override
     public int[] stampThreatFlags(int[] positionBitFlags) {
         return stampSimpleThreatFlags(positionBitFlags);

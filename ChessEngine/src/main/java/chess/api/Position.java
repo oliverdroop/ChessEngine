@@ -14,6 +14,14 @@ public class Position {
             32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,
             48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63};
 
+    public static final int[][] DIRECTIONAL_BIT_FLAGS = {
+            {-1, PieceConfiguration.DIRECTION_SSW, -1, PieceConfiguration.DIRECTION_SSE, -1},
+            {PieceConfiguration.DIRECTION_WSW, PieceConfiguration.DIRECTION_SW, PieceConfiguration.DIRECTION_S, PieceConfiguration.DIRECTION_SE, PieceConfiguration.DIRECTION_ESE},
+            {-1, PieceConfiguration.DIRECTION_W, -1, PieceConfiguration.DIRECTION_E, -1},
+            {PieceConfiguration.DIRECTION_WNW, PieceConfiguration.DIRECTION_NW, PieceConfiguration.DIRECTION_N, PieceConfiguration.DIRECTION_NE, PieceConfiguration.DIRECTION_ENE},
+            {-1, PieceConfiguration.DIRECTION_NNW, -1, PieceConfiguration.DIRECTION_NNE, -1}
+    };
+
     public static int[] getCoordinates(int position) {
         return new int[] {getX(position), getY(position)};
     }
@@ -53,20 +61,36 @@ public class Position {
         switch(directionBitFlag) {
             case PieceConfiguration.DIRECTION_N:
                 return Position.applyTranslation(positionBitFlag, 0, -1);
+            case PieceConfiguration.DIRECTION_NNE:
+                return Position.applyTranslation(positionBitFlag, -1, -2);
             case PieceConfiguration.DIRECTION_NE:
                 return Position.applyTranslation(positionBitFlag, -1, -1);
+            case PieceConfiguration.DIRECTION_ENE:
+                return Position.applyTranslation(positionBitFlag, -2, -1);
             case PieceConfiguration.DIRECTION_E:
                 return Position.applyTranslation(positionBitFlag, -1, 0);
+            case PieceConfiguration.DIRECTION_ESE:
+                return Position.applyTranslation(positionBitFlag, -2, 1);
             case PieceConfiguration.DIRECTION_SE:
                 return Position.applyTranslation(positionBitFlag, -1, 1);
+            case PieceConfiguration.DIRECTION_SSE:
+                return Position.applyTranslation(positionBitFlag, -1, 2);
             case PieceConfiguration.DIRECTION_S:
                 return Position.applyTranslation(positionBitFlag, 0, 1);
+            case PieceConfiguration.DIRECTION_SSW:
+                return Position.applyTranslation(positionBitFlag, 1, 2);
             case PieceConfiguration.DIRECTION_SW:
                 return Position.applyTranslation(positionBitFlag, 1, 1);
+            case PieceConfiguration.DIRECTION_WSW:
+                return Position.applyTranslation(positionBitFlag, 2, 1);
             case PieceConfiguration.DIRECTION_W:
                 return Position.applyTranslation(positionBitFlag, 1, 0);
+            case PieceConfiguration.DIRECTION_WNW:
+                return Position.applyTranslation(positionBitFlag, 2, -1);
             case PieceConfiguration.DIRECTION_NW:
                 return Position.applyTranslation(positionBitFlag, 1, -1);
+            case PieceConfiguration.DIRECTION_NNW:
+                return Position.applyTranslation(positionBitFlag, 1, -2);
         }
         return -1;
     }
