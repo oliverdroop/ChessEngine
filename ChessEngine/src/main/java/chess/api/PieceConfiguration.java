@@ -1,15 +1,18 @@
 package chess.api;
 
 import chess.api.pieces.King;
-import chess.api.pieces.Knight;
 import chess.api.pieces.Piece;
 import com.google.common.collect.ImmutableSet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class PieceConfiguration {
+public class PieceConfiguration implements Comparable<PieceConfiguration> {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(PieceConfiguration.class);
 
     public static final int PLAYER_OCCUPIED = 64; // 6
 
@@ -61,7 +64,7 @@ public class PieceConfiguration {
             DIRECTION_NE, DIRECTION_ENE, DIRECTION_E, DIRECTION_ESE, DIRECTION_SE, DIRECTION_SSE, DIRECTION_S,
             DIRECTION_SSW, DIRECTION_SW, DIRECTION_WSW, DIRECTION_W, DIRECTION_WNW, DIRECTION_NW, DIRECTION_NNW);
 
-    private Set<Piece> pieces = new HashSet<>();
+    protected Set<Piece> pieces = new HashSet<>();
 
     private Integer enPassantSquare;
 
@@ -72,6 +75,14 @@ public class PieceConfiguration {
     private int halfMoveClock = 0;
 
     private int fullMoveNumber = 0;
+
+    private int[] positionBitFlags;
+
+    private PieceConfiguration parentConfiguration;
+
+    private Collection<PieceConfiguration> childConfigurations = new HashSet<>();
+
+    private String algebraicNotation;
 
     public PieceConfiguration() {
 
@@ -88,14 +99,14 @@ public class PieceConfiguration {
     }
 
     public List<PieceConfiguration> getPossiblePieceConfigurations() {
-        int[] positionBitFlags = stampCheckNonBlockerFlags(stampThreatFlags(stampOccupationFlags(Arrays.copyOf(Position.POSITIONS, 64))));
+        positionBitFlags = stampCheckNonBlockerFlags(stampThreatFlags(stampOccupationFlags(Arrays.copyOf(Position.POSITIONS, 64))));
         return pieces.stream()
                 .filter(p -> p.getSide() == turnSide)
-                .flatMap(p -> getPossiblePieceConfigurationsForPiece(p, positionBitFlags).stream())
+                .flatMap(p -> getPossiblePieceConfigurationsForPiece(p).stream())
                 .collect(Collectors.toList());
     }
 
-    public List<PieceConfiguration> getPossiblePieceConfigurationsForPiece(Piece piece, int[] positionBitFlags) {
+    public List<PieceConfiguration> getPossiblePieceConfigurationsForPiece(Piece piece) {
         return piece.getPossibleMoves(positionBitFlags, this);
     }
 
@@ -243,5 +254,83 @@ public class PieceConfiguration {
 
     public String toString() {
         return FENWriter.write(this);
+    }
+
+    public PieceConfiguration getParentConfiguration() {
+        return parentConfiguration;
+    }
+
+    public void setParentConfiguration(PieceConfiguration parentConfiguration) {
+        this.parentConfiguration = parentConfiguration;
+    }
+
+    public Collection<PieceConfiguration> getChildConfigurations() {
+        return childConfigurations;
+    }
+
+    public void addChildConfiguration(PieceConfiguration childConfiguration) {
+        childConfigurations.add(childConfiguration);
+    }
+
+    public String getAlgebraicNotation() {
+        return algebraicNotation;
+    }
+
+    public void setAlgebraicNotation(String algebraicNotation) {
+        this.algebraicNotation = algebraicNotation;
+    }
+
+    public List<PieceConfiguration> getGameHistory() {
+        List<PieceConfiguration> pcs = new ArrayList<>();
+        PieceConfiguration pc = this;
+        while(pc.getParentConfiguration() != null) {
+            pcs.add(pc);
+            pc = pc.getParentConfiguration();
+        }
+
+        List<PieceConfiguration> outputPcs = new ArrayList<>();
+        for(int i = pcs.size() - 1; i >= 0; i--) {
+            outputPcs.add(pcs.get(i));
+        }
+        return outputPcs;
+    }
+
+    public boolean isCheck() {
+        return Arrays.stream(this.positionBitFlags)
+                .anyMatch(position -> BitUtil.hasBitFlag(position, PieceConfiguration.PLAYER_OCCUPIED)
+                        && BitUtil.hasBitFlag(position, PieceConfiguration.KING_OCCUPIED)
+                        && BitUtil.hasBitFlag(position, PieceConfiguration.THREATENED));
+    }
+
+    public void logGameHistory() {
+        StringBuilder sb = new StringBuilder();
+        List<PieceConfiguration> gameHistory = getGameHistory();
+        for (int i = 0; i < gameHistory.size(); i++) {
+            PieceConfiguration pc = gameHistory.get(i);
+            boolean whiteMoved = pc.getTurnSide() == Side.BLACK;
+            if (whiteMoved) {
+                sb = new StringBuilder()
+                        .append(pc.getFullMoveNumber())
+                        .append(". ");
+            }
+            sb.append(pc.getAlgebraicNotation());
+            if (whiteMoved && i < gameHistory.size() - 1) {
+                sb.append(" ");
+            } else {
+                LOGGER.info(sb.toString());
+            }
+        }
+    }
+
+    @Override
+    public int compareTo(PieceConfiguration pieceConfiguration) {
+        int diff1 = PositionEvaluator.getValueDifferential(this);
+        int diff2 = PositionEvaluator.getValueDifferential(pieceConfiguration);
+        if (diff1 > diff2) {
+            return -1;
+        } else if (diff1 < diff2) {
+            return 1;
+        }
+        return 0;
     }
 }

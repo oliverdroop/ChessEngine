@@ -11,9 +11,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.IntPredicate;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 public abstract class Piece {
 
@@ -30,8 +28,8 @@ public abstract class Piece {
     }
 
     /**
-     * @return An array of size-2 int arrays, where the first int corresponds to a direction
-     * and the second int corresponds to the maximum number of times the piece can move in that direction
+     * @return An array of size-3 int arrays, where the first two ints correspond to a direction
+     * and the third int corresponds to the maximum number of times the piece can move in that direction
      */
     public abstract int[][] getDirectionalLimits();
 
@@ -49,15 +47,15 @@ public abstract class Piece {
                     break;
                 }
 
+                // Is this player piece blocked by another player piece?
+                if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PieceConfiguration.PLAYER_OCCUPIED)) {
+                    break;
+                }
+
                 // Is this position a position which wouldn't block an existing checking direction?
                 if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PieceConfiguration.DOES_NOT_BLOCK_CHECK)) {
                     limit--;
                     continue;
-                }
-
-                // Is this player piece blocked by another player piece?
-                if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PieceConfiguration.PLAYER_OCCUPIED)) {
-                    break;
                 }
 
                 // Is there an opponent piece on the position?
@@ -105,7 +103,31 @@ public abstract class Piece {
             newConfiguration.setFullMoveNumber(currentConfiguration.getFullMoveNumber() + 1);
         }
         pieceConfigurations.add(newConfiguration);
+        linkPieceConfigurations(currentConfiguration, newConfiguration, newPiecePosition, takenPiece);
     }
+
+    protected void linkPieceConfigurations(PieceConfiguration currentConfiguration, PieceConfiguration newConfiguration,
+                                           int newPiecePosition, Piece takenPiece) {
+        currentConfiguration.addChildConfiguration(newConfiguration);
+        newConfiguration.setParentConfiguration(currentConfiguration);
+        newConfiguration.setAlgebraicNotation(getAlgebraicNotation(getPosition(), newPiecePosition, takenPiece != null, null));
+    }
+
+    public String getAlgebraicNotation(int currentPosition, int nextPosition, boolean capturing, String promotionTo) {
+        StringBuilder sb = new StringBuilder()
+//                .append(getANCode())
+                .append(Position.getCoordinateString(currentPosition));
+        if (capturing) {
+            sb.append('x');
+        }
+        sb.append(Position.getCoordinateString(nextPosition));
+        if (promotionTo != null) {
+            sb.append(promotionTo);
+        }
+        return sb.toString();
+    }
+
+    public abstract String getANCode();
 
     public abstract int[] stampThreatFlags(int[] positionBitFlags);
 

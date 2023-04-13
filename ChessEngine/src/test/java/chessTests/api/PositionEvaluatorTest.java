@@ -12,9 +12,11 @@ import org.junit.runners.BlockJUnit4ClassRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -135,5 +137,95 @@ public class PositionEvaluatorTest {
         }
     }
 
+    @Test
+    public void testFENMap() {
+        Map<String, Collection<String>> fenMap = PositionEvaluator.buildFENMap(FENWriter.STARTING_POSITION);
 
+        int depth = 4;
+        while (depth > 0) {
+            for (Map.Entry<String, Collection<String>> entry : fenMap.entrySet()) {
+                Collection<String> value = entry.getValue();
+
+                for (String newKey : value) {
+                    if (fenMap.containsKey(newKey)) {
+                        continue;
+                    }
+                    Map<String, Collection<String>> onwardFENMap = PositionEvaluator.buildFENMap(newKey);
+                    fenMap = Stream.concat(fenMap.entrySet().stream(), onwardFENMap.entrySet().stream())
+                            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (v1, v2) -> v1));
+                }
+            }
+            depth--;
+        }
+        assertThat(fenMap).hasSize(1);
+    }
+
+    @Test
+    public void testAddToFENMap() {
+        Map<String, Collection<String>> fenMap = PositionEvaluator.buildFENMap(FENWriter.STARTING_POSITION);
+
+        int depth = 4;
+        while (depth > 0) {
+            Set<String> keys = new HashSet<>(fenMap.keySet());
+            for(String key : keys) {
+                Collection<String> value = fenMap.get(key);
+
+                for (String newKey : value) {
+                    if (fenMap.containsKey(newKey)) {
+                        continue;
+                    }
+
+                    PositionEvaluator.addToFENMap(fenMap, newKey);
+                }
+            }
+            depth--;
+        }
+        assertThat(fenMap).hasSize(1);
+    }
+
+    @Test
+    public void testFENMapAsync() throws Exception {
+        Map<String, Collection<String>> fenMap = PositionEvaluator.buildFENMap(FENWriter.STARTING_POSITION);
+
+        ExecutorService executor = Executors.newFixedThreadPool(1);
+
+        int depth = 4;
+        while (depth > 0) {
+            Set<String> keys = new HashSet<>(fenMap.keySet());
+            for(String key : keys) {
+                Collection<String> value = fenMap.get(key);
+
+                for (String newKey : value) {
+                    if (fenMap.containsKey(newKey)) {
+                        continue;
+                    }
+
+                    PositionEvaluator.addToFENMapAsync(fenMap, newKey, executor);
+                }
+            }
+            depth--;
+        }
+        assertThat(fenMap).hasSize(1);
+    }
+
+    @Test
+    public void testRandomGame() {
+        Random rnd = new Random();
+        PieceConfiguration mateConfiguration = null;
+        while (mateConfiguration == null) {
+            PieceConfiguration pc = FENReader.read(FENWriter.STARTING_POSITION);
+            List<PieceConfiguration> ccs = pc.getPossiblePieceConfigurations();
+            while (!ccs.isEmpty() && pc.getHalfMoveClock() < 50) {
+//            LOGGER.info(FENWriter.write(pc));
+                int i = rnd.nextInt(ccs.size());
+                pc = ccs.get(i);
+                ccs = pc.getPossiblePieceConfigurations();
+            }
+            LOGGER.info(FENWriter.write(pc));
+            if (ccs.isEmpty()) {
+                mateConfiguration = pc;
+            }
+        }
+        mateConfiguration.logGameHistory();
+    }
 }

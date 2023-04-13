@@ -12,6 +12,8 @@ public class Rook extends Piece {
 
     private static final ImmutableMap<Integer, Integer> CASTLE_POSITION_MAPPINGS = ImmutableMap.of(0, 2, 7, 6, 56, 58, 63, 62);
 
+    public static final String AN_CODE = "R";
+
     public Rook(Side side, int position) {
         super(side, PieceType.ROOK, position);
     }
@@ -34,6 +36,11 @@ public class Rook extends Piece {
             PieceConfiguration newPieceConfiguration = pieceConfigurations.get(pieceConfigurations.size() - 1);
             newPieceConfiguration.removeCastlePosition(CASTLE_POSITION_MAPPINGS.get(getPosition()));
         }
+    }
+
+    @Override
+    public String getANCode() {
+        return AN_CODE;
     }
 
     public char getFENCode() {

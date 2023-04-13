@@ -8,6 +8,8 @@ import java.util.List;
 
 public class Queen extends Piece{
 
+    public static final String AN_CODE = "Q";
+
     private static final int[][] DIRECTIONAL_LIMITS = {{-1, -1, 7}, {1, -1, 7}, {-1, 1, 7}, {1, 1, 7}, {0, -1, 7}, {-1, 0, 7}, {1, 0, 7}, {0, 1, 7}};
 
     public Queen(Side side, int position) {
@@ -17,6 +19,11 @@ public class Queen extends Piece{
     @Override
     public int[][] getDirectionalLimits() {
         return DIRECTIONAL_LIMITS;
+    }
+
+    @Override
+    public String getANCode() {
+        return AN_CODE;
     }
 
     @Override

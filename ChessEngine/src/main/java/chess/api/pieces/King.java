@@ -17,6 +17,8 @@ public class King extends Piece{
 
     private static final ImmutableMap<Integer, Integer> CASTLE_POSITION_MAPPINGS = ImmutableMap.of(2, 0, 6, 7, 58, 56, 62, 63);
 
+    public static final String AN_CODE = "K";
+
     public King(Side side, int position) {
         super(side, PieceType.KING, position);
     }
@@ -128,6 +130,11 @@ public class King extends Piece{
                 newPieceConfiguration.addPiece(new Rook(getSide(), (getPosition() + newPiecePosition) / 2));
             }
         }
+    }
+
+    @Override
+    public String getANCode() {
+        return AN_CODE;
     }
 
     public char getFENCode() {

@@ -10,6 +10,8 @@ public class Bishop extends Piece {
 
     private static final int[][] DIRECTIONAL_LIMITS = { {-1, -1, 7}, {1, -1, 7}, {-1, 1, 7}, {1, 1, 7} };
 
+    public static final String AN_CODE = "B";
+
     public Bishop(Side side, int position) {
         super(side, PieceType.BISHOP, position);
     }
@@ -17,6 +19,11 @@ public class Bishop extends Piece {
     @Override
     public int[][] getDirectionalLimits() {
         return DIRECTIONAL_LIMITS;
+    }
+
+    @Override
+    public String getANCode() {
+        return AN_CODE;
     }
 
     @Override

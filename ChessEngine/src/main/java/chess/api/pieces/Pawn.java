@@ -4,15 +4,22 @@ import chess.api.BitUtil;
 import chess.api.PieceConfiguration;
 import chess.api.Position;
 import chess.api.Side;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import org.apache.logging.log4j.util.Strings;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class Pawn extends Piece{
 
     private static final int[][] WHITE_DIRECTIONAL_LIMITS = {{-1, 1, 1}, {0, 1, 2}, {1, 1, 1}};
 
     private static final int[][] BLACK_DIRECTIONAL_LIMITS = {{1, -1, 1}, {0, -1, 2}, {-1, -1, 1}};
+
+    private static final Map<Class<? extends Piece>, String> PROMOTION_CLASSES = ImmutableMap.of(Knight.class, "N", Bishop.class, "B", Rook.class, "R", Queen.class, "Q");
 
     public Pawn(Side side, int position) {
         super(side, PieceType.PAWN, position);
@@ -38,15 +45,15 @@ public class Pawn extends Piece{
                     break;
                 }
 
+                // Is this player piece blocked by another player piece?
+                if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PieceConfiguration.PLAYER_OCCUPIED)) {
+                    break;
+                }
+
                 // Is this position a position which wouldn't block an existing checking direction?
                 if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PieceConfiguration.DOES_NOT_BLOCK_CHECK)) {
                     limit--;
                     continue;
-                }
-
-                // Is this player piece blocked by another player piece?
-                if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PieceConfiguration.PLAYER_OCCUPIED)) {
-                    break;
                 }
 
                 // Is there an opponent piece on the position?
@@ -102,10 +109,6 @@ public class Pawn extends Piece{
             movableDirectionalLimits[1 - startIndex][2] = 1;
         }
 
-//        int[] kingThreatDirection = getDirectionalFlags(positionBitFlags[getPosition()]);
-//        if (hasDirectionalFlags(kingThreatDirection)) {
-//            return restrictDirections(movableDirectionalLimits, kingThreatDirection);
-//        }
         int directionalBitFlags = getDirectionalFlags(positionBitFlags[getPosition()]);
         if (directionalBitFlags != 0) {
             return restrictDirections(movableDirectionalLimits, directionalBitFlags);
@@ -125,11 +128,22 @@ public class Pawn extends Piece{
         } else if (Position.getY(newPiecePosition) == 7 - (getSide().ordinal() * 7)) {
             // Promote pawn
             pieceConfigurations.remove(pieceConfigurations.size() - 1);
-            pieceConfigurations.add(getPromotedPawnConfiguration(newPieceConfiguration, newPiecePosition, Knight.class));
-            pieceConfigurations.add(getPromotedPawnConfiguration(newPieceConfiguration, newPiecePosition, Bishop.class));
-            pieceConfigurations.add(getPromotedPawnConfiguration(newPieceConfiguration, newPiecePosition, Rook.class));
-            pieceConfigurations.add(getPromotedPawnConfiguration(newPieceConfiguration, newPiecePosition, Queen.class));
+            currentConfiguration.getChildConfigurations().remove(newPieceConfiguration);
+            for(Class<? extends Piece> promotionClass : PROMOTION_CLASSES.keySet()) {
+                PieceConfiguration promotedPawnConfiguration = getPromotedPawnConfiguration(newPieceConfiguration,
+                        newPiecePosition, promotionClass);
+                linkPromotedPieceConfigurations(currentConfiguration, promotedPawnConfiguration, newPiecePosition,
+                        takenPiece, PROMOTION_CLASSES.get(promotionClass).toLowerCase());
+                pieceConfigurations.add(promotedPawnConfiguration);
+            }
         }
+    }
+
+    protected void linkPromotedPieceConfigurations(PieceConfiguration currentConfiguration, PieceConfiguration newConfiguration,
+                                           int newPiecePosition, Piece takenPiece, String promotionTo) {
+        currentConfiguration.addChildConfiguration(newConfiguration);
+        newConfiguration.setParentConfiguration(currentConfiguration);
+        newConfiguration.setAlgebraicNotation(getAlgebraicNotation(getPosition(), newPiecePosition, takenPiece != null, promotionTo));
     }
 
     private PieceConfiguration getPromotedPawnConfiguration(PieceConfiguration unpromotedPawnConfiguration,
@@ -155,6 +169,11 @@ public class Pawn extends Piece{
 
     public char getFENCode() {
         return (char) (80 + (getSide().ordinal() * 32));
+    }
+
+    @Override
+    public String getANCode() {
+        return Strings.EMPTY;
     }
 
     public int getValue() {
