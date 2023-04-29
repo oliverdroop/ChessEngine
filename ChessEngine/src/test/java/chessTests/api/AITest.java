@@ -67,6 +67,15 @@ public class AITest {
 				.as("Upgrading white pawn should avoid stalemate")
 				.isEqualTo("2N5/kB1N4/8/8/8/8/8/KR6 b - - 0 1");
 	}
+
+	@Test
+	public void testAIAvoidsStalemate() {
+		setupTest("7k/8/5P2/8/8/8/B7/KB6 w - - 0 1");
+		newPieceConfiguration = PositionEvaluator.getBestMoveRecursively(pieceConfiguration, 4);
+		softly.assertThat(FENWriter.write(newPieceConfiguration))
+				.as("White pawn should advance to avoid blocking the black king in the corner")
+				.isEqualTo("7k/5P2/8/8/8/8/B7/KB6 b - - 0 1");
+	}
 	
 	private void setupTest(String fen) {
 		pieceConfiguration = FENReader.read(fen);

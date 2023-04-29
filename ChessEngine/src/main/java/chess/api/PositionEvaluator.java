@@ -1,12 +1,17 @@
 package chess.api;
 
+import chess.api.pieces.Piece;
+import com.google.common.base.Functions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class PositionEvaluator {
 
@@ -29,6 +34,21 @@ public class PositionEvaluator {
         return 0;
     }
 
+    public static int getCentrePositionDifferential(PieceConfiguration pieceConfiguration) {
+        return 0;
+//        Map<Side, Long> map = pieceConfiguration.getPieces().stream()
+//                .filter(piece -> Arrays.stream(PieceConfiguration.CENTRE_POSITIONS)
+//                        .anyMatch(centrePosition -> centrePosition == piece.getPosition()))
+//                .collect(Collectors.groupingBy(Piece::getSide, Collectors.counting()));
+//        int turnSideCentralPieceCount = map.containsKey(pieceConfiguration.getTurnSide())
+//                ? map.get(pieceConfiguration.getTurnSide()).intValue()
+//                : 0;
+//        int opposingSideCentralPieceCount = map.containsKey(pieceConfiguration.getOpposingSide())
+//                ? map.get(pieceConfiguration.getOpposingSide()).intValue()
+//                : 0;
+//        return turnSideCentralPieceCount - opposingSideCentralPieceCount;
+    }
+
     public static PieceConfiguration getBestMoveRecursively(PieceConfiguration pieceConfiguration, int depth) {
         Optional<Map.Entry<PieceConfiguration, Integer>> optionalBestEntry = getBestPieceConfigurationToValueEntryRecursively(pieceConfiguration, depth);
         if (optionalBestEntry.isPresent()) {
@@ -42,7 +62,7 @@ public class PositionEvaluator {
         if (optionalBestEntry.isPresent()) {
             return optionalBestEntry.get().getValue();
         } else if (pieceConfiguration.isCheck()) {
-            // Check
+            // Checkmate
             return Integer.MAX_VALUE;
         }
         // Stalemate
@@ -54,7 +74,7 @@ public class PositionEvaluator {
 
         depth--;
         List<PieceConfiguration> onwardPieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
-        onwardPieceConfigurations = onwardPieceConfigurations.stream().sorted().collect(Collectors.toList());
+//        onwardPieceConfigurations = onwardPieceConfigurations.stream().sorted().collect(Collectors.toList());
         for (PieceConfiguration onwardPieceConfiguration : onwardPieceConfigurations) {
 
             Integer valueDiff = null;
@@ -97,7 +117,7 @@ public class PositionEvaluator {
     public static void addToFENMapAsync(Map<String, Collection<String>> fenMap, String fen, ExecutorService executor) throws Exception {
         PieceConfiguration configuration = FENReader.read(fen);
 
-        PCCallable pcCallable = new PCCallable(configuration);
+        Callable pcCallable = new PCCallable(configuration);
         Future<List<PieceConfiguration>> onwardConfigurations = executor.submit(pcCallable);
         Collection<String> onwardFENs = onwardConfigurations.get().stream()
                 .map(pc -> FENWriter.write(pc))
@@ -111,6 +131,7 @@ public class PositionEvaluator {
     }
 
     public static Comparator<Map.Entry<PieceConfiguration, Integer>> entryComparator() {
-        return Comparator.comparingInt(Map.Entry::getValue);
+        return Comparator.<Map.Entry<PieceConfiguration, Integer>>comparingInt(Map.Entry::getValue)
+                .thenComparing(Map.Entry::getKey);
     }
 }

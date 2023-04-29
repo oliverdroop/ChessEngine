@@ -2,6 +2,7 @@ package chess.api;
 
 import chess.api.pieces.King;
 import chess.api.pieces.Piece;
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,6 +65,8 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
             DIRECTION_NE, DIRECTION_ENE, DIRECTION_E, DIRECTION_ESE, DIRECTION_SE, DIRECTION_SSE, DIRECTION_S,
             DIRECTION_SSW, DIRECTION_SW, DIRECTION_WSW, DIRECTION_W, DIRECTION_WNW, DIRECTION_NW, DIRECTION_NNW);
 
+    public static final int[] CENTRE_POSITIONS = {27, 28, 35, 36};
+
     protected Set<Piece> pieces = new HashSet<>();
 
     private Integer enPassantSquare;
@@ -80,7 +83,7 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
 
     private PieceConfiguration parentConfiguration;
 
-    private Collection<PieceConfiguration> childConfigurations = new HashSet<>();
+    private List<PieceConfiguration> childConfigurations = new ArrayList<>();
 
     private String algebraicNotation;
 
@@ -216,6 +219,10 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
         return turnSide;
     }
 
+    public Side getOpposingSide() {
+        return turnSide == Side.WHITE ? Side.BLACK : Side.WHITE;
+    }
+
     public List<Integer> getCastlePositions() {
         return castlePositions;
     }
@@ -264,7 +271,7 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
         this.parentConfiguration = parentConfiguration;
     }
 
-    public Collection<PieceConfiguration> getChildConfigurations() {
+    public List<PieceConfiguration> getChildConfigurations() {
         return childConfigurations;
     }
 
@@ -324,13 +331,11 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
 
     @Override
     public int compareTo(PieceConfiguration pieceConfiguration) {
-        int diff1 = PositionEvaluator.getValueDifferential(this);
-        int diff2 = PositionEvaluator.getValueDifferential(pieceConfiguration);
-        if (diff1 > diff2) {
-            return -1;
-        } else if (diff1 < diff2) {
-            return 1;
-        }
-        return 0;
+        return ComparisonChain.start()
+                .compare(PositionEvaluator.getValueDifferential(this),
+                        PositionEvaluator.getValueDifferential(pieceConfiguration))
+                .compare(PositionEvaluator.getCentrePositionDifferential(this),
+                        PositionEvaluator.getCentrePositionDifferential(pieceConfiguration))
+                .result();
     }
 }

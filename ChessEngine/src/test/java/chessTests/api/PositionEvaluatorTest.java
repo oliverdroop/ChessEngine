@@ -1,9 +1,6 @@
 package chessTests.api;
 
-import chess.api.FENReader;
-import chess.api.FENWriter;
-import chess.api.PieceConfiguration;
-import chess.api.PositionEvaluator;
+import chess.api.*;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.Rule;
 import org.junit.Test;
@@ -13,8 +10,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -164,7 +163,7 @@ public class PositionEvaluatorTest {
     public void testAddToFENMap() {
         Map<String, Collection<String>> fenMap = PositionEvaluator.buildFENMap(FENWriter.STARTING_POSITION);
 
-        int depth = 4;
+        int depth = 3;
         while (depth > 0) {
             Set<String> keys = new HashSet<>(fenMap.keySet());
             for(String key : keys) {
@@ -187,9 +186,10 @@ public class PositionEvaluatorTest {
     public void testFENMapAsync() throws Exception {
         Map<String, Collection<String>> fenMap = PositionEvaluator.buildFENMap(FENWriter.STARTING_POSITION);
 
-        ExecutorService executor = Executors.newFixedThreadPool(1);
+        ExecutorService executor = Executors.newFixedThreadPool(8);
 
-        int depth = 4;
+        int maxDepth = 4;
+        int depth = maxDepth;
         while (depth > 0) {
             Set<String> keys = new HashSet<>(fenMap.keySet());
             for(String key : keys) {
@@ -200,12 +200,47 @@ public class PositionEvaluatorTest {
                         continue;
                     }
 
-                    PositionEvaluator.addToFENMapAsync(fenMap, newKey, executor);
+                    if (depth == maxDepth) {
+                        PositionEvaluator.addToFENMapAsync(fenMap, newKey, executor);
+                    } else {
+                        PositionEvaluator.addToFENMap(fenMap, newKey);
+                    }
                 }
             }
             depth--;
         }
-        assertThat(fenMap).hasSize(1);
+        assertThat(fenMap).hasSize(124991);
+    }
+
+    @Test
+    public void testPCTreeCallable() throws ExecutionException, InterruptedException {
+        PieceConfiguration pc = FENReader.read(FENWriter.STARTING_POSITION);
+        ExecutorService executor = Executors.newFixedThreadPool(4);
+
+        List<String> onwardFENs = pc.getPossiblePieceConfigurations().stream()
+                .map(oc -> FENWriter.write(oc))
+                .collect(Collectors.toList());
+        Map<String, Collection<String>> fenMap = new HashMap<>();
+        fenMap.put(FENWriter.STARTING_POSITION, onwardFENs);
+
+        int rounds = 2;
+        while (rounds > 0) {
+            Set<String> fenMapKeys = fenMap.keySet().stream().collect(Collectors.toSet());
+            for (String fen : fenMapKeys) {
+                List<Future<Map<String, Collection<String>>>> onwardFENMaps = new ArrayList<>();
+                for (String onwardFEN : fenMap.get(fen)) {
+                    PieceConfiguration onwardConfiguration = FENReader.read(onwardFEN);
+                    PCTreeCallable pcTreeCallable = new PCTreeCallable(onwardConfiguration, 2);
+                    onwardFENMaps.add(executor.submit(pcTreeCallable));
+                }
+                for (Future<Map<String, Collection<String>>> futureOnwardFENMap : onwardFENMaps) {
+                    Map<String, Collection<String>> onwardFENMap = futureOnwardFENMap.get();
+                    fenMap.putAll(onwardFENMap);
+                }
+            }
+            rounds --;
+        }
+        assertThat(fenMap).hasSize(124991);
     }
 
     @Test

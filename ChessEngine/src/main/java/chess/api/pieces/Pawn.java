@@ -132,8 +132,8 @@ public class Pawn extends Piece{
             for(Class<? extends Piece> promotionClass : PROMOTION_CLASSES.keySet()) {
                 PieceConfiguration promotedPawnConfiguration = getPromotedPawnConfiguration(newPieceConfiguration,
                         newPiecePosition, promotionClass);
-                linkPromotedPieceConfigurations(currentConfiguration, promotedPawnConfiguration, newPiecePosition,
-                        takenPiece, PROMOTION_CLASSES.get(promotionClass).toLowerCase());
+//                linkPromotedPieceConfigurations(currentConfiguration, promotedPawnConfiguration, newPiecePosition,
+//                        takenPiece, PROMOTION_CLASSES.get(promotionClass).toLowerCase());
                 pieceConfigurations.add(promotedPawnConfiguration);
             }
         }

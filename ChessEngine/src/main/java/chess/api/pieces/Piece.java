@@ -103,7 +103,7 @@ public abstract class Piece {
             newConfiguration.setFullMoveNumber(currentConfiguration.getFullMoveNumber() + 1);
         }
         pieceConfigurations.add(newConfiguration);
-        linkPieceConfigurations(currentConfiguration, newConfiguration, newPiecePosition, takenPiece);
+//        linkPieceConfigurations(currentConfiguration, newConfiguration, newPiecePosition, takenPiece);
     }
 
     protected void linkPieceConfigurations(PieceConfiguration currentConfiguration, PieceConfiguration newConfiguration,
