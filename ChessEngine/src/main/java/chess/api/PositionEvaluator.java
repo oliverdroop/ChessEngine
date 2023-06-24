@@ -1,17 +1,13 @@
 package chess.api;
 
-import chess.api.pieces.Piece;
-import com.google.common.base.Functions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class PositionEvaluator {
 
@@ -50,46 +46,72 @@ public class PositionEvaluator {
     }
 
     public static PieceConfiguration getBestMoveRecursively(PieceConfiguration pieceConfiguration, int depth) {
-        Optional<Map.Entry<PieceConfiguration, Integer>> optionalBestEntry = getBestPieceConfigurationToValueEntryRecursively(pieceConfiguration, depth);
+        Optional<Map.Entry<PieceConfiguration, Double>> optionalBestEntry = getBestPieceConfigurationToScoreEntryRecursively(pieceConfiguration, depth, 1);
         if (optionalBestEntry.isPresent()) {
             return optionalBestEntry.get().getKey();
         }
         return null;
     }
 
-    public static int getBestValueDifferentialRecursively(PieceConfiguration pieceConfiguration, int depth) {
-        Optional<Map.Entry<PieceConfiguration, Integer>> optionalBestEntry = getBestPieceConfigurationToValueEntryRecursively(pieceConfiguration, depth);
+    public static double getBestScoreDifferentialRecursively(PieceConfiguration pieceConfiguration, int depth, int turnSideFactor) {
+        Optional<Map.Entry<PieceConfiguration, Double>> optionalBestEntry = getBestPieceConfigurationToScoreEntryRecursively(pieceConfiguration, depth, turnSideFactor);
         if (optionalBestEntry.isPresent()) {
-            return optionalBestEntry.get().getValue();
+//            int turnSideFactor = isTurnSide ? 1 : -1;
+            return turnSideFactor * optionalBestEntry.get().getValue();
         } else if (pieceConfiguration.isCheck()) {
             // Checkmate
-            return Integer.MAX_VALUE;
+            return Float.MAX_VALUE;
         }
         // Stalemate
-        return 0;
+        return -Float.MAX_VALUE;
     }
 
-    public static Optional<Map.Entry<PieceConfiguration, Integer>> getBestPieceConfigurationToValueEntryRecursively(PieceConfiguration pieceConfiguration, int depth) {
-        Map<PieceConfiguration, Integer> pieceConfigurationValueMap = new HashMap<>();
+    public static Optional<Map.Entry<PieceConfiguration, Double>> getBestPieceConfigurationToScoreEntryRecursively(PieceConfiguration pieceConfiguration, int depth, int turnSideFactor) {
+        Map<PieceConfiguration, Double> pieceConfigurationValueMap = new HashMap<>();
+        double currentDiff = getValueDifferential(pieceConfiguration);
 
         depth--;
         List<PieceConfiguration> onwardPieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
-//        onwardPieceConfigurations = onwardPieceConfigurations.stream().sorted().collect(Collectors.toList());
-        for (PieceConfiguration onwardPieceConfiguration : onwardPieceConfigurations) {
-
-            Integer valueDiff = null;
+        for (int i = 0; i < onwardPieceConfigurations.size(); i++){
+            PieceConfiguration onwardPieceConfiguration = onwardPieceConfigurations.get(i);
+            double nextDiff = getValueDifferential(onwardPieceConfiguration);
             if (depth > 0) {
-                int turnSideFactor = 1 - ((depth % 2) * 2);
-                valueDiff = turnSideFactor * getBestValueDifferentialRecursively(onwardPieceConfiguration, depth);
-            } else {
-                valueDiff = -getValueDifferential(onwardPieceConfiguration);
-            }
-            pieceConfigurationValueMap.put(onwardPieceConfiguration, valueDiff);
+                nextDiff += getBestScoreDifferentialRecursively(onwardPieceConfiguration, depth, -turnSideFactor);
+                // Below is where the position can be evaluated for more than just the value differential (because the position bit flags have been calculated)
+            }/* else {
+                nextDiff = getValueDifferential(onwardPieceConfiguration);
+            }*/
+            pieceConfigurationValueMap.put(onwardPieceConfiguration, nextDiff - currentDiff);
         }
+
+//        adjustValuesByDecimatedAverage(pieceConfigurationValueMap);
+        double threatValue = -(pieceConfiguration.countThreatFlags() / 64);
+        adjustValuesByConstant(pieceConfigurationValueMap, threatValue);
 
         return pieceConfigurationValueMap.entrySet().stream()
                 .sorted(entryComparator())
                 .findFirst();
+    }
+
+    private static void adjustValuesByConstant(Map<PieceConfiguration, Double> pieceConfigurationValueMap, double constant) {
+        if (Math.abs(constant) >= 1) {
+            throw new RuntimeException("Adjusting a pieceConfigurationValueMap value by an absolute value greater than 1 is a bad idea");
+        }
+        pieceConfigurationValueMap.entrySet().forEach(e -> e.setValue(e.getValue() + constant));
+    }
+
+    private static void adjustValuesByDecimatedAverage(Map<PieceConfiguration, Double> pieceConfigurationValueMap) {
+        // Get an average value for all the onward piece configurations
+        double total = 0;
+        int count = 0;
+        for (double value : pieceConfigurationValueMap.values()) {
+            value = value > 9 ? 9 : value;
+            value = value < -9 ? -9 : value;
+            total += value;
+            count ++;
+        }
+        double decimatedAverage = count > 0 ? total / (count * 10) : 0;
+        adjustValuesByConstant(pieceConfigurationValueMap, decimatedAverage);
     }
 
     public static Map<String, Collection<String>> buildFENMap(String fen) {
@@ -130,8 +152,9 @@ public class PositionEvaluator {
         return Comparator.comparingInt(PositionEvaluator::getValueDifferential).reversed();
     }
 
-    public static Comparator<Map.Entry<PieceConfiguration, Integer>> entryComparator() {
-        return Comparator.<Map.Entry<PieceConfiguration, Integer>>comparingInt(Map.Entry::getValue)
-                .thenComparing(Map.Entry::getKey);
+    public static Comparator<Map.Entry<PieceConfiguration, Double>> entryComparator() {
+        return Comparator.<Map.Entry<PieceConfiguration, Double>>comparingDouble(Map.Entry::getValue)
+                .thenComparing(Map.Entry::getKey)
+                .reversed();
     }
 }

@@ -493,4 +493,54 @@ public class MovementTest {
                 .as("Unexpected number of available moves when the king has been checked by a takeable knight")
                 .hasSize(1);
     }
+
+    @Test
+    public void testInCheck_whenOpposingPieceBlocksTakingCheckingPiece() {
+        PieceConfiguration pieceConfiguration = FENReader.read("4k3/8/8/q2BQ/8/8/8/7K b - - 0 1");
+
+        List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
+        assertThat(pieceConfigurations)
+                .as("Unexpected number of available moves when the king has been checked by an untakeable queen")
+                .hasSize(3);
+    }
+
+    @Test
+    public void testInCheck_whenOpposingPieceDoesNotBlockTakingCheckingPiece() {
+        PieceConfiguration pieceConfiguration = FENReader.read("4k3/8/8/q3Q/8/8/8/7K b - - 0 1");
+
+        List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
+        assertThat(pieceConfigurations)
+                .as("Unexpected number of available moves when the king has been checked by an takeable queen")
+                .hasSize(5);
+    }
+
+    @Test
+    public void testConfinedMovement_withOrthogonalDirectionalBitFlag() {
+        PieceConfiguration pieceConfiguration = FENReader.read("3rkr2/4q3/8/8/4P3/8/4K3/8 w - - 0 1");
+
+        List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
+        assertThat(pieceConfigurations)
+                .as("Unexpected number of available moves when the king and pawn can only move in one plane")
+                .hasSize(3);
+    }
+
+    @Test
+    public void testConfinedMovement_withDiagonalDirectionalBitFlag_pawnTakes() {
+        PieceConfiguration pieceConfiguration = FENReader.read("4kbb1/7b/5b1b/4b3/3P4/8/1K6/8 w - - 0 1");
+
+        List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
+        assertThat(pieceConfigurations)
+                .as("Unexpected number of available moves when the king and pawn can only move in one plane")
+                .hasSize(3);
+    }
+
+    @Test
+    public void testConfinedMovement_withDiagonalDirectionalBitFlag_pawnPinned() {
+        PieceConfiguration pieceConfiguration = FENReader.read("4kbb1/7b/5b1b/8/3P4/8/1K6/8 w - - 0 1");
+
+        List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
+        assertThat(pieceConfigurations)
+                .as("Unexpected number of available moves when the king can only move in one plane")
+                .hasSize(2);
+    }
 }

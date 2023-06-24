@@ -45,21 +45,21 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
 
     public static final int DIRECTION_NW = 1048576; // 20
 
-    public static final int DIRECTION_NNE = 2097152; // 21
+    public static final int DIRECTION_NNE = 2097152; // 21 // Is this needed?
 
-    public static final int DIRECTION_ENE = 4194304; // 22
+    public static final int DIRECTION_ENE = 4194304; // 22 // Is this needed?
 
-    public static final int DIRECTION_ESE = 8388608; // 23
+    public static final int DIRECTION_ESE = 8388608; // 23 // Is this needed?
 
-    public static final int DIRECTION_SSE = 16777216; // 24
+    public static final int DIRECTION_SSE = 16777216; // 24 // Is this needed?
 
-    public static final int DIRECTION_SSW = 33554432; // 25
+    public static final int DIRECTION_SSW = 33554432; // 25 // Is this needed?
 
-    public static final int DIRECTION_WSW = 67108864; // 26
+    public static final int DIRECTION_WSW = 67108864; // 26 // Is this needed?
 
-    public static final int DIRECTION_WNW = 134217728; // 27
+    public static final int DIRECTION_WNW = 134217728; // 27 // Is this needed?
 
-    public static final int DIRECTION_NNW = 268435456; // 28
+    public static final int DIRECTION_NNW = 268435456; // 28 // Is this needed?
 
     public static final ImmutableSet<Integer> ALL_DIRECTIONAL_FLAGS = ImmutableSet.of(DIRECTION_N, DIRECTION_NNE,
             DIRECTION_NE, DIRECTION_ENE, DIRECTION_E, DIRECTION_ESE, DIRECTION_SE, DIRECTION_SSE, DIRECTION_S,
@@ -173,6 +173,12 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
                         | PieceConfiguration.KING_OCCUPIED | PieceConfiguration.THREATENED))
                 .findFirst()
                 .orElse(-1);
+    }
+
+    public int countThreatFlags() {
+        return (int) Arrays.stream(positionBitFlags)
+                .filter(pbf -> BitUtil.hasBitFlag(pbf, PieceConfiguration.THREATENED))
+                .count();
     }
 
     public Set<Piece> getPieces() {
@@ -329,13 +335,32 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
         }
     }
 
+    public double getThreatScore() {
+        return Arrays.stream(positionBitFlags)
+                .filter(pbf -> BitUtil.hasBitFlag(pbf, PieceConfiguration.THREATENED))
+                .count() / (double) 64;
+    }
+
+    public double getOpponentThreatenedScore() {
+        return Arrays.stream(positionBitFlags)
+                .filter(pbf -> BitUtil.hasBitFlag(pbf, PieceConfiguration.THREATENED)
+                        && BitUtil.hasBitFlag(pbf, PieceConfiguration.OPPONENT_OCCUPIED))
+                .count() / (double) 64;
+    }
+
+    public double getOpponentCentrePositionScore() {
+        return Arrays.stream(CENTRE_POSITIONS)
+                .filter(cp -> BitUtil.hasBitFlag(positionBitFlags[cp], PieceConfiguration.OPPONENT_OCCUPIED))
+                .count() / (double) 4;
+    }
+
     @Override
     public int compareTo(PieceConfiguration pieceConfiguration) {
         return ComparisonChain.start()
                 .compare(PositionEvaluator.getValueDifferential(this),
                         PositionEvaluator.getValueDifferential(pieceConfiguration))
-                .compare(PositionEvaluator.getCentrePositionDifferential(this),
-                        PositionEvaluator.getCentrePositionDifferential(pieceConfiguration))
+//                .compare(PositionEvaluator.getCentrePositionDifferential(this),
+//                        PositionEvaluator.getCentrePositionDifferential(pieceConfiguration))
                 .result();
     }
 }

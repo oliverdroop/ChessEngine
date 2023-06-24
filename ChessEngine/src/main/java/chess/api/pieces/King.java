@@ -102,7 +102,7 @@ public class King extends Piece{
         for(int[] directionalLimit : getDirectionalLimits()) {
             int direction = directionalLimit[0];
             // Limit is always 1 for the king (castling positions can't be threatened by the king)
-            int testPositionIndex = getPosition() + direction;
+            int testPositionIndex = Position.applyTranslation(getPosition(), directionalLimit[0], directionalLimit[1]);
             if (testPositionIndex < 0 || testPositionIndex >= 64) {
                 continue;
             }

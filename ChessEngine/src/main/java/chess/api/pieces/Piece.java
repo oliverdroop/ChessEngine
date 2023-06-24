@@ -13,6 +13,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 
+import static chess.api.PieceConfiguration.ALL_DIRECTIONAL_FLAGS;
+
 public abstract class Piece {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Piece.class);
@@ -52,16 +54,20 @@ public abstract class Piece {
                     break;
                 }
 
-                // Is this position a position which wouldn't block an existing checking direction?
-                if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PieceConfiguration.DOES_NOT_BLOCK_CHECK)) {
-                    limit--;
-                    continue;
-                }
-
                 // Is there an opponent piece on the position?
                 Piece takenPiece = null;
                 if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PieceConfiguration.OPPONENT_OCCUPIED)) {
                     takenPiece = currentConfiguration.getPieceAtPosition(testPositionIndex);
+                }
+
+                // Is this position a position which wouldn't block an existing checking direction?
+                if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PieceConfiguration.DOES_NOT_BLOCK_CHECK)) {
+                    if (takenPiece == null) {
+                        limit--;
+                        continue;
+                    } else {
+                        break;
+                    }
                 }
 
                 addNewPieceConfigurations(pieceConfigurations, currentConfiguration, testPositionIndex, takenPiece);
