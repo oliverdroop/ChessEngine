@@ -31,7 +31,7 @@ public class Pawn extends Piece{
     }
 
     @Override
-    public List<PieceConfiguration> getPossibleMoves(int[] positionBitFlags, PieceConfiguration currentConfiguration) {
+    public List<PieceConfiguration> getPossibleMoves(int[] positionBitFlags, PieceConfiguration currentConfiguration, boolean linkOnwardConfigurations) {
         List<PieceConfiguration> pieceConfigurations = new ArrayList<>();
         for(int[] directionalLimit : getMovableDirectionalLimits(positionBitFlags)) {
             int directionX = directionalLimit[0];
@@ -68,7 +68,7 @@ public class Pawn extends Piece{
                     }
                 }
 
-                addNewPieceConfigurations(pieceConfigurations, currentConfiguration, testPositionIndex, takenPiece);
+                addNewPieceConfigurations(pieceConfigurations, currentConfiguration, testPositionIndex, takenPiece, linkOnwardConfigurations);
 
                 if (takenPiece != null) {
                     // Stop considering moves beyond this taken piece
@@ -118,8 +118,8 @@ public class Pawn extends Piece{
 
     @Override
     protected void addNewPieceConfigurations(List<PieceConfiguration> pieceConfigurations,
-            PieceConfiguration currentConfiguration, int newPiecePosition, Piece takenPiece) {
-        super.addNewPieceConfigurations(pieceConfigurations, currentConfiguration, newPiecePosition, takenPiece);
+            PieceConfiguration currentConfiguration, int newPiecePosition, Piece takenPiece, boolean linkOnwardConfigurations) {
+        super.addNewPieceConfigurations(pieceConfigurations, currentConfiguration, newPiecePosition, takenPiece, linkOnwardConfigurations);
         int translation = newPiecePosition - getPosition();
         PieceConfiguration newPieceConfiguration = pieceConfigurations.get(pieceConfigurations.size() - 1);
         if (Math.abs(translation) == 16) {
@@ -132,8 +132,10 @@ public class Pawn extends Piece{
             for(Class<? extends Piece> promotionClass : PROMOTION_CLASSES.keySet()) {
                 PieceConfiguration promotedPawnConfiguration = getPromotedPawnConfiguration(newPieceConfiguration,
                         newPiecePosition, promotionClass);
-//                linkPromotedPieceConfigurations(currentConfiguration, promotedPawnConfiguration, newPiecePosition,
-//                        takenPiece, PROMOTION_CLASSES.get(promotionClass).toLowerCase());
+                if (linkOnwardConfigurations) {
+                    linkPromotedPieceConfigurations(currentConfiguration, promotedPawnConfiguration, newPiecePosition,
+                            takenPiece, PROMOTION_CLASSES.get(promotionClass).toLowerCase());
+                }
                 pieceConfigurations.add(promotedPawnConfiguration);
             }
         }

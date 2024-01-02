@@ -105,12 +105,15 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
         positionBitFlags = stampCheckNonBlockerFlags(stampThreatFlags(stampOccupationFlags(Arrays.copyOf(Position.POSITIONS, 64))));
         return pieces.stream()
                 .filter(p -> p.getSide() == turnSide)
-                .flatMap(p -> getPossiblePieceConfigurationsForPiece(p).stream())
+                .flatMap(p -> getPossiblePieceConfigurationsForPiece(p, false).stream())
                 .collect(Collectors.toList());
     }
 
-    public List<PieceConfiguration> getPossiblePieceConfigurationsForPiece(Piece piece) {
-        return piece.getPossibleMoves(positionBitFlags, this);
+    public List<PieceConfiguration> getPossiblePieceConfigurationsForPiece(Piece piece, boolean linkOnwardConfigurations) {
+        if (positionBitFlags == null) {
+            positionBitFlags = stampCheckNonBlockerFlags(stampThreatFlags(stampOccupationFlags(Arrays.copyOf(Position.POSITIONS, 64))));
+        }
+        return piece.getPossibleMoves(positionBitFlags, this, linkOnwardConfigurations);
     }
 
     private int[] stampOccupationFlags(int[] positions) {

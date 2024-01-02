@@ -1,27 +1,19 @@
-package chessTests.api;
+package chess.api;
 
-import chess.api.FENReader;
-import chess.api.PieceConfiguration;
-import chess.api.Position;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.BlockJUnit4ClassRunner;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.function.IntPredicate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@RunWith(BlockJUnit4ClassRunner.class)
 public class MovementTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MovementTest.class);
 
     @Test
-    public void testBishopMovement() {
+    void testBishopMovement() {
         PieceConfiguration pieceConfiguration = FENReader.read("B7/8/8/8/8/8/8/8 w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -32,7 +24,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testBishopMovement_withOpponentPiecesBlocking() {
+    void testBishopMovement_withOpponentPiecesBlocking() {
         PieceConfiguration pieceConfiguration = FENReader.read("8/8/2p1p3/3B4/2p1p3/8/8/8 w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -43,7 +35,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testBishopMovement_withPlayerPiecesBlocking() {
+    void testBishopMovement_withPlayerPiecesBlocking() {
         PieceConfiguration pieceConfiguration = FENReader.read("nNRRRRRR/NBRRRRRR/RRRRRRRR/RRRRRRRR/RRRRRRRR/RRRRRRRR/RRRRRRRR/RRRRRRRR w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -54,7 +46,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testKnightMovement() {
+    void testKnightMovement() {
         PieceConfiguration pieceConfiguration = FENReader.read("N7/8/8/8/8/8/8/8 w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -65,7 +57,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testApplyTranslation_withIllegalNegXNegYTranslation() {
+    void testApplyTranslation_withIllegalNegXNegYTranslation() {
         int position = 8;
 
         int newPosition = Position.applyTranslation(position, -1, -1);
@@ -74,7 +66,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testApplyTranslation_withLegalNegYTranslation() {
+    void testApplyTranslation_withLegalNegYTranslation() {
         int position = 8;
 
         int newPosition = Position.applyTranslation(position, 0, -1);
@@ -83,7 +75,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testApplyTranslation_withIllegalPosXPosYTranslation() {
+    void testApplyTranslation_withIllegalPosXPosYTranslation() {
         int position = 55;
 
         int newPosition = Position.applyTranslation(position, 1, 1);
@@ -92,7 +84,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testApplyTranslation_withLegalPosXTranslation() {
+    void testApplyTranslation_withLegalPosXTranslation() {
         int position = 62;
 
         int newPosition = Position.applyTranslation(position, 1, 0);
@@ -101,7 +93,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testApplyTranslation_withLegalPosYTranslation() {
+    void testApplyTranslation_withLegalPosYTranslation() {
         int position = 7;
 
         int newPosition = Position.applyTranslation(position, 0, 7);
@@ -110,7 +102,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testMovement_whenProtectingKingWithKnight() {
+    void testMovement_whenProtectingKingWithKnight() {
         PieceConfiguration pieceConfiguration = FENReader.read("KP6/PN6/8/8/8/8/8/7b w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -121,7 +113,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testMovement_whenProtectingKingWithBishop() {
+    void testMovement_whenProtectingKingWithBishop() {
         PieceConfiguration pieceConfiguration = FENReader.read("KP6/PB6/8/8/8/8/8/7b w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -132,7 +124,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testMovement_whenKingDoublyProtected() {
+    void testMovement_whenKingDoublyProtected() {
         PieceConfiguration pieceConfiguration = FENReader.read("KP6/PN6/2N5/8/8/8/8/7b w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -143,7 +135,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testPawnMovement_fromStartingPosition() {
+    void testPawnMovement_fromStartingPosition() {
         PieceConfiguration pieceConfiguration = FENReader.read("8/8/8/8/8/8/1P6/8 w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -154,7 +146,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testPawnMovement_fromNonStartingPositionWithoutTargets() {
+    void testPawnMovement_fromNonStartingPositionWithoutTargets() {
         PieceConfiguration pieceConfiguration = FENReader.read("8/8/8/8/8/1P6/8/8 w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -165,7 +157,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testPawnMovement_fromStartingPositionWithDistantBlockingOpponent() {
+    void testPawnMovement_fromStartingPositionWithDistantBlockingOpponent() {
         PieceConfiguration pieceConfiguration = FENReader.read("8/8/8/8/1p6/8/1P6/8 w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -176,7 +168,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testPawnMovement_fromStartingPositionWithCloseBlockingOpponent() {
+    void testPawnMovement_fromStartingPositionWithCloseBlockingOpponent() {
         PieceConfiguration pieceConfiguration = FENReader.read("8/8/8/8/8/1p6/1P6/8 w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -187,7 +179,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testPawnMovement_fromStartingPositionWithTwoTakeableOpponents() {
+    void testPawnMovement_fromStartingPositionWithTwoTakeableOpponents() {
         PieceConfiguration pieceConfiguration = FENReader.read("8/8/8/8/8/p1p5/1P6/8 w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -198,7 +190,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testPawnMovement_whenProtectingKingFromDistantOpponent() {
+    void testPawnMovement_whenProtectingKingFromDistantOpponent() {
         PieceConfiguration pieceConfiguration = FENReader.read("7b/8/8/8/8/8/1P6/KP6 w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -209,7 +201,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testPawnMovement_whenProtectingKingFromCloseOpponent() {
+    void testPawnMovement_whenProtectingKingFromCloseOpponent() {
         PieceConfiguration pieceConfiguration = FENReader.read("8/8/8/8/8/2b5/1P6/KP6 w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -220,7 +212,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testPawnMovement_withEnPassantAvailable() {
+    void testPawnMovement_withEnPassantAvailable() {
         PieceConfiguration pieceConfiguration = FENReader.read("8/8/8/3Pp3/8/8/8/8 w - e6 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -231,7 +223,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testKingMovement_withPawnPreventingTaking() {
+    void testKingMovement_withPawnPreventingTaking() {
         PieceConfiguration pieceConfiguration = FENReader.read("8/2p5/1r6/K7/8/8/8/8 w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -242,7 +234,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testKingMovement_withTwoCastlesAvailable() {
+    void testKingMovement_withTwoCastlesAvailable() {
         PieceConfiguration pieceConfiguration = FENReader.read("8/8/8/8/8/8/P6P/R3K2R w KQ - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -253,7 +245,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testKingMovement_withNoCastlesAvailable() {
+    void testKingMovement_withNoCastlesAvailable() {
         PieceConfiguration pieceConfiguration = FENReader.read("8/8/8/8/8/8/P6P/R3K2R w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -264,7 +256,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testKingMovement_withCastleThroughCheck() {
+    void testKingMovement_withCastleThroughCheck() {
         PieceConfiguration pieceConfiguration = FENReader.read("3r1r2/8/8/8/8/8/P6P/R3K2R w KQ - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -275,7 +267,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testKingMovement_withCastleOutOfCheck() {
+    void testKingMovement_withCastleOutOfCheck() {
         PieceConfiguration pieceConfiguration = FENReader.read("4r3/8/8/8/8/8/P6P/R3K2R w KQ - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -286,7 +278,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testKingMovement_withCastleIntoCheck() {
+    void testKingMovement_withCastleIntoCheck() {
         PieceConfiguration pieceConfiguration = FENReader.read("2r3r1/8/8/8/8/8/P6P/R3K2R w KQ - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -297,7 +289,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testKingMovement_withCastleBlockedByPlayerPiece() {
+    void testKingMovement_withCastleBlockedByPlayerPiece() {
         PieceConfiguration pieceConfiguration = FENReader.read("8/8/8/8/8/8/P6P/RN2K1NR w KQ - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -308,7 +300,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testKingMovement_withCastleBlockedByOpponentPiece() {
+    void testKingMovement_withCastleBlockedByOpponentPiece() {
         PieceConfiguration pieceConfiguration = FENReader.read("8/8/8/8/8/8/P6P/Rn2K1nR w KQ - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -319,7 +311,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testStartingPosition() {
+    void testStartingPosition() {
         PieceConfiguration pieceConfiguration = FENReader.read("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -330,7 +322,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testPawnPromotion() {
+    void testPawnPromotion() {
         PieceConfiguration pieceConfiguration = FENReader.read("8/3P4/8/8/8/8/8/8 w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -341,7 +333,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testStalemate() {
+    void testStalemate() {
         PieceConfiguration pieceConfiguration = FENReader.read("1r6/8/8/8/8/8/7r/K7 w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -352,7 +344,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testInCheck_whenOnlyKnightCanBlock() {
+    void testInCheck_whenOnlyKnightCanBlock() {
         PieceConfiguration pieceConfiguration = FENReader.read("8/8/8/8/8/N7/PPP5/K6r w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -363,7 +355,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testInCheck_whenOnlyBishopCanBlock() {
+    void testInCheck_whenOnlyBishopCanBlock() {
         PieceConfiguration pieceConfiguration = FENReader.read("qq6/q6B/8/8/8/8/8/7K w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -374,7 +366,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testInCheck_whenPawnTakeCanBlock() {
+    void testInCheck_whenPawnTakeCanBlock() {
         PieceConfiguration pieceConfiguration = FENReader.read("8/PP6/K5rr/PP5P/8/8/8/8 w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -385,7 +377,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testInCheck_whenOnlyPawnCanBlock() {
+    void testInCheck_whenOnlyPawnCanBlock() {
         PieceConfiguration pieceConfiguration = FENReader.read("8/PP6/K5rr/PP4P1/8/8/8/8 w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -396,7 +388,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testInCheck_whenPawnMovingBehindKingDoesNotBlock() {
+    void testInCheck_whenPawnMovingBehindKingDoesNotBlock() {
         PieceConfiguration pieceConfiguration = FENReader.read("8/PP5r/1K5r/PP5r/8/8/8/8 w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -407,7 +399,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testInCheck_whenBishopCannotBlockQueenAndRook() {
+    void testInCheck_whenBishopCannotBlockQueenAndRook() {
         PieceConfiguration pieceConfiguration = FENReader.read("qq6/q6B/8/8/8/8/8/r6K w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -418,7 +410,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testInCheck_whenBishopCannotBlockKnight() {
+    void testInCheck_whenBishopCannotBlockKnight() {
         PieceConfiguration pieceConfiguration = FENReader.read("qqq4B/q7/8/8/8/5K2/8/6n1 w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -429,7 +421,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testInCheck_whenBothDirectionsCheckedByBishops() {
+    void testInCheck_whenBothDirectionsCheckedByBishops() {
         PieceConfiguration pieceConfiguration = FENReader.read("7b/b7/8/3P4/2PKP3/3P4/8/8 w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -440,7 +432,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testInCheck_whenMovingPawnToProtectWouldExposeKingToRook() {
+    void testInCheck_whenMovingPawnToProtectWouldExposeKingToRook() {
         PieceConfiguration pieceConfiguration = FENReader.read("8/b7/8/3PP3/r1PKP3/2PP4/8/8 w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -451,7 +443,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testInCheck_tryingToMoveAwayFromCheckingRook() {
+    void testInCheck_tryingToMoveAwayFromCheckingRook() {
         PieceConfiguration pieceConfiguration = FENReader.read("8/8/8/8/8/8/PPP5/1K5r w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -462,7 +454,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testInCheck_tryingToMoveAwayFromCheckingPawn() {
+    void testInCheck_tryingToMoveAwayFromCheckingPawn() {
         PieceConfiguration pieceConfiguration = FENReader.read("8/8/5p2/4p3/3K4/8/8/8 w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -473,7 +465,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testInCheck_tryingToMoveAwayFromCheckingKnight() {
+    void testInCheck_tryingToMoveAwayFromCheckingKnight() {
         PieceConfiguration pieceConfiguration = FENReader.read("8/8/8/8/8/1nn5/8/K2n4 w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -484,7 +476,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testInCheck_whenKingCannotMoveButPawnCanTakeChecker() {
+    void testInCheck_whenKingCannotMoveButPawnCanTakeChecker() {
         PieceConfiguration pieceConfiguration = FENReader.read("7k/6pp/6N1/8/8/8/B7/8 b - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -495,7 +487,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testInCheck_whenOpposingPieceBlocksTakingCheckingPiece() {
+    void testInCheck_whenOpposingPieceBlocksTakingCheckingPiece() {
         PieceConfiguration pieceConfiguration = FENReader.read("4k3/8/8/q2BQ/8/8/8/7K b - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -505,7 +497,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testInCheck_whenOpposingPieceDoesNotBlockTakingCheckingPiece() {
+    void testInCheck_whenOpposingPieceDoesNotBlockTakingCheckingPiece() {
         PieceConfiguration pieceConfiguration = FENReader.read("4k3/8/8/q3Q/8/8/8/7K b - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -515,7 +507,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testConfinedMovement_withOrthogonalDirectionalBitFlag() {
+    void testConfinedMovement_withOrthogonalDirectionalBitFlag() {
         PieceConfiguration pieceConfiguration = FENReader.read("3rkr2/4q3/8/8/4P3/8/4K3/8 w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -525,7 +517,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testConfinedMovement_withDiagonalDirectionalBitFlag_pawnTakes() {
+    void testConfinedMovement_withDiagonalDirectionalBitFlag_pawnTakes() {
         PieceConfiguration pieceConfiguration = FENReader.read("4kbb1/7b/5b1b/4b3/3P4/8/1K6/8 w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -535,7 +527,7 @@ public class MovementTest {
     }
 
     @Test
-    public void testConfinedMovement_withDiagonalDirectionalBitFlag_pawnPinned() {
+    void testConfinedMovement_withDiagonalDirectionalBitFlag_pawnPinned() {
         PieceConfiguration pieceConfiguration = FENReader.read("4kbb1/7b/5b1b/8/3P4/8/1K6/8 w - - 0 1");
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();

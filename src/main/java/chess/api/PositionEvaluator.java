@@ -30,27 +30,9 @@ public class PositionEvaluator {
         return 0;
     }
 
-    public static int getCentrePositionDifferential(PieceConfiguration pieceConfiguration) {
-        return 0;
-//        Map<Side, Long> map = pieceConfiguration.getPieces().stream()
-//                .filter(piece -> Arrays.stream(PieceConfiguration.CENTRE_POSITIONS)
-//                        .anyMatch(centrePosition -> centrePosition == piece.getPosition()))
-//                .collect(Collectors.groupingBy(Piece::getSide, Collectors.counting()));
-//        int turnSideCentralPieceCount = map.containsKey(pieceConfiguration.getTurnSide())
-//                ? map.get(pieceConfiguration.getTurnSide()).intValue()
-//                : 0;
-//        int opposingSideCentralPieceCount = map.containsKey(pieceConfiguration.getOpposingSide())
-//                ? map.get(pieceConfiguration.getOpposingSide()).intValue()
-//                : 0;
-//        return turnSideCentralPieceCount - opposingSideCentralPieceCount;
-    }
-
     public static PieceConfiguration getBestMoveRecursively(PieceConfiguration pieceConfiguration, int depth) {
         Optional<Map.Entry<PieceConfiguration, Double>> optionalBestEntry = getBestPieceConfigurationToScoreEntryRecursively(pieceConfiguration, depth, 1);
-        if (optionalBestEntry.isPresent()) {
-            return optionalBestEntry.get().getKey();
-        }
-        return null;
+        return optionalBestEntry.map(Map.Entry::getKey).orElse(null);
     }
 
     public static double getBestScoreDifferentialRecursively(PieceConfiguration pieceConfiguration, int depth, int turnSideFactor) {
@@ -85,7 +67,7 @@ public class PositionEvaluator {
         }
 
 //        adjustValuesByDecimatedAverage(pieceConfigurationValueMap);
-        double threatValue = -(pieceConfiguration.countThreatFlags() / 64);
+        double threatValue = -(pieceConfiguration.countThreatFlags() / (double) 64);
         adjustValuesByConstant(pieceConfigurationValueMap, threatValue);
 
         return pieceConfigurationValueMap.entrySet().stream()
@@ -119,7 +101,7 @@ public class PositionEvaluator {
         Map<String, Collection<String>> fenMap = new HashMap<>();
 
         Collection<String> onwardFENs = configuration.getPossiblePieceConfigurations().stream()
-                .map(pc -> FENWriter.write(pc))
+                .map(FENWriter::write)
                 .collect(Collectors.toList());
 
         fenMap.put(fen, onwardFENs);
@@ -130,7 +112,7 @@ public class PositionEvaluator {
         PieceConfiguration configuration = FENReader.read(fen);
 
         Collection<String> onwardFENs = configuration.getPossiblePieceConfigurations().stream()
-                .map(pc -> FENWriter.write(pc))
+                .map(FENWriter::write)
                 .collect(Collectors.toList());
 
         fenMap.put(fen, onwardFENs);
@@ -142,7 +124,7 @@ public class PositionEvaluator {
         Callable pcCallable = new PCCallable(configuration);
         Future<List<PieceConfiguration>> onwardConfigurations = executor.submit(pcCallable);
         Collection<String> onwardFENs = onwardConfigurations.get().stream()
-                .map(pc -> FENWriter.write(pc))
+                .map(FENWriter::write)
                 .collect(Collectors.toList());
 
         fenMap.put(fen, onwardFENs);

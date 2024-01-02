@@ -29,7 +29,7 @@ public class King extends Piece{
     }
 
     @Override
-    public List<PieceConfiguration> getPossibleMoves(int[] positionBitFlags, PieceConfiguration currentConfiguration) {
+    public List<PieceConfiguration> getPossibleMoves(int[] positionBitFlags, PieceConfiguration currentConfiguration, boolean linkOnwardConfigurations) {
         List<PieceConfiguration> pieceConfigurations = new ArrayList<>();
         for(int[] directionalLimit : getMovableDirectionalLimits(positionBitFlags)) {
             int directionX = directionalLimit[0];
@@ -64,7 +64,7 @@ public class King extends Piece{
                     takenPiece = currentConfiguration.getPieceAtPosition(testPositionIndex);
                 }
 
-                addNewPieceConfigurations(pieceConfigurations, currentConfiguration, testPositionIndex, takenPiece);
+                addNewPieceConfigurations(pieceConfigurations, currentConfiguration, testPositionIndex, takenPiece, linkOnwardConfigurations);
 
                 if (takenPiece != null) {
                     // Stop considering moves beyond this taken piece
@@ -118,8 +118,8 @@ public class King extends Piece{
 
     @Override
     protected void addNewPieceConfigurations(List<PieceConfiguration> pieceConfigurations,
-            PieceConfiguration currentConfiguration, int newPiecePosition, Piece takenPiece) {
-        super.addNewPieceConfigurations(pieceConfigurations, currentConfiguration, newPiecePosition, takenPiece);
+            PieceConfiguration currentConfiguration, int newPiecePosition, Piece takenPiece, boolean linkOnwardConfigurations) {
+        super.addNewPieceConfigurations(pieceConfigurations, currentConfiguration, newPiecePosition, takenPiece, linkOnwardConfigurations);
         if (isOnStartingPosition()) {
             PieceConfiguration newPieceConfiguration = pieceConfigurations.get(pieceConfigurations.size() - 1);
             newPieceConfiguration.removeCastlePosition(getPosition() - 2);

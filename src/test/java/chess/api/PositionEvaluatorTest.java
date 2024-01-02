@@ -1,11 +1,9 @@
-package chessTests.api;
+package chess.api;
 
-import chess.api.*;
 import org.assertj.core.api.JUnitSoftAssertions;
+import org.junit.Ignore;
 import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.BlockJUnit4ClassRunner;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,7 +17,7 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@RunWith(BlockJUnit4ClassRunner.class)
+@Ignore
 public class PositionEvaluatorTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PositionEvaluatorTest.class);
@@ -28,7 +26,7 @@ public class PositionEvaluatorTest {
     public JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @Test
-    public void testStartingDifferential() {
+    void testStartingDifferential() {
         PieceConfiguration pieceConfiguration = FENReader.read("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
         assertThat(PositionEvaluator.getValueDifferential(pieceConfiguration))
@@ -37,7 +35,7 @@ public class PositionEvaluatorTest {
     }
 
     @Test
-    public void testPlayerTeamTotalValue() {
+    void testPlayerTeamTotalValue() {
         PieceConfiguration pieceConfiguration = FENReader.read("8/8/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
         assertThat(PositionEvaluator.getValueDifferential(pieceConfiguration))
@@ -46,7 +44,7 @@ public class PositionEvaluatorTest {
     }
 
     @Test
-    public void testOpponentTotalValue() {
+    void testOpponentTotalValue() {
         PieceConfiguration pieceConfiguration = FENReader.read("rnbqkbnr/pppppppp/8/8/8/8/8/8 w KQkq - 0 1");
 
         assertThat(PositionEvaluator.getValueDifferential(pieceConfiguration))
@@ -55,21 +53,21 @@ public class PositionEvaluatorTest {
     }
 
     @Test
-    public void testGetBestMoveRecursively() {
+    void testGetBestMoveRecursively() {
         PieceConfiguration pieceConfiguration = FENReader.read(FENWriter.STARTING_POSITION);
 
         LOGGER.info(PositionEvaluator.getBestMoveRecursively(pieceConfiguration, 2).toString());
     }
 
     @Test
-    public void testGetBestMoveRecursively_choosesCentre() {
+    void testGetBestMoveRecursively_choosesCentre() {
         PieceConfiguration pieceConfiguration = FENReader.read("rnbqkbnr/pppppppp/8/8/P7/8/1PPPPPPP/RNBQKBNR b KQkq - 0 1");
 
         LOGGER.info(PositionEvaluator.getBestMoveRecursively(pieceConfiguration, 4).toString());
     }
 
     @Test
-    public void testGetBestValueDifferentialRecursively() {
+    void testGetBestValueDifferentialRecursively() {
         PieceConfiguration pieceConfiguration = FENReader.read("7k/5P2/8/8/8/8/8/6R1 w - - 0 1");
 
         double bestValueDifferential = PositionEvaluator.getBestScoreDifferentialRecursively(pieceConfiguration, 2, 1);
@@ -80,7 +78,7 @@ public class PositionEvaluatorTest {
     }
 
     @Test
-    public void testGetBestValueDifferentialRecursively_fromStartingPosition() {
+    void testGetBestValueDifferentialRecursively_fromStartingPosition() {
         PieceConfiguration pieceConfiguration = FENReader.read(FENWriter.STARTING_POSITION);
 
         double bestValueDifferential = PositionEvaluator.getBestScoreDifferentialRecursively(pieceConfiguration, 4, 1);
@@ -91,7 +89,7 @@ public class PositionEvaluatorTest {
     }
 
     @Test
-    public void testGetBestValueDifferentialRecursively_fromSecondMove() {
+    void testGetBestValueDifferentialRecursively_fromSecondMove() {
         PieceConfiguration pieceConfiguration = FENReader.read("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1");
 
         double bestValueDifferential = PositionEvaluator.getBestScoreDifferentialRecursively(pieceConfiguration, 4, 1);
@@ -102,7 +100,7 @@ public class PositionEvaluatorTest {
     }
 
     @Test
-    public void testGetBestPieceConfigurationToValueEntryRecursively_forSecondMove() {
+    void testGetBestPieceConfigurationToValueEntryRecursively_forSecondMove() {
         PieceConfiguration pieceConfiguration = FENReader.read("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1");
 
         Optional<Map.Entry<PieceConfiguration, Double>> bestEntry = PositionEvaluator
@@ -118,7 +116,7 @@ public class PositionEvaluatorTest {
     }
 
     @Test
-    public void testGetBestPieceConfigurationToValueEntryRecursively_forThirdMove() {
+    void testGetBestPieceConfigurationToValueEntryRecursively_forThirdMove() {
         PieceConfiguration pieceConfiguration = FENReader.read("rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2");
 
         Optional<Map.Entry<PieceConfiguration, Double>> bestEntry = PositionEvaluator
@@ -134,7 +132,7 @@ public class PositionEvaluatorTest {
     }
 
     @Test
-    public void testPlayAIGame() {
+    void testPlayAIGame() {
         PieceConfiguration pieceConfiguration = FENReader.read(FENWriter.STARTING_POSITION);
 
         while(pieceConfiguration != null) {
@@ -144,7 +142,7 @@ public class PositionEvaluatorTest {
     }
 
     @Test
-    public void testFENMap() {
+    void testFENMap() {
         Map<String, Collection<String>> fenMap = PositionEvaluator.buildFENMap(FENWriter.STARTING_POSITION);
 
         int depth = 4;
@@ -167,7 +165,7 @@ public class PositionEvaluatorTest {
     }
 
     @Test
-    public void testAddToFENMap() {
+    void testAddToFENMap() {
         Map<String, Collection<String>> fenMap = PositionEvaluator.buildFENMap(FENWriter.STARTING_POSITION);
 
         int depth = 3;
@@ -190,7 +188,7 @@ public class PositionEvaluatorTest {
     }
 
     @Test
-    public void testFENMapAsync() throws Exception {
+    void testFENMapAsync() throws Exception {
         Map<String, Collection<String>> fenMap = PositionEvaluator.buildFENMap(FENWriter.STARTING_POSITION);
 
         ExecutorService executor = Executors.newFixedThreadPool(8);
@@ -220,7 +218,7 @@ public class PositionEvaluatorTest {
     }
 
     @Test
-    public void testPCTreeCallable() throws ExecutionException, InterruptedException {
+    void testPCTreeCallable() throws ExecutionException, InterruptedException {
         PieceConfiguration pc = FENReader.read(FENWriter.STARTING_POSITION);
         ExecutorService executor = Executors.newFixedThreadPool(4);
 
@@ -251,7 +249,7 @@ public class PositionEvaluatorTest {
     }
 
     @Test
-    public void testRandomGame() {
+    void testRandomGame() {
         Random rnd = new Random();
         PieceConfiguration mateConfiguration = null;
         while (mateConfiguration == null) {

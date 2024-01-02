@@ -46,6 +46,13 @@ public class Position {
                 .toString();
     }
 
+    public static int getPosition(String coordinateString) {
+        if (!coordinateString.matches("^[a-h][1-8]$")) {
+            throw new RuntimeException(String.format("Unable to parse %s as coordinate string", coordinateString));
+        }
+        return getPosition(coordinateString.charAt(0) - 97, coordinateString.charAt(1) - 49);
+    }
+
     public static int applyTranslation(int position, int translationX, int translationY) {
         int newX = getX(position) + translationX;
         int newY = getY(position) + translationY;

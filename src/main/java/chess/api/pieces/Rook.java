@@ -30,8 +30,8 @@ public class Rook extends Piece {
 
     @Override
     protected void addNewPieceConfigurations(List<PieceConfiguration> pieceConfigurations,
-            PieceConfiguration currentConfiguration, int newPiecePosition, Piece takenPiece) {
-        super.addNewPieceConfigurations(pieceConfigurations, currentConfiguration, newPiecePosition, takenPiece);
+            PieceConfiguration currentConfiguration, int newPiecePosition, Piece takenPiece, boolean linkOnwardConfigurations) {
+        super.addNewPieceConfigurations(pieceConfigurations, currentConfiguration, newPiecePosition, takenPiece, linkOnwardConfigurations);
         if (CASTLE_POSITION_MAPPINGS.containsKey(getPosition())) {
             PieceConfiguration newPieceConfiguration = pieceConfigurations.get(pieceConfigurations.size() - 1);
             newPieceConfiguration.removeCastlePosition(CASTLE_POSITION_MAPPINGS.get(getPosition()));

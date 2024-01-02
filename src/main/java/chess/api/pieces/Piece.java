@@ -35,7 +35,7 @@ public abstract class Piece {
      */
     public abstract int[][] getDirectionalLimits();
 
-    public List<PieceConfiguration> getPossibleMoves(int[] positionBitFlags, PieceConfiguration currentConfiguration) {
+    public List<PieceConfiguration> getPossibleMoves(int[] positionBitFlags, PieceConfiguration currentConfiguration, boolean linkOnwardConfigurations) {
         List<PieceConfiguration> pieceConfigurations = new ArrayList<>();
         for(int[] directionalLimit : getMovableDirectionalLimits(positionBitFlags)) {
             int directionX = directionalLimit[0];
@@ -70,7 +70,7 @@ public abstract class Piece {
                     }
                 }
 
-                addNewPieceConfigurations(pieceConfigurations, currentConfiguration, testPositionIndex, takenPiece);
+                addNewPieceConfigurations(pieceConfigurations, currentConfiguration, testPositionIndex, takenPiece, linkOnwardConfigurations);
 
                 if (takenPiece != null) {
                     // Stop considering moves beyond this taken piece
@@ -83,7 +83,7 @@ public abstract class Piece {
     }
 
     protected void addNewPieceConfigurations(List<PieceConfiguration> pieceConfigurations, PieceConfiguration currentConfiguration, int newPiecePosition,
-            Piece takenPiece) {
+            Piece takenPiece, boolean linkOnwardConfigurations) {
         PieceConfiguration newConfiguration = new PieceConfiguration(currentConfiguration, false);
         for(Piece piece : currentConfiguration.getPieces()) {
             if (!piece.equals(this) && !piece.equals(takenPiece)) {
@@ -109,7 +109,9 @@ public abstract class Piece {
             newConfiguration.setFullMoveNumber(currentConfiguration.getFullMoveNumber() + 1);
         }
         pieceConfigurations.add(newConfiguration);
-//        linkPieceConfigurations(currentConfiguration, newConfiguration, newPiecePosition, takenPiece);
+        if (linkOnwardConfigurations) {
+            linkPieceConfigurations(currentConfiguration, newConfiguration, newPiecePosition, takenPiece);
+        }
     }
 
     protected void linkPieceConfigurations(PieceConfiguration currentConfiguration, PieceConfiguration newConfiguration,
