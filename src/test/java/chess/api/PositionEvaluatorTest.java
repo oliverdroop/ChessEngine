@@ -137,7 +137,7 @@ public class PositionEvaluatorTest {
 
         while(pieceConfiguration != null) {
             LOGGER.info(pieceConfiguration.toString());
-            pieceConfiguration = PositionEvaluator.getBestMoveRecursively(pieceConfiguration, 4);
+            pieceConfiguration = PositionEvaluator.getBestMoveRecursively(pieceConfiguration, 2);
         }
     }
 

@@ -13,6 +13,8 @@ public class PositionEvaluator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PositionEvaluator.class);
 
+    private static final int NO_CAPTURE_OR_PAWN_MOVE_LIMIT = 99;
+
     public static int getValueDifferential(PieceConfiguration pieceConfiguration) {
         Map<Side, Integer> valueMap = pieceConfiguration.getPieces().stream()
                 .collect(Collectors.groupingBy(piece -> piece.getSide(), Collectors.summingInt(piece -> piece.getValue())));
@@ -38,7 +40,10 @@ public class PositionEvaluator {
     public static double getBestScoreDifferentialRecursively(PieceConfiguration pieceConfiguration, int depth, int turnSideFactor) {
         Optional<Map.Entry<PieceConfiguration, Double>> optionalBestEntry = getBestPieceConfigurationToScoreEntryRecursively(pieceConfiguration, depth, turnSideFactor);
         if (optionalBestEntry.isPresent()) {
-//            int turnSideFactor = isTurnSide ? 1 : -1;
+            Map.Entry<PieceConfiguration, Double> bestEntry = optionalBestEntry.get();
+            if (bestEntry.getKey().getHalfMoveClock() > NO_CAPTURE_OR_PAWN_MOVE_LIMIT) {
+                return -Float.MAX_VALUE;
+            }
             return turnSideFactor * optionalBestEntry.get().getValue();
         } else if (pieceConfiguration.isCheck()) {
             // Checkmate
