@@ -17,53 +17,61 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
 
     public static final int OPPONENT_OCCUPIED = 128; // 7
 
-    public static final int THREATENED = 256; // 8
+    public static final int WHITE_OCCUPIED = 256; // 8
 
-    public static final int KING_OCCUPIED = 512; // 9
+    public static final int BLACK_OCCUPIED = 512; // 9
 
-    public static final int EN_PASSANT_SQUARE = 1024; // 10
+    public static final int KING_OCCUPIED = 1024; // 10
 
-    public static final int CASTLE_AVAILABLE = 2048; // 11
+    public static final int KNIGHT_OCCUPIED = 2048; // 11
 
-    public static final int DOES_NOT_BLOCK_CHECK = 4096; // 12
+    public static final int BISHOP_OCCUPIED = 4096; // 12
 
-    public static final int DIRECTION_N = 8192; // 13
+    public static final int ROOK_OCCUPIED = 8192; // 13
 
-    public static final int DIRECTION_NE = 16384; // 14
+    public static final int QUEEN_OCCUPIED = 16384; // 14
 
-    public static final int DIRECTION_E = 32768; // 15
+    public static final int PAWN_OCCUPIED = 32768; // 15
 
-    public static final int DIRECTION_SE = 65536; // 16
+    public static final int THREATENED = 65536; // 16
 
-    public static final int DIRECTION_S = 131072; // 17
+    public static final int DIRECTION_N = 131072; // 17
 
-    public static final int DIRECTION_SW = 262144; // 18
+    public static final int DIRECTION_NE = 262144; // 18
 
-    public static final int DIRECTION_W = 524288; // 19
+    public static final int DIRECTION_E = 524288; // 19
 
-    public static final int DIRECTION_NW = 1048576; // 20
+    public static final int DIRECTION_SE = 1048576; // 20
 
-    public static final int DIRECTION_ANY_KNIGHT = 2097152; // 21
+    public static final int DIRECTION_S = 2097152; // 21
 
-    public static final int KNIGHT_OCCUPIED = 4194304; // 22
+    public static final int DIRECTION_SW = 4194304; // 22
 
-    public static final int BISHOP_OCCUPIED = 8388608; // 23
+    public static final int DIRECTION_W = 8388608; // 23
 
-    public static final int ROOK_OCCUPIED = 16777216; // 24
+    public static final int DIRECTION_NW = 16777216; // 24
 
-    public static final int QUEEN_OCCUPIED = 33554432; // 25
+    public static final int DIRECTION_ANY_KNIGHT = 33554432; // 25
 
-    public static final int PAWN_OCCUPIED = 67108864; // 26
+    public static final int DOES_NOT_BLOCK_CHECK = 67108864; // 26
 
-    public static final int WHITE_OCCUPIED = 134217728; // 27
+    public static final int CASTLE_AVAILABLE = 134217728; // 27
 
-    public static final int BLACK_OCCUPIED = 268435456; // 28
+    public static final int EN_PASSANT_SQUARE = 268435456; // 28
 
-    public static final ImmutableSet<Integer> ALL_DIRECTIONAL_FLAGS = ImmutableSet.of(DIRECTION_N, DIRECTION_NE,
-            DIRECTION_E, DIRECTION_SE, DIRECTION_S, DIRECTION_SW, DIRECTION_W, DIRECTION_NW, DIRECTION_ANY_KNIGHT);
+    private static final int[] ALL_DIRECTIONAL_FLAGS = new int[]{DIRECTION_N, DIRECTION_NE,
+            DIRECTION_E, DIRECTION_SE, DIRECTION_S, DIRECTION_SW, DIRECTION_W, DIRECTION_NW, DIRECTION_ANY_KNIGHT};
+    
+    public static final int ALL_DIRECTIONAL_FLAGS_COMBINED = DIRECTION_N | DIRECTION_NE | DIRECTION_E | DIRECTION_SE
+            | DIRECTION_S | DIRECTION_SW | DIRECTION_W | DIRECTION_NW | DIRECTION_ANY_KNIGHT;
 
     public static final int ALL_PIECE_FLAGS_COMBINED = KING_OCCUPIED | KNIGHT_OCCUPIED | BISHOP_OCCUPIED
-            | ROOK_OCCUPIED | QUEEN_OCCUPIED | PAWN_OCCUPIED | WHITE_OCCUPIED | BLACK_OCCUPIED;
+            | ROOK_OCCUPIED | QUEEN_OCCUPIED | PAWN_OCCUPIED;
+
+    public static final int ALL_PIECE_AND_COLOUR_FLAGS_COMBINED = ALL_PIECE_FLAGS_COMBINED | WHITE_OCCUPIED | BLACK_OCCUPIED;
+
+    public static final int ALL_PIECE_COLOUR_AND_OCCUPATION_FLAGS_COMBINED = PLAYER_OCCUPIED | OPPONENT_OCCUPIED
+            | ALL_PIECE_FLAGS_COMBINED | WHITE_OCCUPIED | BLACK_OCCUPIED;
 
     public static final int[] CENTRE_POSITIONS = {27, 28, 35, 36};
 
@@ -77,11 +85,11 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
 
     private int fullMoveNumber = 0;
 
-    private int[] positionBitFlags = Arrays.copyOf(Position.POSITIONS, 64);
+    private int[] positionBitFlags = Position.POSITIONS.clone();
 
     private PieceConfiguration parentConfiguration;
 
-    private List<PieceConfiguration> childConfigurations = new ArrayList<>();
+    private final List<PieceConfiguration> childConfigurations = new ArrayList<>();
 
     private String algebraicNotation;
 
@@ -98,7 +106,7 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
         if (copyPieces) {
             Arrays.stream(Position.POSITIONS)
                     .forEach(pos -> positionBitFlags[pos] = BitUtil.applyBitFlag(positionBitFlags[pos],
-                            copiedConfiguration.positionBitFlags[pos] & ALL_PIECE_FLAGS_COMBINED));
+                            copiedConfiguration.positionBitFlags[pos] & ALL_PIECE_AND_COLOUR_FLAGS_COMBINED));
         }
     }
 
@@ -152,7 +160,7 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
 
     public static int[] getCheckNonBlockerPositionBitFlags(int kingPositionBitFlag, int[] positionBitFlags) {
         int kingPositionDirectionalFlags = Piece.getDirectionalFlags(kingPositionBitFlag);
-        if (ALL_DIRECTIONAL_FLAGS.contains(kingPositionDirectionalFlags)) {
+        if (Arrays.stream(ALL_DIRECTIONAL_FLAGS).anyMatch(df -> df == kingPositionDirectionalFlags)) {
             // The king is only checked from one direction
             int currentPosition = kingPositionBitFlag;
             int nextPositionIndex = Position.applyTranslationTowardsThreat(kingPositionDirectionalFlags, currentPosition);
@@ -202,13 +210,11 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
     }
 
     public static int getPieceAndColourBitFlags(int positionBitFlag) {
-        return positionBitFlag & (KING_OCCUPIED | KNIGHT_OCCUPIED | BISHOP_OCCUPIED | ROOK_OCCUPIED | QUEEN_OCCUPIED
-                | PAWN_OCCUPIED | WHITE_OCCUPIED | BLACK_OCCUPIED);
+        return positionBitFlag & (ALL_PIECE_AND_COLOUR_FLAGS_COMBINED);
     }
 
     public static int getPieceTypeBitFlag(int positionBitFlag) {
-        return positionBitFlag & (KING_OCCUPIED | KNIGHT_OCCUPIED | BISHOP_OCCUPIED | ROOK_OCCUPIED | QUEEN_OCCUPIED
-                | PAWN_OCCUPIED);
+        return positionBitFlag & ALL_PIECE_FLAGS_COMBINED;
     }
 
     public void addPiece(int pieceBitFlag) {
@@ -219,9 +225,7 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
 
     public void removePiece(int pieceBitFlag) {
         int position = Position.getPosition(pieceBitFlag);
-        positionBitFlags[position] = positionBitFlags[position] & (THREATENED | EN_PASSANT_SQUARE | CASTLE_AVAILABLE
-                | DOES_NOT_BLOCK_CHECK | DIRECTION_N | DIRECTION_NE | DIRECTION_E | DIRECTION_SE | DIRECTION_S
-                | DIRECTION_SW | DIRECTION_W | DIRECTION_NW | DIRECTION_ANY_KNIGHT);
+        positionBitFlags[position] = positionBitFlags[position] & (~ALL_PIECE_COLOUR_AND_OCCUPATION_FLAGS_COMBINED);
     }
 
     public int getPieceAtPosition(int positionBitFlag) {
@@ -230,18 +234,15 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
 
     public void promotePiece(int position, Class<? extends Piece> clazz) {
         int oldPieceBitFlag = getPieceAtPosition(position);
-        int newPieceBitFlag = oldPieceBitFlag & (PLAYER_OCCUPIED | OPPONENT_OCCUPIED | THREATENED
-                | EN_PASSANT_SQUARE | CASTLE_AVAILABLE | DOES_NOT_BLOCK_CHECK | DIRECTION_N | DIRECTION_NE
-                | DIRECTION_E | DIRECTION_SE | DIRECTION_S | DIRECTION_SW | DIRECTION_W | DIRECTION_NW
-                | DIRECTION_ANY_KNIGHT | WHITE_OCCUPIED | BLACK_OCCUPIED);
+        int newPieceBitFlag = oldPieceBitFlag & ~ALL_PIECE_COLOUR_AND_OCCUPATION_FLAGS_COMBINED;
         if (clazz.equals(Queen.class)) {
-            positionBitFlags[position] = newPieceBitFlag + QUEEN_OCCUPIED;
+            positionBitFlags[position] = newPieceBitFlag | QUEEN_OCCUPIED;
         } else if (clazz.equals(Knight.class)) {
-            positionBitFlags[position] = newPieceBitFlag + KNIGHT_OCCUPIED;
+            positionBitFlags[position] = newPieceBitFlag | KNIGHT_OCCUPIED;
         } else if (clazz.equals(Bishop.class)) {
-            positionBitFlags[position] = newPieceBitFlag + BISHOP_OCCUPIED;
+            positionBitFlags[position] = newPieceBitFlag | BISHOP_OCCUPIED;
         } else if (clazz.equals(Rook.class)) {
-            positionBitFlags[position] = newPieceBitFlag + ROOK_OCCUPIED;
+            positionBitFlags[position] = newPieceBitFlag | ROOK_OCCUPIED;
         }
     }
 

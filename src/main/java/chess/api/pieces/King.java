@@ -118,12 +118,12 @@ public class King extends Piece{
             newPieceConfiguration.removeCastlePosition(getPosition(pieceBitFlag) - 2);
             newPieceConfiguration.removeCastlePosition(getPosition(pieceBitFlag) + 2);
             if (CASTLE_POSITION_MAPPINGS.containsKey(newPiecePosition)) {
-                int oldRookPosition = CASTLE_POSITION_MAPPINGS.get(newPiecePosition);
-                int castlingRookBitFlag = currentConfiguration.getPieceAtPosition(oldRookPosition);
-                int newRookPosition = Position.getPosition(castlingRookBitFlag) + newPiecePosition / 2;
-                newPieceConfiguration.removePiece(castlingRookBitFlag);
-                castlingRookBitFlag = castlingRookBitFlag - oldRookPosition + newRookPosition;
-                newPieceConfiguration.addPiece(castlingRookBitFlag);
+                final int oldRookPosition = CASTLE_POSITION_MAPPINGS.get(newPiecePosition);
+                final int oldCastlingRookBitFlag = currentConfiguration.getPieceAtPosition(oldRookPosition);
+                final int newRookPosition = (getPosition(pieceBitFlag) + newPiecePosition) >> 1;
+                newPieceConfiguration.removePiece(oldCastlingRookBitFlag);
+                final int newCastlingRookBitFlag = oldCastlingRookBitFlag - oldRookPosition + newRookPosition;
+                newPieceConfiguration.addPiece(newCastlingRookBitFlag);
             }
         }
     }

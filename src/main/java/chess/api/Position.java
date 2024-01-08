@@ -1,6 +1,5 @@
 package chess.api;
 
-import chess.api.pieces.Piece;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,7 +13,7 @@ public class Position {
             32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,
             48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63};
 
-    public static final int[][] DIRECTIONAL_BIT_FLAGS = {
+    public static final int[][] DIRECTIONAL_BIT_FLAG_GRID = {
             {PieceConfiguration.DIRECTION_SW, PieceConfiguration.DIRECTION_S, PieceConfiguration.DIRECTION_SE},
             {PieceConfiguration.DIRECTION_W, -1, PieceConfiguration.DIRECTION_E},
             {PieceConfiguration.DIRECTION_NW, PieceConfiguration.DIRECTION_N, PieceConfiguration.DIRECTION_NE}
