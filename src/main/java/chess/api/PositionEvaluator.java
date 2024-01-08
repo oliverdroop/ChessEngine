@@ -1,5 +1,6 @@
 package chess.api;
 
+import chess.api.pieces.Piece;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,8 +17,9 @@ public class PositionEvaluator {
     private static final int NO_CAPTURE_OR_PAWN_MOVE_LIMIT = 99;
 
     public static int getValueDifferential(PieceConfiguration pieceConfiguration) {
-        Map<Side, Integer> valueMap = pieceConfiguration.getPieces().stream()
-                .collect(Collectors.groupingBy(piece -> piece.getSide(), Collectors.summingInt(piece -> piece.getValue())));
+        Map<Side, Integer> valueMap = Arrays.stream(pieceConfiguration.getPieceBitFlags())
+                .boxed()
+                .collect(Collectors.groupingBy(Piece::getSide, Collectors.summingInt(Piece::getValue)));
         Integer turnSideValue = valueMap.get(pieceConfiguration.getTurnSide());
         Integer opposingSideValue = valueMap.get(pieceConfiguration.getTurnSide().getOpposingSide());
         if (turnSideValue != null && opposingSideValue != null) {
@@ -75,9 +77,7 @@ public class PositionEvaluator {
         double threatValue = -(pieceConfiguration.countThreatFlags() / (double) 64);
         adjustValuesByConstant(pieceConfigurationValueMap, threatValue);
 
-        return pieceConfigurationValueMap.entrySet().stream()
-                .sorted(entryComparator())
-                .findFirst();
+        return pieceConfigurationValueMap.entrySet().stream().min(entryComparator());
     }
 
     private static void adjustValuesByConstant(Map<PieceConfiguration, Double> pieceConfigurationValueMap, double constant) {

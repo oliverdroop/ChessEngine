@@ -11,12 +11,7 @@ public class Knight extends Piece{
 
     public static final String AN_CODE = "N";
 
-    public Knight(Side side, int position) {
-        super(side, PieceType.KNIGHT, position);
-    }
-
-    @Override
-    public int[][] getDirectionalLimits() {
+    public static int[][] getDirectionalLimits() {
         return DIRECTIONAL_LIMITS;
     }
 
@@ -29,16 +24,11 @@ public class Knight extends Piece{
         return DIRECTIONAL_LIMITS;
     }
 
-    @Override
-    public int[] stampThreatFlags(int[] positionBitFlags) {
-        return stampSimpleThreatFlags(positionBitFlags);
+    public static char getFENCode(int pieceBitFlag) {
+        return (char) (78 + (getSide(pieceBitFlag).ordinal() * 32));
     }
 
-    public char getFENCode() {
-        return (char) (78 + (getSide().ordinal() * 32));
-    }
-
-    public int getValue() {
+    public static int getValue() {
         return 3;
     }
 }

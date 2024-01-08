@@ -14,27 +14,14 @@ public class Rook extends Piece {
 
     public static final String AN_CODE = "R";
 
-    public Rook(Side side, int position) {
-        super(side, PieceType.ROOK, position);
-    }
-
-    @Override
-    public int[][] getDirectionalLimits() {
+    public static int[][] getDirectionalLimits() {
         return DIRECTIONAL_LIMITS;
     }
 
-    @Override
-    public int[] stampThreatFlags(int[] positionBitFlags) {
-        return stampSimpleThreatFlags(positionBitFlags);
-    }
-
-    @Override
-    protected void addNewPieceConfigurations(List<PieceConfiguration> pieceConfigurations,
-            PieceConfiguration currentConfiguration, int newPiecePosition, Piece takenPiece, boolean linkOnwardConfigurations) {
-        super.addNewPieceConfigurations(pieceConfigurations, currentConfiguration, newPiecePosition, takenPiece, linkOnwardConfigurations);
-        if (CASTLE_POSITION_MAPPINGS.containsKey(getPosition())) {
+    protected static void removeCastlingOptions(int pieceBitFlag, List<PieceConfiguration> pieceConfigurations) {
+        if (CASTLE_POSITION_MAPPINGS.containsKey(getPosition(pieceBitFlag))) {
             PieceConfiguration newPieceConfiguration = pieceConfigurations.get(pieceConfigurations.size() - 1);
-            newPieceConfiguration.removeCastlePosition(CASTLE_POSITION_MAPPINGS.get(getPosition()));
+            newPieceConfiguration.removeCastlePosition(CASTLE_POSITION_MAPPINGS.get(getPosition(pieceBitFlag)));
         }
     }
 
@@ -43,11 +30,11 @@ public class Rook extends Piece {
         return AN_CODE;
     }
 
-    public char getFENCode() {
-        return (char) (82 + (getSide().ordinal() * 32));
+    public static char getFENCode(int pieceBitFlag) {
+        return (char) (82 + (getSide(pieceBitFlag).ordinal() * 32));
     }
 
-    public int getValue() {
+    public static int getValue() {
         return 5;
     }
 }

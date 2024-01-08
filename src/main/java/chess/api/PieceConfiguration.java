@@ -1,13 +1,11 @@
 package chess.api;
 
-import chess.api.pieces.King;
-import chess.api.pieces.Piece;
+import chess.api.pieces.*;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -45,29 +43,29 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
 
     public static final int DIRECTION_NW = 1048576; // 20
 
-    public static final int DIRECTION_NNE = 2097152; // 21 // Is this needed?
+    public static final int DIRECTION_ANY_KNIGHT = 2097152; // 21
 
-    public static final int DIRECTION_ENE = 4194304; // 22 // Is this needed?
+    public static final int KNIGHT_OCCUPIED = 4194304; // 22
 
-    public static final int DIRECTION_ESE = 8388608; // 23 // Is this needed?
+    public static final int BISHOP_OCCUPIED = 8388608; // 23
 
-    public static final int DIRECTION_SSE = 16777216; // 24 // Is this needed?
+    public static final int ROOK_OCCUPIED = 16777216; // 24
 
-    public static final int DIRECTION_SSW = 33554432; // 25 // Is this needed?
+    public static final int QUEEN_OCCUPIED = 33554432; // 25
 
-    public static final int DIRECTION_WSW = 67108864; // 26 // Is this needed?
+    public static final int PAWN_OCCUPIED = 67108864; // 26
 
-    public static final int DIRECTION_WNW = 134217728; // 27 // Is this needed?
+    public static final int WHITE_OCCUPIED = 134217728; // 27
 
-    public static final int DIRECTION_NNW = 268435456; // 28 // Is this needed?
+    public static final int BLACK_OCCUPIED = 268435456; // 28
 
-    public static final ImmutableSet<Integer> ALL_DIRECTIONAL_FLAGS = ImmutableSet.of(DIRECTION_N, DIRECTION_NNE,
-            DIRECTION_NE, DIRECTION_ENE, DIRECTION_E, DIRECTION_ESE, DIRECTION_SE, DIRECTION_SSE, DIRECTION_S,
-            DIRECTION_SSW, DIRECTION_SW, DIRECTION_WSW, DIRECTION_W, DIRECTION_WNW, DIRECTION_NW, DIRECTION_NNW);
+    public static final ImmutableSet<Integer> ALL_DIRECTIONAL_FLAGS = ImmutableSet.of(DIRECTION_N, DIRECTION_NE,
+            DIRECTION_E, DIRECTION_SE, DIRECTION_S, DIRECTION_SW, DIRECTION_W, DIRECTION_NW, DIRECTION_ANY_KNIGHT);
+
+    public static final int ALL_PIECE_FLAGS_COMBINED = KING_OCCUPIED | KNIGHT_OCCUPIED | BISHOP_OCCUPIED
+            | ROOK_OCCUPIED | QUEEN_OCCUPIED | PAWN_OCCUPIED | WHITE_OCCUPIED | BLACK_OCCUPIED;
 
     public static final int[] CENTRE_POSITIONS = {27, 28, 35, 36};
-
-    protected Set<Piece> pieces = new HashSet<>();
 
     private Integer enPassantSquare;
 
@@ -79,7 +77,7 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
 
     private int fullMoveNumber = 0;
 
-    private int[] positionBitFlags;
+    private int[] positionBitFlags = Arrays.copyOf(Position.POSITIONS, 64);
 
     private PieceConfiguration parentConfiguration;
 
@@ -96,33 +94,35 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
         this.halfMoveClock = copiedConfiguration.getHalfMoveClock();
         this.fullMoveNumber = copiedConfiguration.getFullMoveNumber();
         this.castlePositions = new ArrayList<>(copiedConfiguration.getCastlePositions());
+
         if (copyPieces) {
-            this.pieces = new HashSet<>(copiedConfiguration.getPieces());
+            Arrays.stream(Position.POSITIONS)
+                    .forEach(pos -> positionBitFlags[pos] = BitUtil.applyBitFlag(positionBitFlags[pos],
+                            copiedConfiguration.positionBitFlags[pos] & ALL_PIECE_FLAGS_COMBINED));
         }
     }
 
     public List<PieceConfiguration> getPossiblePieceConfigurations() {
-        positionBitFlags = stampCheckNonBlockerFlags(stampThreatFlags(stampOccupationFlags(Arrays.copyOf(Position.POSITIONS, 64))));
-        return pieces.stream()
-                .filter(p -> p.getSide() == turnSide)
+        positionBitFlags = stampCheckNonBlockerFlags(stampThreatFlags(stampOccupationFlags(positionBitFlags)));
+        return Arrays.stream(getPieceBitFlags())
+                .boxed()
+                .filter(p -> BitUtil.hasBitFlag(p, PLAYER_OCCUPIED))
                 .flatMap(p -> getPossiblePieceConfigurationsForPiece(p, false).stream())
                 .collect(Collectors.toList());
     }
 
-    public List<PieceConfiguration> getPossiblePieceConfigurationsForPiece(Piece piece, boolean linkOnwardConfigurations) {
-        if (positionBitFlags == null) {
-            positionBitFlags = stampCheckNonBlockerFlags(stampThreatFlags(stampOccupationFlags(Arrays.copyOf(Position.POSITIONS, 64))));
+    public List<PieceConfiguration> getPossiblePieceConfigurationsForPiece(int pieceBitFlag, boolean linkOnwardConfigurations) {
+        if (Arrays.stream(positionBitFlags).noneMatch(pbf -> pbf > 63)) {
+            positionBitFlags = stampCheckNonBlockerFlags(stampThreatFlags(stampOccupationFlags(positionBitFlags)));
         }
-        return piece.getPossibleMoves(positionBitFlags, this, linkOnwardConfigurations);
+        return Piece.getPossibleMoves(pieceBitFlag, positionBitFlags, this, linkOnwardConfigurations);
     }
 
     private int[] stampOccupationFlags(int[] positions) {
-        for(Piece piece : pieces) {
-            int occupationFlag = piece.getSide() == turnSide ? PLAYER_OCCUPIED : OPPONENT_OCCUPIED;
-            positions[piece.getPosition()] = BitUtil.applyBitFlag(positions[piece.getPosition()], occupationFlag);
-            if (piece instanceof King) {
-                positions[piece.getPosition()] = BitUtil.applyBitFlag(positions[piece.getPosition()], KING_OCCUPIED);
-            }
+        for(int pieceBitFlag : getPieceBitFlags()) {
+            int occupationFlag = Piece.getSide(pieceBitFlag) == turnSide ? PLAYER_OCCUPIED : OPPONENT_OCCUPIED;
+            int position = Position.getPosition(pieceBitFlag);
+            positions[position] = BitUtil.applyBitFlag(positions[position], occupationFlag);
         }
         if (enPassantSquare != null) {
             positions[enPassantSquare] = BitUtil.applyBitFlag(positions[enPassantSquare], EN_PASSANT_SQUARE);
@@ -134,9 +134,9 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
     }
 
     private int[] stampThreatFlags(int[] positionBitFlags) {
-        for(Piece piece : pieces) {
-            if (piece.getSide() != turnSide) {
-                positionBitFlags = piece.stampThreatFlags(positionBitFlags);
+        for(int pieceBitFlag : getPieceBitFlags()) {
+            if (Piece.getSide(pieceBitFlag) != turnSide) {
+                positionBitFlags = Piece.stampThreatFlags(pieceBitFlag, positionBitFlags);
             }
         }
         return positionBitFlags;
@@ -153,6 +153,7 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
     public static int[] getCheckNonBlockerPositionBitFlags(int kingPositionBitFlag, int[] positionBitFlags) {
         int kingPositionDirectionalFlags = Piece.getDirectionalFlags(kingPositionBitFlag);
         if (ALL_DIRECTIONAL_FLAGS.contains(kingPositionDirectionalFlags)) {
+            // The king is only checked from one direction
             int currentPosition = kingPositionBitFlag;
             int nextPositionIndex = Position.applyTranslationTowardsThreat(kingPositionDirectionalFlags, currentPosition);
 
@@ -160,6 +161,18 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
                 positionBitFlags[nextPositionIndex] = BitUtil.applyBitFlag(positionBitFlags[nextPositionIndex], PieceConfiguration.DOES_NOT_BLOCK_CHECK);
                 currentPosition = positionBitFlags[nextPositionIndex];
                 nextPositionIndex = Position.applyTranslationTowardsThreat(kingPositionDirectionalFlags, currentPosition);
+            }
+
+            if (kingPositionDirectionalFlags == PieceConfiguration.DIRECTION_ANY_KNIGHT) {
+                for(int[] directionalLimit : Knight.getKnightDirectionalLimits()) {
+                    int possibleCheckingKnightPosition = Position.applyTranslation(currentPosition, directionalLimit[0], directionalLimit[1]);
+                    if (possibleCheckingKnightPosition >= 0
+                            && BitUtil.hasBitFlag(positionBitFlags[possibleCheckingKnightPosition],
+                            PieceConfiguration.KNIGHT_OCCUPIED | PieceConfiguration.OPPONENT_OCCUPIED)) {
+                        positionBitFlags[possibleCheckingKnightPosition] = BitUtil.applyBitFlag(
+                                positionBitFlags[possibleCheckingKnightPosition], PieceConfiguration.DOES_NOT_BLOCK_CHECK);
+                    }
+                }
             }
         }
 
@@ -184,35 +197,51 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
                 .count();
     }
 
-    public Set<Piece> getPieces() {
-        return pieces;
+    public int[] getPieceBitFlags() {
+        return Arrays.stream(positionBitFlags).filter(pbf -> getPieceTypeBitFlag(pbf) != 0).toArray();
     }
 
-    public void addPiece(Piece piece) {
-        pieces.add(piece);
+    public static int getPieceAndColourBitFlags(int positionBitFlag) {
+        return positionBitFlag & (KING_OCCUPIED | KNIGHT_OCCUPIED | BISHOP_OCCUPIED | ROOK_OCCUPIED | QUEEN_OCCUPIED
+                | PAWN_OCCUPIED | WHITE_OCCUPIED | BLACK_OCCUPIED);
     }
 
-    public void removePiece(Piece piece) {
-        pieces.remove(piece);
+    public static int getPieceTypeBitFlag(int positionBitFlag) {
+        return positionBitFlag & (KING_OCCUPIED | KNIGHT_OCCUPIED | BISHOP_OCCUPIED | ROOK_OCCUPIED | QUEEN_OCCUPIED
+                | PAWN_OCCUPIED);
     }
 
-    public Piece getPieceAtPosition(int positionBitFlag) {
-        for(Piece piece : pieces) {
-            if ((positionBitFlag & 63) == piece.getPosition()) {
-                return piece;
-            }
-        }
-        return null;
+    public void addPiece(int pieceBitFlag) {
+        int pieceFlag = getPieceAndColourBitFlags(pieceBitFlag);
+        int position = Position.getPosition(pieceBitFlag);
+        positionBitFlags[position] = BitUtil.applyBitFlag(positionBitFlags[position], pieceFlag);
+    }
+
+    public void removePiece(int pieceBitFlag) {
+        int position = Position.getPosition(pieceBitFlag);
+        positionBitFlags[position] = positionBitFlags[position] & (THREATENED | EN_PASSANT_SQUARE | CASTLE_AVAILABLE
+                | DOES_NOT_BLOCK_CHECK | DIRECTION_N | DIRECTION_NE | DIRECTION_E | DIRECTION_SE | DIRECTION_S
+                | DIRECTION_SW | DIRECTION_W | DIRECTION_NW | DIRECTION_ANY_KNIGHT);
+    }
+
+    public int getPieceAtPosition(int positionBitFlag) {
+        return positionBitFlags[Position.getPosition(positionBitFlag)];
     }
 
     public void promotePiece(int position, Class<? extends Piece> clazz) {
-        Piece oldPiece = getPieceAtPosition(position);
-        try {
-            Piece newPiece = clazz.getConstructor(Side.class, int.class).newInstance(oldPiece.getSide(), position);
-            removePiece(oldPiece);
-            addPiece(newPiece);
-        } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
-            throw new RuntimeException(e);
+        int oldPieceBitFlag = getPieceAtPosition(position);
+        int newPieceBitFlag = oldPieceBitFlag & (PLAYER_OCCUPIED | OPPONENT_OCCUPIED | THREATENED
+                | EN_PASSANT_SQUARE | CASTLE_AVAILABLE | DOES_NOT_BLOCK_CHECK | DIRECTION_N | DIRECTION_NE
+                | DIRECTION_E | DIRECTION_SE | DIRECTION_S | DIRECTION_SW | DIRECTION_W | DIRECTION_NW
+                | DIRECTION_ANY_KNIGHT | WHITE_OCCUPIED | BLACK_OCCUPIED);
+        if (clazz.equals(Queen.class)) {
+            positionBitFlags[position] = newPieceBitFlag + QUEEN_OCCUPIED;
+        } else if (clazz.equals(Knight.class)) {
+            positionBitFlags[position] = newPieceBitFlag + KNIGHT_OCCUPIED;
+        } else if (clazz.equals(Bishop.class)) {
+            positionBitFlags[position] = newPieceBitFlag + BISHOP_OCCUPIED;
+        } else if (clazz.equals(Rook.class)) {
+            positionBitFlags[position] = newPieceBitFlag + ROOK_OCCUPIED;
         }
     }
 

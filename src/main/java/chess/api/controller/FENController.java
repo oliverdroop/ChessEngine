@@ -53,9 +53,9 @@ public class FENController {
             LOGGER.info("FEN: {}", availableMovesRequestDto.getFen());
             LOGGER.info("From: {}", availableMovesRequestDto.getFrom());
             PieceConfiguration inputConfiguration = FENReader.read(availableMovesRequestDto.getFen());
-            Piece piece = inputConfiguration.getPieceAtPosition(Position.getPosition(availableMovesRequestDto.getFrom()));
-            LOGGER.info("The piece for which to get available moves is a {} {}", piece.getSide(), piece.getPieceType());
-            List<String> algebraicNotations = inputConfiguration.getPossiblePieceConfigurationsForPiece(piece, true)
+            int pieceBitFlag = inputConfiguration.getPieceAtPosition(Position.getPosition(availableMovesRequestDto.getFrom()));
+            LOGGER.info("The piece for which to get available moves is a {} {}", Piece.getSide(pieceBitFlag), Piece.getPieceType(pieceBitFlag));
+            List<String> algebraicNotations = inputConfiguration.getPossiblePieceConfigurationsForPiece(pieceBitFlag, true)
                     .stream()
                     .map(PieceConfiguration::getAlgebraicNotation)
                     .collect(Collectors.toList());

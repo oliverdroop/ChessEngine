@@ -13,35 +13,52 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 
-import static chess.api.PieceConfiguration.ALL_DIRECTIONAL_FLAGS;
+import static chess.api.PieceConfiguration.*;
 
 public abstract class Piece {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Piece.class);
 
-    private Side side;
-    private PieceType pieceType;
-    private int position;
-
-    public Piece(Side side, PieceType pieceType, int position) {
-        this.side = side;
-        this.pieceType = pieceType;
-        this.position = position;
-    }
-
     /**
      * @return An array of size-3 int arrays, where the first two ints correspond to a direction
      * and the third int corresponds to the maximum number of times the piece can move in that direction
      */
-    public abstract int[][] getDirectionalLimits();
+    public static int[][] getDirectionalLimits(int pieceBitFlag) {
+        int pieceFlag = getPieceTypeBitFlag(pieceBitFlag);
+        switch(pieceFlag) {
+            case PAWN_OCCUPIED:
+                return Pawn.getDirectionalLimits(pieceBitFlag);
+            case BISHOP_OCCUPIED:
+                return Bishop.getDirectionalLimits();
+            case ROOK_OCCUPIED:
+                return Rook.getDirectionalLimits();
+            case QUEEN_OCCUPIED:
+                return Queen.getDirectionalLimits();
+            case KNIGHT_OCCUPIED:
+                return Knight.getDirectionalLimits();
+            case KING_OCCUPIED:
+                return King.getDirectionalLimits(pieceBitFlag);
+            default:
+                return new int[0][];
+        }
+    }
 
-    public List<PieceConfiguration> getPossibleMoves(int[] positionBitFlags, PieceConfiguration currentConfiguration, boolean linkOnwardConfigurations) {
+    public static List<PieceConfiguration> getPossibleMoves(int pieceBitFlag, int[] positionBitFlags, PieceConfiguration currentConfiguration, boolean linkOnwardConfigurations) {
+        int pieceFlag = getPieceTypeBitFlag(pieceBitFlag);
+        switch(pieceFlag) {
+            case PAWN_OCCUPIED:
+                return Pawn.getPossibleMoves(pieceBitFlag, positionBitFlags, currentConfiguration, linkOnwardConfigurations);
+            case KING_OCCUPIED:
+                return King.getPossibleMoves(pieceBitFlag, positionBitFlags, currentConfiguration, linkOnwardConfigurations);
+            default:
+                break;
+        }
         List<PieceConfiguration> pieceConfigurations = new ArrayList<>();
-        for(int[] directionalLimit : getMovableDirectionalLimits(positionBitFlags)) {
+        for(int[] directionalLimit : getMovableDirectionalLimits(pieceBitFlag, positionBitFlags)) {
             int directionX = directionalLimit[0];
             int directionY = directionalLimit[1];
             int limit = directionalLimit[2];
-            int testPositionIndex = position;
+            int testPositionIndex = Position.getPosition(pieceBitFlag);
 
             while (limit > 0) {
                 testPositionIndex = Position.applyTranslation(testPositionIndex, directionX, directionY);
@@ -55,14 +72,14 @@ public abstract class Piece {
                 }
 
                 // Is there an opponent piece on the position?
-                Piece takenPiece = null;
+                int takenPieceBitFlag = -1;
                 if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PieceConfiguration.OPPONENT_OCCUPIED)) {
-                    takenPiece = currentConfiguration.getPieceAtPosition(testPositionIndex);
+                    takenPieceBitFlag = positionBitFlags[testPositionIndex];
                 }
 
                 // Is this position a position which wouldn't block an existing checking direction?
                 if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PieceConfiguration.DOES_NOT_BLOCK_CHECK)) {
-                    if (takenPiece == null) {
+                    if (takenPieceBitFlag == -1) {
                         limit--;
                         continue;
                     } else {
@@ -70,9 +87,9 @@ public abstract class Piece {
                     }
                 }
 
-                addNewPieceConfigurations(pieceConfigurations, currentConfiguration, testPositionIndex, takenPiece, linkOnwardConfigurations);
+                addNewPieceConfigurations(pieceBitFlag, pieceConfigurations, currentConfiguration, testPositionIndex, takenPieceBitFlag, linkOnwardConfigurations);
 
-                if (takenPiece != null) {
+                if (takenPieceBitFlag >= 0) {
                     // Stop considering moves beyond this taken piece
                     break;
                 }
@@ -82,46 +99,53 @@ public abstract class Piece {
         return pieceConfigurations;
     }
 
-    protected void addNewPieceConfigurations(List<PieceConfiguration> pieceConfigurations, PieceConfiguration currentConfiguration, int newPiecePosition,
-            Piece takenPiece, boolean linkOnwardConfigurations) {
+    protected static void addNewPieceConfigurations(int pieceBitFlag, List<PieceConfiguration> pieceConfigurations, PieceConfiguration currentConfiguration, int newPiecePosition,
+            int takenPieceBitFlag, boolean linkOnwardConfigurations) {
         PieceConfiguration newConfiguration = new PieceConfiguration(currentConfiguration, false);
-        for(Piece piece : currentConfiguration.getPieces()) {
-            if (!piece.equals(this) && !piece.equals(takenPiece)) {
-                newConfiguration.addPiece(piece);
+        for(int pieceBitFlag2 : currentConfiguration.getPieceBitFlags()) {
+            if (pieceBitFlag2 != pieceBitFlag && pieceBitFlag2 != takenPieceBitFlag) {
+                newConfiguration.addPiece(pieceBitFlag2);
             }
         }
         try {
-            Piece movedPiece = this.getClass().getConstructor(Side.class, int.class).newInstance(side, newPiecePosition);
-            newConfiguration.addPiece(movedPiece);
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            int movedPieceBitFlag = pieceBitFlag - Position.getPosition(pieceBitFlag) + newPiecePosition;
+            newConfiguration.addPiece(movedPieceBitFlag);
+        } catch (Exception e) {
             LOGGER.error("Problem creating new piece configuration");
             return;
         }
         newConfiguration.setTurnSide(currentConfiguration.getTurnSide().getOpposingSide());
 
-        if (takenPiece != null || this instanceof Pawn) {
+        if (takenPieceBitFlag >= 0 || BitUtil.hasBitFlag(pieceBitFlag, PieceConfiguration.PAWN_OCCUPIED)) {
             newConfiguration.setHalfMoveClock(0);
         } else {
             newConfiguration.setHalfMoveClock(currentConfiguration.getHalfMoveClock() + 1);
         }
 
-        if (side == Side.BLACK) {
+        if (BitUtil.hasBitFlag(pieceBitFlag, PieceConfiguration.BLACK_OCCUPIED)) {
             newConfiguration.setFullMoveNumber(currentConfiguration.getFullMoveNumber() + 1);
         }
         pieceConfigurations.add(newConfiguration);
+
         if (linkOnwardConfigurations) {
-            linkPieceConfigurations(currentConfiguration, newConfiguration, newPiecePosition, takenPiece);
+            linkPieceConfigurations(pieceBitFlag, currentConfiguration, newConfiguration, newPiecePosition, takenPieceBitFlag);
+        }
+
+        // Remove castling options when rook moves
+        if (BitUtil.hasBitFlag(pieceBitFlag, ROOK_OCCUPIED)) {
+            Rook.removeCastlingOptions(pieceBitFlag, pieceConfigurations);
         }
     }
 
-    protected void linkPieceConfigurations(PieceConfiguration currentConfiguration, PieceConfiguration newConfiguration,
-                                           int newPiecePosition, Piece takenPiece) {
+    protected static void linkPieceConfigurations(int pieceBitFlag, PieceConfiguration currentConfiguration, PieceConfiguration newConfiguration,
+                                           int newPiecePosition, int takenPieceBitFlag) {
         currentConfiguration.addChildConfiguration(newConfiguration);
         newConfiguration.setParentConfiguration(currentConfiguration);
-        newConfiguration.setAlgebraicNotation(getAlgebraicNotation(getPosition(), newPiecePosition, takenPiece != null, null));
+        newConfiguration.setAlgebraicNotation(getAlgebraicNotation(
+                Position.getPosition(pieceBitFlag), newPiecePosition, takenPieceBitFlag >= 0, null));
     }
 
-    public String getAlgebraicNotation(int currentPosition, int nextPosition, boolean capturing, String promotionTo) {
+    public static String getAlgebraicNotation(int currentPosition, int nextPosition, boolean capturing, String promotionTo) {
         StringBuilder sb = new StringBuilder()
 //                .append(getANCode())
                 .append(Position.getCoordinateString(currentPosition));
@@ -137,14 +161,28 @@ public abstract class Piece {
 
     public abstract String getANCode();
 
-    public abstract int[] stampThreatFlags(int[] positionBitFlags);
+    public static int[] stampThreatFlags(int pieceBitFlag, int[] positionBitFlags) {
+        int pieceTypeFlag = getPieceTypeBitFlag(pieceBitFlag);
+        switch(pieceTypeFlag) {
+            case PieceConfiguration.KING_OCCUPIED:
+                return King.stampThreatFlags(pieceBitFlag, positionBitFlags);
+            case PieceConfiguration.PAWN_OCCUPIED:
+                return Pawn.stampThreatFlags(pieceBitFlag, positionBitFlags);
+            case PieceConfiguration.KNIGHT_OCCUPIED:
+            case PieceConfiguration.BISHOP_OCCUPIED:
+            case PieceConfiguration.ROOK_OCCUPIED:
+            case PieceConfiguration.QUEEN_OCCUPIED:
+            default:
+                return stampSimpleThreatFlags(pieceBitFlag, positionBitFlags);
+        }
+    }
 
-    public int[] stampSimpleThreatFlags(int[] positionBitFlags) {
-        for(int[] directionalLimit : getDirectionalLimits()) {
+    public static int[] stampSimpleThreatFlags(int pieceBitFlag, int[] positionBitFlags) {
+        for(int[] directionalLimit : getDirectionalLimits(pieceBitFlag)) {
             int directionX = directionalLimit[0];
             int directionY = directionalLimit[1];
             int limit = directionalLimit[2];
-            int testPositionIndex = getPosition();
+            int testPositionIndex = Position.getPosition(pieceBitFlag);
             int potentialKingProtectorPosition = -1;
             while (limit > 0) {
                 testPositionIndex = Position.applyTranslation(testPositionIndex, directionX, directionY);
@@ -190,28 +228,29 @@ public abstract class Piece {
         return positionBitFlags;
     }
 
-    protected int setDirectionalFlags(int number, int x, int y) {
-        return number | Position.DIRECTIONAL_BIT_FLAGS[y + 2][x + 2];
+    protected static int setDirectionalFlags(int number, int x, int y) {
+        if (Math.abs(x) == 2 || Math.abs(y) == 2) {
+            return number | PieceConfiguration.DIRECTION_ANY_KNIGHT;
+        }
+        return number | Position.DIRECTIONAL_BIT_FLAGS[y + 1][x + 1];
     }
 
     public static int getDirectionalFlags(int number) {
-        return number & (PieceConfiguration.DIRECTION_N | PieceConfiguration.DIRECTION_NNE
-                | PieceConfiguration.DIRECTION_NE | PieceConfiguration.DIRECTION_ENE | PieceConfiguration.DIRECTION_E
-                | PieceConfiguration.DIRECTION_ESE | PieceConfiguration.DIRECTION_SE | PieceConfiguration.DIRECTION_SSE
-                | PieceConfiguration.DIRECTION_S | PieceConfiguration.DIRECTION_SSW | PieceConfiguration.DIRECTION_SW
-                | PieceConfiguration.DIRECTION_WSW | PieceConfiguration.DIRECTION_W | PieceConfiguration.DIRECTION_WNW
-                | PieceConfiguration.DIRECTION_NW | PieceConfiguration.DIRECTION_NNW);
+        return number & (PieceConfiguration.DIRECTION_N | PieceConfiguration.DIRECTION_NE
+                | PieceConfiguration.DIRECTION_E | PieceConfiguration.DIRECTION_SE | PieceConfiguration.DIRECTION_S
+                | PieceConfiguration.DIRECTION_SW | PieceConfiguration.DIRECTION_W | PieceConfiguration.DIRECTION_NW
+                | PieceConfiguration.DIRECTION_ANY_KNIGHT);
     }
 
-    protected boolean hasDirectionalFlags(int number) {
+    protected static boolean hasDirectionalFlags(int number) {
         return getDirectionalFlags(number) != 0;
     }
 
-    protected int[][] restrictDirections(int directionalBitFlags) {
-        return restrictDirections(getDirectionalLimits(), directionalBitFlags);
+    protected static int[][] restrictDirections(int pieceBitFlag, int directionalBitFlags) {
+        return restrictDirections(getDirectionalLimits(pieceBitFlag), directionalBitFlags);
     }
 
-    protected int[][] restrictDirections(int[][] directionalLimits, int directionalBitFlags) {
+    protected static int[][] restrictDirections(int[][] directionalLimits, int directionalBitFlags) {
         switch(directionalBitFlags) {
             case PieceConfiguration.DIRECTION_N:
             case PieceConfiguration.DIRECTION_S:
@@ -225,34 +264,28 @@ public abstract class Piece {
             case PieceConfiguration.DIRECTION_SE:
             case PieceConfiguration.DIRECTION_NW:
                 return filterDirectionalLimitsByPredicate(directionalLimits, dl -> dl[0] == -dl[1]);
-            case PieceConfiguration.DIRECTION_NNE:
-            case PieceConfiguration.DIRECTION_ENE:
-            case PieceConfiguration.DIRECTION_ESE:
-            case PieceConfiguration.DIRECTION_SSE:
-            case PieceConfiguration.DIRECTION_SSW:
-            case PieceConfiguration.DIRECTION_WSW:
-            case PieceConfiguration.DIRECTION_WNW:
-            case PieceConfiguration.DIRECTION_NNW:
+            case PieceConfiguration.DIRECTION_ANY_KNIGHT:
             default:
                 return directionalLimits;
         }
     }
 
-    private int[][] filterDirectionalLimitsByPredicate(int[][] directionalLimits, Predicate<int[]> predicate) {
+    private static int[][] filterDirectionalLimitsByPredicate(int[][] directionalLimits, Predicate<int[]> predicate) {
         return Arrays.stream(directionalLimits)
                 .filter(predicate)
                 .toArray(size1 -> new int[size1][]);
     }
 
-    protected int[][] getMovableDirectionalLimits(int[] positionBitFlags) {
+    protected static int[][] getMovableDirectionalLimits(int pieceBitFlag, int[] positionBitFlags) {
+        int position = Position.getPosition(pieceBitFlag);
         int number = positionBitFlags[position];
         if (hasDirectionalFlags(number)) {
-            return restrictDirections(getDirectionalFlags(number));
+            return restrictDirections(pieceBitFlag, getDirectionalFlags(number));
         }
-        return getDirectionalLimits();
+        return getDirectionalLimits(pieceBitFlag);
     }
 
-    protected int[][] arrayDeepCopy(int[][] arrayToCopy, int startIndex, int endIndex) {
+    protected static int[][] arrayDeepCopy(int[][] arrayToCopy, int startIndex, int endIndex) {
         int[][] output = new int[endIndex - startIndex][3];
         int io = 0;
         for(int i = startIndex; i < endIndex; i++) {
@@ -262,39 +295,79 @@ public abstract class Piece {
         return output;
     }
 
-    public int getPosition() {
-        return position;
+    public static int getPosition(int pieceBitFlag) {
+        return Position.getPosition(pieceBitFlag);
     }
 
-    public void setPosition(int position) {
-        this.position = position;
+    public static PieceType getPieceType(int pieceBitFlag) {
+        int pieceTypeFlag = pieceBitFlag & (KING_OCCUPIED | KNIGHT_OCCUPIED | BISHOP_OCCUPIED | ROOK_OCCUPIED | QUEEN_OCCUPIED | PAWN_OCCUPIED);
+        switch (pieceTypeFlag) {
+            case KING_OCCUPIED:
+                return PieceType.KING;
+            case KNIGHT_OCCUPIED:
+                return PieceType.KNIGHT;
+            case BISHOP_OCCUPIED:
+                return PieceType.BISHOP;
+            case ROOK_OCCUPIED:
+                return PieceType.ROOK;
+            case QUEEN_OCCUPIED:
+                return PieceType.QUEEN;
+            case PAWN_OCCUPIED:
+                return PieceType.PAWN;
+            default:
+                throw new RuntimeException("No piece type recognised from which to get PieceType enum");
+        }
     }
 
-    public PieceType getPieceType() {
-        return pieceType;
+    public static Side getSide(int pieceBitFlag) {
+        return Side.values()[(pieceBitFlag & (PieceConfiguration.BLACK_OCCUPIED)) >> 28];
     }
 
-    public void setPieceType(PieceType pieceType) {
-        this.pieceType = pieceType;
-    }
-
-    public Side getSide() {
-        return side;
-    }
-
-    public void setSide(Side side) {
-        this.side = side;
-    }
-
-    public String toString() {
+    public String toString(int pieceBitFlag) {
         return new StringBuilder()
                 .append(this.getClass().getSimpleName())
                 .append(':')
-                .append(Position.getCoordinateString(position))
+                .append(Position.getCoordinateString(getPosition(pieceBitFlag)))
                 .toString();
     }
 
-    public abstract char getFENCode();
+    public static char getFENCode(int pieceBitFlag) {
+        int pieceTypeFlag = pieceBitFlag & (KING_OCCUPIED | KNIGHT_OCCUPIED | BISHOP_OCCUPIED | ROOK_OCCUPIED | QUEEN_OCCUPIED | PAWN_OCCUPIED);
+        switch (pieceTypeFlag) {
+            case KING_OCCUPIED:
+                return King.getFENCode(pieceBitFlag);
+            case KNIGHT_OCCUPIED:
+                return Knight.getFENCode(pieceBitFlag);
+            case BISHOP_OCCUPIED:
+                return Bishop.getFENCode(pieceBitFlag);
+            case ROOK_OCCUPIED:
+                return Rook.getFENCode(pieceBitFlag);
+            case QUEEN_OCCUPIED:
+                return Queen.getFENCode(pieceBitFlag);
+            case PAWN_OCCUPIED:
+                return Pawn.getFENCode(pieceBitFlag);
+            default:
+                throw new RuntimeException("No piece type recognised from which to get FEN code");
+        }
+    }
 
-    public abstract int getValue();
+    public static int getValue(int pieceBitFlag) {
+        int pieceTypeFlag = pieceBitFlag & (KING_OCCUPIED | KNIGHT_OCCUPIED | BISHOP_OCCUPIED | ROOK_OCCUPIED | QUEEN_OCCUPIED | PAWN_OCCUPIED);
+        switch (pieceTypeFlag) {
+            case KING_OCCUPIED:
+                return King.getValue();
+            case KNIGHT_OCCUPIED:
+                return Knight.getValue();
+            case BISHOP_OCCUPIED:
+                return Bishop.getValue();
+            case ROOK_OCCUPIED:
+                return Rook.getValue();
+            case QUEEN_OCCUPIED:
+                return Queen.getValue();
+            case PAWN_OCCUPIED:
+                return Pawn.getValue();
+            default:
+                return 0;
+        }
+    }
 }

@@ -12,12 +12,7 @@ public class Queen extends Piece{
 
     private static final int[][] DIRECTIONAL_LIMITS = {{-1, -1, 7}, {1, -1, 7}, {-1, 1, 7}, {1, 1, 7}, {0, -1, 7}, {-1, 0, 7}, {1, 0, 7}, {0, 1, 7}};
 
-    public Queen(Side side, int position) {
-        super(side, PieceType.QUEEN, position);
-    }
-
-    @Override
-    public int[][] getDirectionalLimits() {
+    public static int[][] getDirectionalLimits() {
         return DIRECTIONAL_LIMITS;
     }
 
@@ -26,16 +21,11 @@ public class Queen extends Piece{
         return AN_CODE;
     }
 
-    @Override
-    public int[] stampThreatFlags(int[] positionBitFlags) {
-        return stampSimpleThreatFlags(positionBitFlags);
+    public static char getFENCode(int pieceBitFlag) {
+        return (char) (81 + (getSide(pieceBitFlag).ordinal() * 32));
     }
 
-    public char getFENCode() {
-        return (char) (81 + (getSide().ordinal() * 32));
-    }
-
-    public int getValue() {
+    public static int getValue() {
         return 9;
     }
 }

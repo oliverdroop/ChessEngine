@@ -9,23 +9,25 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 
+import static chess.api.PieceConfiguration.*;
+
 public class FENReader {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(FENReader.class);
 
-	private static final Map<Character, Class> pieceMappings = new ImmutableMap.Builder<Character, Class>()
-			.put('K', King.class)
-			.put('k', King.class)
-			.put('Q', Queen.class)
-			.put('q', Queen.class)
-			.put('R', Rook.class)
-			.put('r', Rook.class)
-			.put('N', Knight.class)
-			.put('n', Knight.class)
-			.put('B', Bishop.class)
-			.put('b', Bishop.class)
-			.put('P', Pawn.class)
-			.put('p', Pawn.class).build();
+	private static final Map<Character, Integer> pieceMappings = new ImmutableMap.Builder<Character, Integer>()
+			.put('K', KING_OCCUPIED)
+			.put('k', KING_OCCUPIED)
+			.put('Q', QUEEN_OCCUPIED)
+			.put('q', QUEEN_OCCUPIED)
+			.put('R', ROOK_OCCUPIED)
+			.put('r', ROOK_OCCUPIED)
+			.put('N', KNIGHT_OCCUPIED)
+			.put('n', KNIGHT_OCCUPIED)
+			.put('B', BISHOP_OCCUPIED)
+			.put('b', BISHOP_OCCUPIED)
+			.put('P', PAWN_OCCUPIED)
+			.put('p', PAWN_OCCUPIED).build();
 	
 	public static PieceConfiguration read(String fen) {
 		PieceConfiguration pieceConfiguration = new PieceConfiguration();
@@ -79,15 +81,10 @@ public class FENReader {
 		return pieceConfiguration;
 	}
 	
-	public static Piece createPiece(char c, int x, int y) {
+	public static int createPiece(char c, int x, int y) {
 		int position = Position.getPosition(x, y);
-		Side side = (int) c < 97 ? Side.WHITE : Side.BLACK;
-		Class<Piece> clazz = pieceMappings.get(c);
-		try {
-			return clazz.getDeclaredConstructor(Side.class, int.class).newInstance(side, position);
-		} catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-			LOGGER.error("Caught exception creating piece: {}", e.getMessage());
-			return null;
-		}
+		int sideFlag = c < 97 ? WHITE_OCCUPIED : BLACK_OCCUPIED;
+		int pieceTypeFlag = pieceMappings.get(c);
+		return position + pieceTypeFlag + sideFlag;
 	}
 }

@@ -3,6 +3,8 @@ package chess.api;
 import chess.api.pieces.Piece;
 import com.google.common.collect.ImmutableMap;
 
+import static chess.api.PieceConfiguration.*;
+
 public class FENWriter {
 
 	public static final String STARTING_POSITION = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -14,13 +16,13 @@ public class FENWriter {
 		for(int y = 7; y >= 0; y--) {
 			int gapSize = 0;
 			for(int x = 0; x < 8; x++) {
-				Piece piece = pieceConfiguration.getPieceAtPosition(Position.getPosition(x, y));
-				if (piece != null) {
+				int pieceBitFlag = pieceConfiguration.getPieceAtPosition(Position.getPosition(x, y));
+				if ((pieceBitFlag & (ALL_PIECE_FLAGS_COMBINED)) > 0) {
 					if (gapSize > 0) {
 						fenBuilder.append(gapSize);
 						gapSize = 0;
 					}
-					fenBuilder.append(piece.getFENCode());
+					fenBuilder.append(Piece.getFENCode(pieceBitFlag));
 				} else {
 					gapSize ++;
 				}

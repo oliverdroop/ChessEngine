@@ -1,5 +1,7 @@
 package chess.api;
 
+import java.util.Collection;
+
 public class BitUtil {
     public static int applyBitFlag(int number, int bitFlag) {
         return number | bitFlag;

@@ -311,6 +311,19 @@ public class MovementTest {
     }
 
     @Test
+    void testRookMovement_removesCastleOption() {
+        PieceConfiguration pieceConfiguration = FENReader.read("8/8/8/8/8/8/P6P/R3K2R w KQ - 0 1");
+
+        List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
+
+        assertThat(pieceConfigurations)
+                .extracting(PieceConfiguration::toString)
+                .as("Unexpected castle marker when rook has moved")
+                .contains("8/8/8/8/8/8/P6P/R3KR2 b Q - 1 1",
+                        "8/8/8/8/8/8/P6P/3RK2R b K - 1 1");
+    }
+
+    @Test
     void testStartingPosition() {
         PieceConfiguration pieceConfiguration = FENReader.read("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
