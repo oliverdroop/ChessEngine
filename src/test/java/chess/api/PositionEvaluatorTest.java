@@ -1,8 +1,6 @@
 package chess.api;
 
-import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.Ignore;
-import org.junit.Rule;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,9 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class PositionEvaluatorTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PositionEvaluatorTest.class);
-
-    @Rule
-    public JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @Test
     void testStartingDifferential() {
@@ -107,10 +102,10 @@ public class PositionEvaluatorTest {
                 .getBestPieceConfigurationToScoreEntryRecursively(pieceConfiguration, 4, 1);
 
         assertThat(bestEntry).as("There should be a best entry present").isPresent();
-        softly.assertThat(bestEntry.get().getValue())
+        assertThat(bestEntry.get().getValue())
                 .as("Unexpected value differential for best second move assessed to a depth of 4 moves")
                 .isEqualTo(3);
-        softly.assertThat(bestEntry.get().getKey())
+        assertThat(bestEntry.get().getKey())
                 .as("Unexpected FEN for best second move assessed to a depth of 4 moves")
                 .isEqualTo(FENWriter.STARTING_POSITION);
     }
@@ -123,10 +118,10 @@ public class PositionEvaluatorTest {
                 .getBestPieceConfigurationToScoreEntryRecursively(pieceConfiguration, 4, 1);
 
         assertThat(bestEntry).as("There should be a best entry present").isPresent();
-        softly.assertThat(bestEntry.get().getValue())
+        assertThat(bestEntry.get().getValue())
                 .as("Unexpected value differential for best third move assessed to a depth of 4 moves")
                 .isEqualTo(3);
-        softly.assertThat(bestEntry.get().getKey())
+        assertThat(bestEntry.get().getKey())
                 .as("Unexpected FEN for best third move assessed to a depth of 4 moves")
                 .isEqualTo(FENWriter.STARTING_POSITION);
     }
