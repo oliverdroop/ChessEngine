@@ -1,7 +1,6 @@
 package chess.api.pieces;
 
 import chess.api.PieceConfiguration;
-import chess.api.Side;
 import com.google.common.collect.ImmutableMap;
 
 import java.util.List;
@@ -18,10 +17,9 @@ public class Rook extends Piece {
         return DIRECTIONAL_LIMITS;
     }
 
-    protected static void removeCastlingOptions(int pieceBitFlag, List<PieceConfiguration> pieceConfigurations) {
+    protected static void removeCastlingOptions(int pieceBitFlag, PieceConfiguration pieceConfiguration) {
         if (CASTLE_POSITION_MAPPINGS.containsKey(getPosition(pieceBitFlag))) {
-            PieceConfiguration newPieceConfiguration = pieceConfigurations.get(pieceConfigurations.size() - 1);
-            newPieceConfiguration.removeCastlePosition(CASTLE_POSITION_MAPPINGS.get(getPosition(pieceBitFlag)));
+            pieceConfiguration.removeCastlePosition(CASTLE_POSITION_MAPPINGS.get(getPosition(pieceBitFlag)));
         }
     }
 
@@ -31,7 +29,7 @@ public class Rook extends Piece {
     }
 
     public static char getFENCode(int pieceBitFlag) {
-        return (char) (82 + (getSide(pieceBitFlag).ordinal() * 32));
+        return (char) (82 + (getSide(pieceBitFlag) * 32));
     }
 
     public static int getValue() {

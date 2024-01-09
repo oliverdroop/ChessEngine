@@ -36,7 +36,7 @@ public class FENWriter {
 		}
 		fenBuilder.append(' ');
 		//current turn team
-		fenBuilder.append((char)((byte)pieceConfiguration.getTurnSide().toString().charAt(0) + 32));
+		fenBuilder.append(pieceConfiguration.getTurnSide() == Side.WHITE ? 'w' : 'b');
 		fenBuilder.append(' ');
 		//castling availability
 		boolean castling = false;

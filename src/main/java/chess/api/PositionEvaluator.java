@@ -17,21 +17,20 @@ public class PositionEvaluator {
     private static final int NO_CAPTURE_OR_PAWN_MOVE_LIMIT = 99;
 
     public static int getValueDifferential(PieceConfiguration pieceConfiguration) {
-        Map<Side, Integer> valueMap = Arrays.stream(pieceConfiguration.getPieceBitFlags())
+        Map<Integer, Integer> valueMap = Arrays.stream(pieceConfiguration.getPieceBitFlags())
                 .boxed()
                 .collect(Collectors.groupingBy(Piece::getSide, Collectors.summingInt(Piece::getValue)));
-        Integer turnSideValue = valueMap.get(pieceConfiguration.getTurnSide());
-        Integer opposingSideValue = valueMap.get(pieceConfiguration.getTurnSide().getOpposingSide());
+        Integer turnSideValue = valueMap.get(pieceConfiguration.getTurnSide().ordinal());
+        Integer opposingSideValue = valueMap.get(pieceConfiguration.getOpposingSide().ordinal());
         if (turnSideValue != null && opposingSideValue != null) {
             return turnSideValue - opposingSideValue;
         } else if (turnSideValue == null && opposingSideValue == null) {
             return 0;
         } else if (turnSideValue == null) {
             return -opposingSideValue;
-        } else if (opposingSideValue == null) {
+        } else {
             return turnSideValue;
         }
-        return 0;
     }
 
     public static PieceConfiguration getBestMoveRecursively(PieceConfiguration pieceConfiguration, int depth) {

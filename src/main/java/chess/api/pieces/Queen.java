@@ -1,11 +1,5 @@
 package chess.api.pieces;
 
-import chess.api.PieceConfiguration;
-import chess.api.Position;
-import chess.api.Side;
-
-import java.util.List;
-
 public class Queen extends Piece{
 
     public static final String AN_CODE = "Q";
@@ -22,7 +16,7 @@ public class Queen extends Piece{
     }
 
     public static char getFENCode(int pieceBitFlag) {
-        return (char) (81 + (getSide(pieceBitFlag).ordinal() * 32));
+        return (char) (81 + (getSide(pieceBitFlag) * 32));
     }
 
     public static int getValue() {

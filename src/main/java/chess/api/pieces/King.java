@@ -3,7 +3,6 @@ package chess.api.pieces;
 import chess.api.BitUtil;
 import chess.api.PieceConfiguration;
 import chess.api.Position;
-import chess.api.Side;
 import com.google.common.collect.ImmutableMap;
 
 import java.util.ArrayList;
@@ -93,7 +92,6 @@ public class King extends Piece{
 
     public static int[] stampThreatFlags(int pieceBitFlag, int[] positionBitFlags) {
         for(int[] directionalLimit : getDirectionalLimits(pieceBitFlag)) {
-            int direction = directionalLimit[0];
             // Limit is always 1 for the king (castling positions can't be threatened by the king)
             int testPositionIndex = Position.applyTranslation(Position.getPosition(pieceBitFlag),
                     directionalLimit[0], directionalLimit[1]);
@@ -107,7 +105,7 @@ public class King extends Piece{
     }
 
     private static boolean isOnStartingPosition(int pieceBitFlag) {
-        return Position.getPosition(pieceBitFlag) == 4 + (getSide(pieceBitFlag).ordinal() * 56);
+        return Position.getPosition(pieceBitFlag) == 4 + (getSide(pieceBitFlag) * 56);
     }
 
     protected static void addNewPieceConfigurations(int pieceBitFlag, List<PieceConfiguration> pieceConfigurations,
@@ -134,7 +132,7 @@ public class King extends Piece{
     }
 
     public static char getFENCode(int pieceBitFlag) {
-        return (char) (75 + (getSide(pieceBitFlag).ordinal() * 32));
+        return (char) (75 + (getSide(pieceBitFlag) * 32));
     }
 
     public static int getValue() {

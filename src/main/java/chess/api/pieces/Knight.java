@@ -1,10 +1,5 @@
 package chess.api.pieces;
 
-import chess.api.Position;
-import chess.api.Side;
-
-import java.util.List;
-
 public class Knight extends Piece{
 
     private static final int[][] DIRECTIONAL_LIMITS = {{-1, -2, 1}, {1, -2, 1}, {-2, -1, 1}, {2, -1, 1}, {-2, 1, 1}, {2, 1, 1}, {-1, 2, 1}, {1, 2, 1}};
@@ -25,7 +20,7 @@ public class Knight extends Piece{
     }
 
     public static char getFENCode(int pieceBitFlag) {
-        return (char) (78 + (getSide(pieceBitFlag).ordinal() * 32));
+        return (char) (78 + (getSide(pieceBitFlag) * 32));
     }
 
     public static int getValue() {

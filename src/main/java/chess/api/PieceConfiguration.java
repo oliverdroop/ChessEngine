@@ -2,7 +2,6 @@ package chess.api;
 
 import chess.api.pieces.*;
 import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.ImmutableSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,6 +72,8 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
     public static final int ALL_PIECE_COLOUR_AND_OCCUPATION_FLAGS_COMBINED = PLAYER_OCCUPIED | OPPONENT_OCCUPIED
             | ALL_PIECE_FLAGS_COMBINED | WHITE_OCCUPIED | BLACK_OCCUPIED;
 
+    public static final int CHECK_FLAGS_COMBINED = PLAYER_OCCUPIED | KING_OCCUPIED | THREATENED;
+
     public static final int[] CENTRE_POSITIONS = {27, 28, 35, 36};
 
     private Integer enPassantSquare;
@@ -128,7 +129,7 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
 
     private int[] stampOccupationFlags(int[] positions) {
         for(int pieceBitFlag : getPieceBitFlags()) {
-            int occupationFlag = Piece.getSide(pieceBitFlag) == turnSide ? PLAYER_OCCUPIED : OPPONENT_OCCUPIED;
+            int occupationFlag = Piece.getSide(pieceBitFlag) == turnSide.ordinal() ? PLAYER_OCCUPIED : OPPONENT_OCCUPIED;
             int position = Position.getPosition(pieceBitFlag);
             positions[position] = BitUtil.applyBitFlag(positions[position], occupationFlag);
         }
@@ -143,7 +144,7 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
 
     private int[] stampThreatFlags(int[] positionBitFlags) {
         for(int pieceBitFlag : getPieceBitFlags()) {
-            if (Piece.getSide(pieceBitFlag) != turnSide) {
+            if (Piece.getSide(pieceBitFlag) != turnSide.ordinal()) {
                 positionBitFlags = Piece.stampThreatFlags(pieceBitFlag, positionBitFlags);
             }
         }
@@ -194,8 +195,7 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
 
     public static int isPlayerInCheck(int[] positionBitFlags) {
         return Arrays.stream(positionBitFlags)
-                .filter(pbf -> BitUtil.hasBitFlag(pbf, PieceConfiguration.PLAYER_OCCUPIED
-                        | PieceConfiguration.KING_OCCUPIED | PieceConfiguration.THREATENED))
+                .filter(pbf -> BitUtil.hasBitFlag(pbf, CHECK_FLAGS_COMBINED))
                 .findFirst()
                 .orElse(-1);
     }

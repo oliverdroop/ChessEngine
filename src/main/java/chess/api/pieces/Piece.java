@@ -3,8 +3,6 @@ package chess.api.pieces;
 import chess.api.BitUtil;
 import chess.api.PieceConfiguration;
 import chess.api.Position;
-import chess.api.Side;
-import com.google.common.collect.ImmutableMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,35 +15,21 @@ public abstract class Piece {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Piece.class);
 
-    private static final int[] pieceValues = {
-            0,King.getValue(),Knight.getValue(),0,Bishop.getValue(),0,0,0,
-            Queen.getValue(),0,0,0,0,0,0,0,
-            Rook.getValue(),0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            Pawn.getValue()};
-
     /**
      * @return An array of size-3 int arrays, where the first two ints correspond to a direction
      * and the third int corresponds to the maximum number of times the piece can move in that direction
      */
     public static int[][] getDirectionalLimits(int pieceBitFlag) {
         int pieceFlag = getPieceTypeBitFlag(pieceBitFlag);
-        switch(pieceFlag) {
-            case PAWN_OCCUPIED:
-                return Pawn.getDirectionalLimits(pieceBitFlag);
-            case BISHOP_OCCUPIED:
-                return Bishop.getDirectionalLimits();
-            case ROOK_OCCUPIED:
-                return Rook.getDirectionalLimits();
-            case QUEEN_OCCUPIED:
-                return Queen.getDirectionalLimits();
-            case KNIGHT_OCCUPIED:
-                return Knight.getDirectionalLimits();
-            case KING_OCCUPIED:
-                return King.getDirectionalLimits(pieceBitFlag);
-            default:
-                return new int[0][];
-        }
+        return switch (pieceFlag) {
+            case PAWN_OCCUPIED -> Pawn.getDirectionalLimits(pieceBitFlag);
+            case BISHOP_OCCUPIED -> Bishop.getDirectionalLimits();
+            case ROOK_OCCUPIED -> Rook.getDirectionalLimits();
+            case QUEEN_OCCUPIED -> Queen.getDirectionalLimits();
+            case KNIGHT_OCCUPIED -> Knight.getDirectionalLimits();
+            case KING_OCCUPIED -> King.getDirectionalLimits(pieceBitFlag);
+            default -> new int[0][];
+        };
     }
 
     public static List<PieceConfiguration> getPossibleMoves(int pieceBitFlag, int[] positionBitFlags,
@@ -123,7 +107,7 @@ public abstract class Piece {
             LOGGER.error("Problem creating new piece configuration");
             return;
         }
-        newConfiguration.setTurnSide(currentConfiguration.getTurnSide().getOpposingSide());
+        newConfiguration.setTurnSide(currentConfiguration.getOpposingSide());
 
         if (takenPieceBitFlag >= 0 || BitUtil.hasBitFlag(pieceBitFlag, PieceConfiguration.PAWN_OCCUPIED)) {
             newConfiguration.setHalfMoveClock(0);
@@ -142,7 +126,7 @@ public abstract class Piece {
 
         // Remove castling options when rook moves
         if (BitUtil.hasBitFlag(pieceBitFlag, ROOK_OCCUPIED)) {
-            Rook.removeCastlingOptions(pieceBitFlag, pieceConfigurations);
+            Rook.removeCastlingOptions(pieceBitFlag, newConfiguration);
         }
     }
 
@@ -172,18 +156,11 @@ public abstract class Piece {
 
     public static int[] stampThreatFlags(int pieceBitFlag, int[] positionBitFlags) {
         int pieceTypeFlag = getPieceTypeBitFlag(pieceBitFlag);
-        switch(pieceTypeFlag) {
-            case PieceConfiguration.KING_OCCUPIED:
-                return King.stampThreatFlags(pieceBitFlag, positionBitFlags);
-            case PieceConfiguration.PAWN_OCCUPIED:
-                return Pawn.stampThreatFlags(pieceBitFlag, positionBitFlags);
-            case PieceConfiguration.KNIGHT_OCCUPIED:
-            case PieceConfiguration.BISHOP_OCCUPIED:
-            case PieceConfiguration.ROOK_OCCUPIED:
-            case PieceConfiguration.QUEEN_OCCUPIED:
-            default:
-                return stampSimpleThreatFlags(pieceBitFlag, positionBitFlags);
-        }
+        return switch (pieceTypeFlag) {
+            case PieceConfiguration.KING_OCCUPIED -> King.stampThreatFlags(pieceBitFlag, positionBitFlags);
+            case PieceConfiguration.PAWN_OCCUPIED -> Pawn.stampThreatFlags(pieceBitFlag, positionBitFlags);
+            default -> stampSimpleThreatFlags(pieceBitFlag, positionBitFlags);
+        };
     }
 
     public static int[] stampSimpleThreatFlags(int pieceBitFlag, int[] positionBitFlags) {
@@ -257,29 +234,23 @@ public abstract class Piece {
     }
 
     protected static int[][] restrictDirections(int[][] directionalLimits, int directionalBitFlags) {
-        switch(directionalBitFlags) {
-            case PieceConfiguration.DIRECTION_N:
-            case PieceConfiguration.DIRECTION_S:
-                return filterDirectionalLimitsByPredicate(directionalLimits, dl -> dl[0] == 0);
-            case PieceConfiguration.DIRECTION_NE:
-            case PieceConfiguration.DIRECTION_SW:
-                return filterDirectionalLimitsByPredicate(directionalLimits, dl -> dl[0] == dl[1]);
-            case PieceConfiguration.DIRECTION_E:
-            case PieceConfiguration.DIRECTION_W:
-                return filterDirectionalLimitsByPredicate(directionalLimits, dl -> dl[1] == 0);
-            case PieceConfiguration.DIRECTION_SE:
-            case PieceConfiguration.DIRECTION_NW:
-                return filterDirectionalLimitsByPredicate(directionalLimits, dl -> dl[0] == -dl[1]);
-            case PieceConfiguration.DIRECTION_ANY_KNIGHT:
-            default:
-                return directionalLimits;
-        }
+        return switch (directionalBitFlags) {
+            case PieceConfiguration.DIRECTION_N, PieceConfiguration.DIRECTION_S ->
+                    filterDirectionalLimitsByPredicate(directionalLimits, dl -> dl[0] == 0);
+            case PieceConfiguration.DIRECTION_NE, PieceConfiguration.DIRECTION_SW ->
+                    filterDirectionalLimitsByPredicate(directionalLimits, dl -> dl[0] == dl[1]);
+            case PieceConfiguration.DIRECTION_E, PieceConfiguration.DIRECTION_W ->
+                    filterDirectionalLimitsByPredicate(directionalLimits, dl -> dl[1] == 0);
+            case PieceConfiguration.DIRECTION_SE, PieceConfiguration.DIRECTION_NW ->
+                    filterDirectionalLimitsByPredicate(directionalLimits, dl -> dl[0] == -dl[1]);
+            default -> directionalLimits;
+        };
     }
 
     private static int[][] filterDirectionalLimitsByPredicate(int[][] directionalLimits, Predicate<int[]> predicate) {
         return Arrays.stream(directionalLimits)
                 .filter(predicate)
-                .toArray(size1 -> new int[size1][]);
+                .toArray(int[][]::new);
     }
 
     protected static int[][] getMovableDirectionalLimits(int pieceBitFlag, int[] positionBitFlags) {
@@ -307,26 +278,19 @@ public abstract class Piece {
 
     public static PieceType getPieceType(int pieceBitFlag) {
         int pieceTypeFlag = getPieceTypeBitFlag(pieceBitFlag);
-        switch (pieceTypeFlag) {
-            case KING_OCCUPIED:
-                return PieceType.KING;
-            case KNIGHT_OCCUPIED:
-                return PieceType.KNIGHT;
-            case BISHOP_OCCUPIED:
-                return PieceType.BISHOP;
-            case ROOK_OCCUPIED:
-                return PieceType.ROOK;
-            case QUEEN_OCCUPIED:
-                return PieceType.QUEEN;
-            case PAWN_OCCUPIED:
-                return PieceType.PAWN;
-            default:
-                throw new RuntimeException("No piece type recognised from which to get PieceType enum");
-        }
+        return switch (pieceTypeFlag) {
+            case KING_OCCUPIED -> PieceType.KING;
+            case KNIGHT_OCCUPIED -> PieceType.KNIGHT;
+            case BISHOP_OCCUPIED -> PieceType.BISHOP;
+            case ROOK_OCCUPIED -> PieceType.ROOK;
+            case QUEEN_OCCUPIED -> PieceType.QUEEN;
+            case PAWN_OCCUPIED -> PieceType.PAWN;
+            default -> throw new RuntimeException("No piece type recognised from which to get PieceType enum");
+        };
     }
 
-    public static Side getSide(int pieceBitFlag) {
-        return Side.values()[(pieceBitFlag & PieceConfiguration.BLACK_OCCUPIED) >> 9];
+    public static int getSide(int pieceBitFlag) {
+        return (pieceBitFlag & PieceConfiguration.BLACK_OCCUPIED) >> 9;
     }
 
     public String toString(int pieceBitFlag) {
@@ -339,42 +303,27 @@ public abstract class Piece {
 
     public static char getFENCode(int pieceBitFlag) {
         int pieceTypeFlag = getPieceTypeBitFlag(pieceBitFlag);
-        switch (pieceTypeFlag) {
-            case KING_OCCUPIED:
-                return King.getFENCode(pieceBitFlag);
-            case KNIGHT_OCCUPIED:
-                return Knight.getFENCode(pieceBitFlag);
-            case BISHOP_OCCUPIED:
-                return Bishop.getFENCode(pieceBitFlag);
-            case ROOK_OCCUPIED:
-                return Rook.getFENCode(pieceBitFlag);
-            case QUEEN_OCCUPIED:
-                return Queen.getFENCode(pieceBitFlag);
-            case PAWN_OCCUPIED:
-                return Pawn.getFENCode(pieceBitFlag);
-            default:
-                throw new RuntimeException("No piece type recognised from which to get FEN code");
-        }
+        return switch (pieceTypeFlag) {
+            case KING_OCCUPIED -> King.getFENCode(pieceBitFlag);
+            case KNIGHT_OCCUPIED -> Knight.getFENCode(pieceBitFlag);
+            case BISHOP_OCCUPIED -> Bishop.getFENCode(pieceBitFlag);
+            case ROOK_OCCUPIED -> Rook.getFENCode(pieceBitFlag);
+            case QUEEN_OCCUPIED -> Queen.getFENCode(pieceBitFlag);
+            case PAWN_OCCUPIED -> Pawn.getFENCode(pieceBitFlag);
+            default -> throw new RuntimeException("No piece type recognised from which to get FEN code");
+        };
     }
 
     public static int getValue(int pieceBitFlag) {
-        return pieceValues[getPieceTypeBitFlag(pieceBitFlag) >> 10];
-//        int pieceTypeFlag = getPieceTypeBitFlag(pieceBitFlag);
-//        switch (pieceTypeFlag) {
-//            case KING_OCCUPIED:
-//                return King.getValue();
-//            case KNIGHT_OCCUPIED:
-//                return Knight.getValue();
-//            case BISHOP_OCCUPIED:
-//                return Bishop.getValue();
-//            case ROOK_OCCUPIED:
-//                return Rook.getValue();
-//            case QUEEN_OCCUPIED:
-//                return Queen.getValue();
-//            case PAWN_OCCUPIED:
-//                return Pawn.getValue();
-//            default:
-//                return 0;
-//        }
+        int pieceTypeFlag = getPieceTypeBitFlag(pieceBitFlag);
+        return switch (pieceTypeFlag) {
+            case KING_OCCUPIED -> King.getValue();
+            case KNIGHT_OCCUPIED -> Knight.getValue();
+            case BISHOP_OCCUPIED -> Bishop.getValue();
+            case ROOK_OCCUPIED -> Rook.getValue();
+            case QUEEN_OCCUPIED -> Queen.getValue();
+            case PAWN_OCCUPIED -> Pawn.getValue();
+            default -> 0;
+        };
     }
 }

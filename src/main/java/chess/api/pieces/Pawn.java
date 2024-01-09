@@ -3,15 +3,12 @@ package chess.api.pieces;
 import chess.api.BitUtil;
 import chess.api.PieceConfiguration;
 import chess.api.Position;
-import chess.api.Side;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.util.Strings;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public class Pawn extends Piece{
 
@@ -22,7 +19,7 @@ public class Pawn extends Piece{
     private static final Map<Class<? extends Piece>, String> PROMOTION_CLASSES = ImmutableMap.of(Knight.class, "N", Bishop.class, "B", Rook.class, "R", Queen.class, "Q");
 
     public static int[][] getDirectionalLimits(int pieceBitFlag) {
-        return getSide(pieceBitFlag) == Side.WHITE ? WHITE_DIRECTIONAL_LIMITS : BLACK_DIRECTIONAL_LIMITS;
+        return getSide(pieceBitFlag) == 0 ? WHITE_DIRECTIONAL_LIMITS : BLACK_DIRECTIONAL_LIMITS;
     }
 
     public static List<PieceConfiguration> getPossibleMoves(int pieceBitFlag, int[] positionBitFlags, PieceConfiguration currentConfiguration, boolean linkOnwardConfigurations) {
@@ -116,7 +113,7 @@ public class Pawn extends Piece{
         if (Math.abs(translation) == 16) {
             // Set the en passant square
             newPieceConfiguration.setEnPassantSquare(getPosition(pieceBitFlag) + (translation / 2));
-        } else if (Position.getY(newPiecePosition) == 7 - (getSide(pieceBitFlag).ordinal() * 7)) {
+        } else if (Position.getY(newPiecePosition) == 7 - (getSide(pieceBitFlag) * 7)) {
             // Promote pawn
             pieceConfigurations.remove(pieceConfigurations.size() - 1);
             currentConfiguration.getChildConfigurations().remove(newPieceConfiguration);
@@ -147,7 +144,7 @@ public class Pawn extends Piece{
     }
 
     private static boolean isOnStartingRank(int pieceBitFlag) {
-        return Position.getY(getPosition(pieceBitFlag)) - (getSide(pieceBitFlag).ordinal() * 5) == 1;
+        return Position.getY(getPosition(pieceBitFlag)) - (getSide(pieceBitFlag) * 5) == 1;
     }
 
     private static boolean isDiagonalMoveAvailable(int pieceBitFlag, int directionalLimitIndex, int[] positionBitFlags) {
@@ -162,7 +159,7 @@ public class Pawn extends Piece{
     }
 
     public static char getFENCode(int pieceBitFlag) {
-        return (char) (80 + (getSide(pieceBitFlag).ordinal() * 32));
+        return (char) (80 + (getSide(pieceBitFlag) * 32));
     }
 
     @Override
