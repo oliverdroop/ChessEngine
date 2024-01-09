@@ -331,7 +331,7 @@ public abstract class Piece {
 
     public String toString(int pieceBitFlag) {
         return new StringBuilder()
-                .append(this.getClass().getSimpleName())
+                .append(getPieceType(pieceBitFlag).toString())
                 .append(':')
                 .append(Position.getCoordinateString(getPosition(pieceBitFlag)))
                 .toString();
@@ -358,23 +358,23 @@ public abstract class Piece {
     }
 
     public static int getValue(int pieceBitFlag) {
-//        return pieceValues[getPieceTypeBitFlag(pieceBitFlag) >> 10];
-        int pieceTypeFlag = getPieceTypeBitFlag(pieceBitFlag);
-        switch (pieceTypeFlag) {
-            case KING_OCCUPIED:
-                return King.getValue();
-            case KNIGHT_OCCUPIED:
-                return Knight.getValue();
-            case BISHOP_OCCUPIED:
-                return Bishop.getValue();
-            case ROOK_OCCUPIED:
-                return Rook.getValue();
-            case QUEEN_OCCUPIED:
-                return Queen.getValue();
-            case PAWN_OCCUPIED:
-                return Pawn.getValue();
-            default:
-                return 0;
-        }
+        return pieceValues[getPieceTypeBitFlag(pieceBitFlag) >> 10];
+//        int pieceTypeFlag = getPieceTypeBitFlag(pieceBitFlag);
+//        switch (pieceTypeFlag) {
+//            case KING_OCCUPIED:
+//                return King.getValue();
+//            case KNIGHT_OCCUPIED:
+//                return Knight.getValue();
+//            case BISHOP_OCCUPIED:
+//                return Bishop.getValue();
+//            case ROOK_OCCUPIED:
+//                return Rook.getValue();
+//            case QUEEN_OCCUPIED:
+//                return Queen.getValue();
+//            case PAWN_OCCUPIED:
+//                return Pawn.getValue();
+//            default:
+//                return 0;
+//        }
     }
 }

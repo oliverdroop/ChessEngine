@@ -151,15 +151,15 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
     }
 
     private int[] stampCheckNonBlockerFlags(int[] positionBitFlags) {
-        int checkedPlayerKingBitFlag = isPlayerInCheck(positionBitFlags);
+        final int checkedPlayerKingBitFlag = isPlayerInCheck(positionBitFlags);
         if (checkedPlayerKingBitFlag >= 0) {
             return getCheckNonBlockerPositionBitFlags(checkedPlayerKingBitFlag, positionBitFlags);
         }
         return positionBitFlags;
     }
 
-    public static int[] getCheckNonBlockerPositionBitFlags(int kingPositionBitFlag, int[] positionBitFlags) {
-        int kingPositionDirectionalFlags = Piece.getDirectionalFlags(kingPositionBitFlag);
+    private static int[] getCheckNonBlockerPositionBitFlags(int kingPositionBitFlag, int[] positionBitFlags) {
+        final int kingPositionDirectionalFlags = Piece.getDirectionalFlags(kingPositionBitFlag);
         if (Arrays.stream(ALL_DIRECTIONAL_FLAGS).anyMatch(df -> df == kingPositionDirectionalFlags)) {
             // The king is only checked from one direction
             int currentPosition = kingPositionBitFlag;
@@ -172,6 +172,7 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
             }
 
             if (kingPositionDirectionalFlags == PieceConfiguration.DIRECTION_ANY_KNIGHT) {
+                // The king is checked only by a knight
                 for(int[] directionalLimit : Knight.getKnightDirectionalLimits()) {
                     int possibleCheckingKnightPosition = Position.applyTranslation(currentPosition, directionalLimit[0], directionalLimit[1]);
                     if (possibleCheckingKnightPosition >= 0

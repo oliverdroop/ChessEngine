@@ -6,7 +6,7 @@ public enum PieceType {
     KNIGHT(3),
     ROOK(5),
     QUEEN(9),
-    KING(400);
+    KING(0);
 
     private int value;
 
