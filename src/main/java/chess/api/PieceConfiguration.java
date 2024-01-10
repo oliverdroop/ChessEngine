@@ -200,6 +200,10 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
                 .orElse(-1);
     }
 
+    public int[] getPositionBitFlags() {
+        return positionBitFlags;
+    }
+
     public int countThreatFlags() {
         return (int) Arrays.stream(positionBitFlags)
                 .filter(pbf -> BitUtil.hasBitFlag(pbf, PieceConfiguration.THREATENED))

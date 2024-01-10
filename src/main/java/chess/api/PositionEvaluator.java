@@ -17,20 +17,22 @@ public class PositionEvaluator {
     private static final int NO_CAPTURE_OR_PAWN_MOVE_LIMIT = 99;
 
     public static int getValueDifferential(PieceConfiguration pieceConfiguration) {
-        Map<Integer, Integer> valueMap = Arrays.stream(pieceConfiguration.getPieceBitFlags())
-                .boxed()
-                .collect(Collectors.groupingBy(Piece::getSide, Collectors.summingInt(Piece::getValue)));
-        Integer turnSideValue = valueMap.get(pieceConfiguration.getTurnSide().ordinal());
-        Integer opposingSideValue = valueMap.get(pieceConfiguration.getOpposingSide().ordinal());
-        if (turnSideValue != null && opposingSideValue != null) {
-            return turnSideValue - opposingSideValue;
-        } else if (turnSideValue == null && opposingSideValue == null) {
-            return 0;
-        } else if (turnSideValue == null) {
-            return -opposingSideValue;
-        } else {
-            return turnSideValue;
+        int valueDifferential = 0;
+        final int turnSide = pieceConfiguration.getTurnSide().ordinal();
+        for (int positionBitFlag : pieceConfiguration.getPositionBitFlags()) {
+            // Is it a piece?
+            final int pieceBitFlag = positionBitFlag & PieceConfiguration.ALL_PIECE_FLAGS_COMBINED;
+            if (pieceBitFlag == 0) {
+                continue;
+            }
+            final int value = Piece.getValue(pieceBitFlag);
+            // Is it a black piece?
+            final int isBlackOccupied = (positionBitFlag & PieceConfiguration.BLACK_OCCUPIED) >> 9;
+            // Is it a player or opposing piece?
+            final int turnSideFactor = 1 - ((turnSide ^ isBlackOccupied) << 1);
+            valueDifferential += value * turnSideFactor;
         }
+        return valueDifferential;
     }
 
     public static PieceConfiguration getBestMoveRecursively(PieceConfiguration pieceConfiguration, int depth) {
@@ -60,8 +62,7 @@ public class PositionEvaluator {
 
         depth--;
         List<PieceConfiguration> onwardPieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
-        for (int i = 0; i < onwardPieceConfigurations.size(); i++){
-            PieceConfiguration onwardPieceConfiguration = onwardPieceConfigurations.get(i);
+        for (PieceConfiguration onwardPieceConfiguration : onwardPieceConfigurations) {
             double nextDiff = getValueDifferential(onwardPieceConfiguration);
             if (depth > 0) {
                 nextDiff += getBestScoreDifferentialRecursively(onwardPieceConfiguration, depth, -turnSideFactor);
