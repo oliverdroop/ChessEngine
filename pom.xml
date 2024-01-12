@@ -30,7 +30,7 @@
 						<manifest>
 							<addClasspath>true</addClasspath>
 							<classpathPrefix>lib/</classpathPrefix>
-							<mainClass>chess.api.ChessApplication</mainClass>
+							<mainClass>chess.ChessApplication</mainClass>
 						</manifest>
 					</archive>
 				</configuration>
