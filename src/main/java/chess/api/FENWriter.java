@@ -17,7 +17,7 @@ public class FENWriter {
 			int gapSize = 0;
 			for(int x = 0; x < 8; x++) {
 				int pieceBitFlag = pieceConfiguration.getPieceAtPosition(Position.getPosition(x, y));
-				if ((pieceBitFlag & (ALL_PIECE_AND_COLOUR_FLAGS_COMBINED)) > 0) {
+				if ((pieceBitFlag & ALL_PIECE_AND_COLOUR_FLAGS_COMBINED) > 0) {
 					if (gapSize > 0) {
 						fenBuilder.append(gapSize);
 						gapSize = 0;

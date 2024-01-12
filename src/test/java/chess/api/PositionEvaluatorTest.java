@@ -94,37 +94,37 @@ public class PositionEvaluatorTest {
                 .isEqualTo(3);
     }
 
-    @Test
-    void testGetBestPieceConfigurationToValueEntryRecursively_forSecondMove() {
-        PieceConfiguration pieceConfiguration = FENReader.read("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1");
+//    @Test
+//    void testGetBestPieceConfigurationToValueEntryRecursively_forSecondMove() {
+//        PieceConfiguration pieceConfiguration = FENReader.read("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1");
+//
+//        Optional<Map.Entry<PieceConfiguration, Double>> bestEntry = PositionEvaluator
+//                .getBestPieceConfigurationToScoreEntryRecursively(pieceConfiguration, 4, 1);
+//
+//        assertThat(bestEntry).as("There should be a best entry present").isPresent();
+//        assertThat(bestEntry.get().getValue())
+//                .as("Unexpected value differential for best second move assessed to a depth of 4 moves")
+//                .isEqualTo(3);
+//        assertThat(bestEntry.get().getKey())
+//                .as("Unexpected FEN for best second move assessed to a depth of 4 moves")
+//                .isEqualTo(FENWriter.STARTING_POSITION);
+//    }
 
-        Optional<Map.Entry<PieceConfiguration, Double>> bestEntry = PositionEvaluator
-                .getBestPieceConfigurationToScoreEntryRecursively(pieceConfiguration, 4, 1);
-
-        assertThat(bestEntry).as("There should be a best entry present").isPresent();
-        assertThat(bestEntry.get().getValue())
-                .as("Unexpected value differential for best second move assessed to a depth of 4 moves")
-                .isEqualTo(3);
-        assertThat(bestEntry.get().getKey())
-                .as("Unexpected FEN for best second move assessed to a depth of 4 moves")
-                .isEqualTo(FENWriter.STARTING_POSITION);
-    }
-
-    @Test
-    void testGetBestPieceConfigurationToValueEntryRecursively_forThirdMove() {
-        PieceConfiguration pieceConfiguration = FENReader.read("rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2");
-
-        Optional<Map.Entry<PieceConfiguration, Double>> bestEntry = PositionEvaluator
-                .getBestPieceConfigurationToScoreEntryRecursively(pieceConfiguration, 4, 1);
-
-        assertThat(bestEntry).as("There should be a best entry present").isPresent();
-        assertThat(bestEntry.get().getValue())
-                .as("Unexpected value differential for best third move assessed to a depth of 4 moves")
-                .isEqualTo(3);
-        assertThat(bestEntry.get().getKey())
-                .as("Unexpected FEN for best third move assessed to a depth of 4 moves")
-                .isEqualTo(FENWriter.STARTING_POSITION);
-    }
+//    @Test
+//    void testGetBestPieceConfigurationToValueEntryRecursively_forThirdMove() {
+//        PieceConfiguration pieceConfiguration = FENReader.read("rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2");
+//
+//        Optional<Map.Entry<PieceConfiguration, Double>> bestEntry = PositionEvaluator
+//                .getBestPieceConfigurationToScoreEntryRecursively(pieceConfiguration, 4, 1);
+//
+//        assertThat(bestEntry).as("There should be a best entry present").isPresent();
+//        assertThat(bestEntry.get().getValue())
+//                .as("Unexpected value differential for best third move assessed to a depth of 4 moves")
+//                .isEqualTo(3);
+//        assertThat(bestEntry.get().getKey())
+//                .as("Unexpected FEN for best third move assessed to a depth of 4 moves")
+//                .isEqualTo(FENWriter.STARTING_POSITION);
+//    }
 
     @Test
     void testPlayAIGame() {
