@@ -121,7 +121,7 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
     }
 
     public List<PieceConfiguration> getPossiblePieceConfigurationsForPiece(int pieceBitFlag, boolean linkOnwardConfigurations) {
-        if (Arrays.stream(positionBitFlags).noneMatch(pbf -> pbf > 63)) {
+        if (Arrays.stream(positionBitFlags).noneMatch(pbf -> pbf > 65535)) {
             positionBitFlags = stampCheckNonBlockerFlags(stampThreatFlags(stampOccupationFlags(positionBitFlags)));
         }
         return Piece.getPossibleMoves(pieceBitFlag, positionBitFlags, this, linkOnwardConfigurations);

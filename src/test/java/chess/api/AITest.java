@@ -53,6 +53,16 @@ public class AITest {
 				.as("White rook should force checkmate")
 				.isEqualTo("k5R1/7R/8/8/8/8/p3K3/8 b - - 1 1");
 	}
+
+	@Test
+	void testAIChoosesCheckmate_twoRooksTowardsWall() {
+		setupTest("K7/8/8/1r6/2r5/8/8/7k b - - 0 1");
+		newPieceConfiguration = getBestMoveRecursively(pieceConfiguration, 4);
+		assertThat(FENWriter.write(newPieceConfiguration))
+				.as("White rook should force checkmate")
+				.isEqualTo("K7/8/8/1r6/r7/8/8/7k w - - 1 2");
+	}
+
 	@Test
 	void testAIChoosesCheckmate_foolsMate() {
 		setupTest("rnbqkbnr/pppp1ppp/8/4p3/6P1/5P2/PPPPP2P/RNBQKBNR b KQkq - 0 2");
@@ -114,6 +124,22 @@ public class AITest {
 				.as("White should choose checkmate")
 				.isIn("k1Q5/8/K7/8/8/8/8/8 b - - 0 50",
 						"k1R5/8/K7/8/8/8/8/8 b - - 0 50");
+	}
+
+	@Test
+	void fiftyMoveRuleTest_loseByMovingKing() {
+		setupTest("7K/7P/8/8/8/8/8/k7 w - - 99 50");
+		newPieceConfiguration = getBestMoveRecursively(pieceConfiguration, 4);
+		assertThat(newPieceConfiguration).isNull();
+	}
+
+	@Test
+	void fiftyMoveRuleTest_continueByMovingPawn() {
+		setupTest("7K/7P/8/8/7r/2P4k/8/B7 w - - 99 50");
+		newPieceConfiguration = getBestMoveRecursively(pieceConfiguration, 4);
+		assertThat(FENWriter.write(newPieceConfiguration))
+				.as("Expected white to avoid losing by moving a pawn")
+				.isEqualTo("7K/7P/8/8/2P4r/7k/8/B7 b - - 0 50");
 	}
 	
 	private void setupTest(String fen) {

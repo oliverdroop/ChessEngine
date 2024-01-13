@@ -1,6 +1,6 @@
 package chess.api.dto;
 
-public class FENRequestDto {
+public class AiMoveRequestDto {
     private int depth;
 
     private String fen;

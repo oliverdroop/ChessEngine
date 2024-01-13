@@ -40,13 +40,11 @@ public class PositionEvaluator {
         return (PieceConfiguration) optionalBestEntry.map(obj -> obj[0]).orElse(null);
     }
 
-    public static double getBestScoreDifferentialRecursively(PieceConfiguration pieceConfiguration, int depth, int turnSideFactor) {
+    static double getBestScoreDifferentialRecursively(PieceConfiguration pieceConfiguration, int depth, int turnSideFactor) {
+        // The entry object below consists of a PieceConfiguration and a Double representing the score
         Optional<Object[]> optionalBestEntry = getBestPieceConfigurationToScoreEntryRecursively(pieceConfiguration, depth, turnSideFactor);
         if (optionalBestEntry.isPresent()) {
             Object[] bestEntry = optionalBestEntry.get();
-            if (((PieceConfiguration) bestEntry[0]).getHalfMoveClock() > NO_CAPTURE_OR_PAWN_MOVE_LIMIT) {
-                return -Float.MAX_VALUE;
-            }
             return turnSideFactor * ((double) bestEntry[1]);
         } else if (pieceConfiguration.isCheck()) {
             // Checkmate
@@ -56,18 +54,29 @@ public class PositionEvaluator {
         return -Float.MAX_VALUE;
     }
 
-    public static Optional<Object[]> getBestPieceConfigurationToScoreEntryRecursively(PieceConfiguration pieceConfiguration, int depth, int turnSideFactor) {
-//        Map<PieceConfiguration, Double> pieceConfigurationValueMap = new HashMap<>();
+    private static double considerFiftyMoveRule(PieceConfiguration pieceConfiguration) {
+        if (pieceConfiguration.getHalfMoveClock() > NO_CAPTURE_OR_PAWN_MOVE_LIMIT) {
+            return -Float.MAX_VALUE;
+        }
+        return 0;
+    }
+
+    static Optional<Object[]> getBestPieceConfigurationToScoreEntryRecursively(PieceConfiguration pieceConfiguration, int depth, int turnSideFactor) {
         final double currentDiff = getValueDifferential(pieceConfiguration);
 
         depth--;
-        List<PieceConfiguration> onwardPieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
+        final List<PieceConfiguration> onwardPieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
         final int onwardConfigurationCount = onwardPieceConfigurations.size();
         final double[] onwardConfigurationScores = new double[onwardConfigurationCount];
+        final double[] fiftyMoveRuleValues = new double[onwardConfigurationCount];
         for (int i = 0; i < onwardConfigurationCount; i++) {
             PieceConfiguration onwardPieceConfiguration = onwardPieceConfigurations.get(i);
             double nextDiff = getValueDifferential(onwardPieceConfiguration);
-            if (depth > 0) {
+            //
+            final double fiftyMoveRuleValue = considerFiftyMoveRule(onwardPieceConfiguration);
+            fiftyMoveRuleValues[i] = fiftyMoveRuleValue;
+            nextDiff += fiftyMoveRuleValue;
+            if (depth > 0 && fiftyMoveRuleValue == 0) {
                 nextDiff += getBestScoreDifferentialRecursively(onwardPieceConfiguration, depth, -turnSideFactor);
                 // Below is where the position can be evaluated for more than just the value differential (because the position bit flags have been calculated)
             }
@@ -79,16 +88,25 @@ public class PositionEvaluator {
         double bestOnwardConfigurationScore = -Double.MAX_VALUE;
         for(int i = 0; i < onwardConfigurationCount; i++) {
             double onwardConfigurationScore = onwardConfigurationScores[i] + threatValue;
-            if (onwardConfigurationScore > bestOnwardConfigurationScore) {
+            if (onwardConfigurationScore > bestOnwardConfigurationScore && fiftyMoveRuleValues[i] == 0) {
                 bestOnwardConfigurationScore = onwardConfigurationScore;
                 bestOnwardConfigurationIndex = i;
             }
         }
 
         if (bestOnwardConfigurationIndex >= 0) {
-            return Optional.of(new Object[]{onwardPieceConfigurations.get(bestOnwardConfigurationIndex), bestOnwardConfigurationScore});
+            PieceConfiguration bestOnwardConfiguration = onwardPieceConfigurations.get(bestOnwardConfigurationIndex);
+            return Optional.of(new Object[]{bestOnwardConfiguration, bestOnwardConfigurationScore});
         }
         return Optional.empty();
+    }
+
+    public static GameEndType deriveGameEndType(PieceConfiguration finalConfiguration) {
+        if (finalConfiguration.isCheck() || finalConfiguration.getHalfMoveClock() == NO_CAPTURE_OR_PAWN_MOVE_LIMIT) {
+            return GameEndType.values()[1 - finalConfiguration.getTurnSide().ordinal()];
+        } else {
+            return GameEndType.STALEMATE;
+        }
     }
 
     public static Map<String, Collection<String>> buildFENMap(String fen) {
@@ -123,15 +141,5 @@ public class PositionEvaluator {
                 .collect(Collectors.toList());
 
         fenMap.put(fen, onwardFENs);
-    }
-
-    public static Comparator<PieceConfiguration> pieceConfigurationComparator() {
-        return Comparator.comparingInt(PositionEvaluator::getValueDifferential).reversed();
-    }
-
-    public static Comparator<Map.Entry<PieceConfiguration, Double>> entryComparator() {
-        return Comparator.<Map.Entry<PieceConfiguration, Double>>comparingDouble(Map.Entry::getValue)
-                .thenComparing(Map.Entry::getKey)
-                .reversed();
     }
 }
