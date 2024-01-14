@@ -72,10 +72,11 @@ public class PositionEvaluator {
         for (int i = 0; i < onwardConfigurationCount; i++) {
             PieceConfiguration onwardPieceConfiguration = onwardPieceConfigurations.get(i);
             double nextDiff = getValueDifferential(onwardPieceConfiguration);
-            //
+
             final double fiftyMoveRuleValue = considerFiftyMoveRule(onwardPieceConfiguration);
             fiftyMoveRuleValues[i] = fiftyMoveRuleValue;
             nextDiff += fiftyMoveRuleValue;
+
             if (depth > 0 && fiftyMoveRuleValue == 0) {
                 nextDiff += getBestScoreDifferentialRecursively(onwardPieceConfiguration, depth, -turnSideFactor);
                 // Below is where the position can be evaluated for more than just the value differential (because the position bit flags have been calculated)

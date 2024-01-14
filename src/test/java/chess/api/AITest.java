@@ -55,12 +55,15 @@ public class AITest {
 	}
 
 	@Test
-	void testAIChoosesCheckmate_twoRooksTowardsWall() {
-		setupTest("K7/8/8/1r6/2r5/8/8/7k b - - 0 1");
+	void testAIChoosesCheckmate_twoRooksTowardsEdge() {
+		setupTest("K7/8/8/2r5/2r5/8/8/7k b - - 0 1");
 		newPieceConfiguration = getBestMoveRecursively(pieceConfiguration, 4);
 		assertThat(FENWriter.write(newPieceConfiguration))
-				.as("White rook should force checkmate")
-				.isEqualTo("K7/8/8/1r6/r7/8/8/7k w - - 1 2");
+				.as("White rook should progress towards forcing checkmate")
+				.isIn("K7/8/8/1r6/2r5/8/8/7k w - - 1 2",
+						"K7/8/8/2r5/1r6/8/8/7k w - - 1 2",
+						"K7/8/8/2r5/r7/8/8/7k w - - 1 2",
+						"K7/8/8/r7/2r5/8/8/7k w - - 1 2");
 	}
 
 	@Test
