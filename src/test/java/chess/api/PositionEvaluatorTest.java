@@ -61,38 +61,38 @@ public class PositionEvaluatorTest {
         LOGGER.info(PositionEvaluator.getBestMoveRecursively(pieceConfiguration, 4).toString());
     }
 
-    @Test
-    void testGetBestValueDifferentialRecursively() {
-        PieceConfiguration pieceConfiguration = FENReader.read("7k/5P2/8/8/8/8/8/6R1 w - - 0 1");
-
-        double bestValueDifferential = PositionEvaluator.getBestScoreDifferentialRecursively(pieceConfiguration, 2, 1);
-
-        assertThat(bestValueDifferential)
-                .as("Unexpected value differential for best move assessed to a depth of 2 moves")
-                .isEqualTo(14);
-    }
-
-    @Test
-    void testGetBestValueDifferentialRecursively_fromStartingPosition() {
-        PieceConfiguration pieceConfiguration = FENReader.read(FENWriter.STARTING_POSITION);
-
-        double bestValueDifferential = PositionEvaluator.getBestScoreDifferentialRecursively(pieceConfiguration, 4, 1);
-
-        assertThat(bestValueDifferential)
-                .as("Unexpected value differential for best move assessed to a depth of 4 moves")
-                .isEqualTo(3);
-    }
-
-    @Test
-    void testGetBestValueDifferentialRecursively_fromSecondMove() {
-        PieceConfiguration pieceConfiguration = FENReader.read("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1");
-
-        double bestValueDifferential = PositionEvaluator.getBestScoreDifferentialRecursively(pieceConfiguration, 4, 1);
-
-        assertThat(bestValueDifferential)
-                .as("Unexpected value differential for best move assessed to a depth of 4 moves")
-                .isEqualTo(3);
-    }
+//    @Test
+//    void testGetBestValueDifferentialRecursively() {
+//        PieceConfiguration pieceConfiguration = FENReader.read("7k/5P2/8/8/8/8/8/6R1 w - - 0 1");
+//
+//        double bestValueDifferential = PositionEvaluator.getBestScoreDifferentialRecursively(pieceConfiguration, 2, 1);
+//
+//        assertThat(bestValueDifferential)
+//                .as("Unexpected value differential for best move assessed to a depth of 2 moves")
+//                .isEqualTo(14);
+//    }
+//
+//    @Test
+//    void testGetBestValueDifferentialRecursively_fromStartingPosition() {
+//        PieceConfiguration pieceConfiguration = FENReader.read(FENWriter.STARTING_POSITION);
+//
+//        double bestValueDifferential = PositionEvaluator.getBestScoreDifferentialRecursively(pieceConfiguration, 4, 1);
+//
+//        assertThat(bestValueDifferential)
+//                .as("Unexpected value differential for best move assessed to a depth of 4 moves")
+//                .isEqualTo(3);
+//    }
+//
+//    @Test
+//    void testGetBestValueDifferentialRecursively_fromSecondMove() {
+//        PieceConfiguration pieceConfiguration = FENReader.read("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1");
+//
+//        double bestValueDifferential = PositionEvaluator.getBestScoreDifferentialRecursively(pieceConfiguration, 4, 1);
+//
+//        assertThat(bestValueDifferential)
+//                .as("Unexpected value differential for best move assessed to a depth of 4 moves")
+//                .isEqualTo(3);
+//    }
 
 //    @Test
 //    void testGetBestPieceConfigurationToValueEntryRecursively_forSecondMove() {

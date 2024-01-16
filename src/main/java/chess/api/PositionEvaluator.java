@@ -36,16 +36,16 @@ public class PositionEvaluator {
     }
 
     public static PieceConfiguration getBestMoveRecursively(PieceConfiguration pieceConfiguration, int depth) {
-        Optional<Object[]> optionalBestEntry = getBestPieceConfigurationToScoreEntryRecursively(pieceConfiguration, depth, 1);
+        Optional<Object[]> optionalBestEntry = getBestPieceConfigurationToScoreEntryRecursively(pieceConfiguration, depth);
         return (PieceConfiguration) optionalBestEntry.map(obj -> obj[0]).orElse(null);
     }
 
-    static double getBestScoreDifferentialRecursively(PieceConfiguration pieceConfiguration, int depth, int turnSideFactor) {
+    static double getBestScoreDifferentialRecursively(PieceConfiguration pieceConfiguration, int depth) {
         // The entry object below consists of a PieceConfiguration and a Double representing the score
-        Optional<Object[]> optionalBestEntry = getBestPieceConfigurationToScoreEntryRecursively(pieceConfiguration, depth, turnSideFactor);
+        Optional<Object[]> optionalBestEntry = getBestPieceConfigurationToScoreEntryRecursively(pieceConfiguration, depth);
         if (optionalBestEntry.isPresent()) {
             Object[] bestEntry = optionalBestEntry.get();
-            return turnSideFactor * ((double) bestEntry[1]);
+            return ((double) bestEntry[1]);
         } else if (pieceConfiguration.isCheck()) {
             // Checkmate
             return Float.MAX_VALUE;
@@ -61,7 +61,7 @@ public class PositionEvaluator {
         return 0;
     }
 
-    static Optional<Object[]> getBestPieceConfigurationToScoreEntryRecursively(PieceConfiguration pieceConfiguration, int depth, int turnSideFactor) {
+    static Optional<Object[]> getBestPieceConfigurationToScoreEntryRecursively(PieceConfiguration pieceConfiguration, int depth) {
         final double currentDiff = getValueDifferential(pieceConfiguration);
 
         depth--;
@@ -71,17 +71,19 @@ public class PositionEvaluator {
         final double[] fiftyMoveRuleValues = new double[onwardConfigurationCount];
         for (int i = 0; i < onwardConfigurationCount; i++) {
             PieceConfiguration onwardPieceConfiguration = onwardPieceConfigurations.get(i);
-            double nextDiff = getValueDifferential(onwardPieceConfiguration);
 
             final double fiftyMoveRuleValue = considerFiftyMoveRule(onwardPieceConfiguration);
             fiftyMoveRuleValues[i] = fiftyMoveRuleValue;
-            nextDiff += fiftyMoveRuleValue;
 
-            if (depth > 0 && fiftyMoveRuleValue == 0) {
-                nextDiff += getBestScoreDifferentialRecursively(onwardPieceConfiguration, depth, -turnSideFactor);
+            double comparison;
+            if (depth == 0) {
+                double nextDiff = getValueDifferential(onwardPieceConfiguration);
+                comparison = nextDiff + currentDiff;
+            } else {
+                comparison = getBestScoreDifferentialRecursively(onwardPieceConfiguration, depth) * 0.5;
                 // Below is where the position can be evaluated for more than just the value differential (because the position bit flags have been calculated)
             }
-            onwardConfigurationScores[i] = nextDiff - currentDiff;
+            onwardConfigurationScores[i] = comparison;
         }
 
         final double threatValue = -(pieceConfiguration.countThreatFlags() / (double) 64);
@@ -97,7 +99,7 @@ public class PositionEvaluator {
 
         if (bestOnwardConfigurationIndex >= 0) {
             PieceConfiguration bestOnwardConfiguration = onwardPieceConfigurations.get(bestOnwardConfigurationIndex);
-            return Optional.of(new Object[]{bestOnwardConfiguration, bestOnwardConfigurationScore});
+            return Optional.of(new Object[]{bestOnwardConfiguration, -bestOnwardConfigurationScore});
         }
         return Optional.empty();
     }
