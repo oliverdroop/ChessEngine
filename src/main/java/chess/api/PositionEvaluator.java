@@ -80,7 +80,7 @@ public class PositionEvaluator {
                 double nextDiff = getValueDifferential(onwardPieceConfiguration);
                 comparison = nextDiff + currentDiff;
             } else {
-                comparison = getBestScoreDifferentialRecursively(onwardPieceConfiguration, depth) * 0.5;
+                comparison = getBestScoreDifferentialRecursively(onwardPieceConfiguration, depth) * 0.99;
                 // Below is where the position can be evaluated for more than just the value differential (because the position bit flags have been calculated)
             }
             onwardConfigurationScores[i] = comparison;

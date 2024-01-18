@@ -145,6 +145,15 @@ public class AITest {
 				.as("Expected white to avoid losing by moving a pawn")
 				.isEqualTo("7K/7P/8/8/2P4r/7k/8/B7 b - - 0 50");
 	}
+
+	@Test
+	void queenBlunderTest_earlyGame() {
+		setupTest("r1b1kbnr/pppp1ppp/2n1p3/8/3PP2q/3B2P1/PPP2P1P/RNBQK1NR b KQkq - 5 4");
+		newPieceConfiguration = getBestMoveRecursively(pieceConfiguration, 4);
+		assertThat(FENWriter.write(newPieceConfiguration))
+				.as("Expected black not to blunder its queen")
+				.isNotEqualTo("r1b1kbnr/pppp1ppp/2n1p3/8/3PP3/3B2q1/PPP2P1P/RNBQK1NR w KQkq - 0 5");
+	}
 	
 	private void setupTest(String fen) {
 		pieceConfiguration = FENReader.read(fen);
