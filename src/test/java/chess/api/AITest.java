@@ -147,12 +147,25 @@ public class AITest {
 	}
 
 	@Test
-	void queenBlunderTest_earlyGame() {
+	void testAIDoesNotBlunderQueen_earlyGame1() {
 		setupTest("r1b1kbnr/pppp1ppp/2n1p3/8/3PP2q/3B2P1/PPP2P1P/RNBQK1NR b KQkq - 5 4");
 		newPieceConfiguration = getBestMoveRecursively(pieceConfiguration, 4);
 		assertThat(FENWriter.write(newPieceConfiguration))
 				.as("Expected black not to blunder its queen")
 				.isNotEqualTo("r1b1kbnr/pppp1ppp/2n1p3/8/3PP3/3B2q1/PPP2P1P/RNBQK1NR w KQkq - 0 5");
+	}
+
+
+	@Test
+	void testAIDoesNotBlunderQueen_earlyGame2() {
+		setupTest("r1b1k1nr/pppp1ppp/2n1p3/8/1b1PP2q/2PB2P1/PP3P1P/RNBQK1NR b KQkq - 7 5");
+		newPieceConfiguration = getBestMoveRecursively(pieceConfiguration, 4);
+		assertThat(FENWriter.write(newPieceConfiguration))
+				.as("Expected black not to blunder its queen")
+				.isIn("r1b1k1nr/pppp1ppp/2n1pq2/8/1b1PP3/2PB2P1/PP3P1P/RNBQK1NR w KQkq - 8 6",
+						"r1b1k1nr/pppp1ppp/2n1p3/8/1b1PP3/2PB2P1/PP3P1P/RNBQK1NR w KQkq - 8 6",
+						"r1bqk1nr/pppp1ppp/2n1p3/8/1b1PP3/2PB2P1/PP3P1P/RNBQK1NR w KQkq - 8 6",
+						"r1b1k1nr/pppp1ppp/2n1p3/8/3PP2q/2bB2P1/PP3P1P/RNBQK1NR w KQkq - 0 6");
 	}
 	
 	private void setupTest(String fen) {
