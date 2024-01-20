@@ -59,7 +59,6 @@ var cogs = [imgCog1, imgCog2, imgCog3, imgCog4];
 var destinationRegex = /[a-h][1-8][qnbr]{0,1}$/;
 createSquares();
 createPieces();
-setBoardState("8/K7/8/2r5/3r4/8/8/7k b - - 0 1");
 var pieceSelected = null;
 var enPassantable = null;
 var availableMoves = [];
@@ -249,10 +248,13 @@ function processAIMoveResponse(e) {
 			if (response.isCheck) {
 				isCheck = true;
 			}
-		} else if (response.gameResult !== null) {
-			alert(response.gameResult);
 		} else if (response.error !== null) {
 			alert(response.error);
+		}
+
+		// Display game result
+		if (response.gameResult !== null) {
+			alert(response.gameResult);
 		}
 	}
 }

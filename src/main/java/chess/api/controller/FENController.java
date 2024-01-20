@@ -41,7 +41,11 @@ public class FENController {
 
             final PieceConfiguration outputConfiguration = getBestMoveRecursively(inputConfiguration, aiMoveRequestDto.getDepth());
             if (outputConfiguration != null) {
-                response.setFen(FENWriter.write(outputConfiguration));
+                String outputFEN = FENWriter.write(outputConfiguration);
+                if (FENReader.read(outputFEN).getPossiblePieceConfigurations().isEmpty()) {
+                    response.setGameResult(deriveGameEndType(outputConfiguration).toString());
+                }
+                response.setFen(outputFEN);
                 response.setCheck(outputConfiguration.isCheck());
             } else {
                 response.setGameResult(deriveGameEndType(inputConfiguration).toString());

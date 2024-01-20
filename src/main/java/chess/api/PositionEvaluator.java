@@ -54,11 +54,8 @@ public class PositionEvaluator {
         return -Float.MAX_VALUE;
     }
 
-    private static double considerFiftyMoveRule(PieceConfiguration pieceConfiguration) {
-        if (pieceConfiguration.getHalfMoveClock() > NO_CAPTURE_OR_PAWN_MOVE_LIMIT) {
-            return -Float.MAX_VALUE;
-        }
-        return 0;
+    private static boolean isFiftyMoveRuleFailure(PieceConfiguration pieceConfiguration) {
+        return pieceConfiguration.getHalfMoveClock() > NO_CAPTURE_OR_PAWN_MOVE_LIMIT;
     }
 
     static Optional<Object[]> getBestPieceConfigurationToScoreEntryRecursively(PieceConfiguration pieceConfiguration, int depth) {
@@ -68,12 +65,11 @@ public class PositionEvaluator {
         final List<PieceConfiguration> onwardPieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
         final int onwardConfigurationCount = onwardPieceConfigurations.size();
         final double[] onwardConfigurationScores = new double[onwardConfigurationCount];
-        final double[] fiftyMoveRuleValues = new double[onwardConfigurationCount];
+        final boolean[] fiftyMoveRuleChecks = new boolean[onwardConfigurationCount];
         for (int i = 0; i < onwardConfigurationCount; i++) {
             PieceConfiguration onwardPieceConfiguration = onwardPieceConfigurations.get(i);
 
-            final double fiftyMoveRuleValue = considerFiftyMoveRule(onwardPieceConfiguration);
-            fiftyMoveRuleValues[i] = fiftyMoveRuleValue;
+            fiftyMoveRuleChecks[i] = isFiftyMoveRuleFailure(onwardPieceConfiguration);
 
             double nextDiff = getValueDifferential(onwardPieceConfiguration);
             double comparison = currentDiff - nextDiff;
@@ -89,7 +85,7 @@ public class PositionEvaluator {
         double bestOnwardConfigurationScore = -Double.MAX_VALUE;
         for(int i = 0; i < onwardConfigurationCount; i++) {
             double onwardConfigurationScore = onwardConfigurationScores[i] + threatValue;
-            if (onwardConfigurationScore > bestOnwardConfigurationScore && fiftyMoveRuleValues[i] == 0) {
+            if (onwardConfigurationScore > bestOnwardConfigurationScore && !fiftyMoveRuleChecks[i]) {
                 bestOnwardConfigurationScore = onwardConfigurationScore;
                 bestOnwardConfigurationIndex = i;
             }
