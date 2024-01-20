@@ -78,7 +78,7 @@ public class PositionEvaluator {
             double nextDiff = getValueDifferential(onwardPieceConfiguration);
             double comparison = currentDiff - nextDiff;
             if (depth > 0) {
-                comparison += getBestScoreDifferentialRecursively(onwardPieceConfiguration, depth) * 0.99;
+                comparison += getBestScoreDifferentialRecursively(onwardPieceConfiguration, depth) * 0.99; // This modifier adjusts for uncertainty at depth
                 // Below is where the position can be evaluated for more than just the value differential (because the position bit flags have been calculated)
             }
             onwardConfigurationScores[i] = comparison;
