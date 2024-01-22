@@ -186,8 +186,8 @@ public abstract class Piece {
                 }
 
                 // Is there a player piece on the position?
-                if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PieceConfiguration.PLAYER_OCCUPIED)) {
-                    boolean kingOccupied = BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PieceConfiguration.KING_OCCUPIED);
+                if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PLAYER_OCCUPIED)) {
+                    boolean kingOccupied = BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], KING_OCCUPIED);
                     if (potentialKingProtectorPosition < 0) {
                         if (kingOccupied) {
                             // First player piece encountered in this direction is the player's king
@@ -207,6 +207,8 @@ public abstract class Piece {
                         // Second player piece encountered in this direction is not the player's king.
                         break;
                     }
+                } else if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], OPPONENT_OCCUPIED)) {
+                    break;
                 }
                 limit--;
             }

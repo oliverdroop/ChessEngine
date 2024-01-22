@@ -548,4 +548,14 @@ public class MovementTest {
                 .as("Unexpected number of available moves when the king can only move in one plane")
                 .hasSize(2);
     }
+
+    @Test
+    void testKnightMovement_withOpposingKnightBlockingCheck() {
+        PieceConfiguration pieceConfiguration = FENReader.read("r1b2rk1/ppp1qppp/2n5/3pN3/2P1nB2/5Q2/PPP2PPP/R3KB1R w KQ - 6 10");
+
+        int pieceBitFlag = pieceConfiguration.getPieceAtPosition(36);
+        List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurationsForPiece(pieceBitFlag, false);
+
+        assertThat(pieceConfigurations).as("Expected moves to be available to knight at e5").hasSize(6);
+    }
 }
