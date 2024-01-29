@@ -617,7 +617,7 @@ public class MovementTest {
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurationsForPiece(pieceBitFlag, false);
 
         assertThat(pieceConfigurations)
-                .as("Expected pawn to be able to end check")
+                .as("Expected pawn not to be able to end check because of opposing rook")
                 .isEmpty();
     }
 }
