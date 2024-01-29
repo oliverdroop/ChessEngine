@@ -550,12 +550,74 @@ public class MovementTest {
     }
 
     @Test
-    void testKnightMovement_withOpposingKnightBlockingCheck() {
+    void testKnightMovement_withFriendlyAndOpposingKnightsBlockingCheck() {
         PieceConfiguration pieceConfiguration = FENReader.read("r1b2rk1/ppp1qppp/2n5/3pN3/2P1nB2/5Q2/PPP2PPP/R3KB1R w KQ - 6 10");
 
         int pieceBitFlag = pieceConfiguration.getPieceAtPosition(36);
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurationsForPiece(pieceBitFlag, false);
 
-        assertThat(pieceConfigurations).as("Expected moves to be available to knight at e5").hasSize(6);
+        assertThat(pieceConfigurations)
+                .as("Expected moves to be available to knight at e5")
+                .hasSize(6);
+    }
+
+    @Test
+    void testPawnMovement_withFriendlyPawnBlockingCheck() {
+        PieceConfiguration pieceConfiguration = FENReader.read("7k/8/8/K3P2r/8/8/8/8 w - - 0 1");
+
+        int pieceBitFlag = pieceConfiguration.getPieceAtPosition(36);
+        List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurationsForPiece(pieceBitFlag, false);
+
+        assertThat(pieceConfigurations)
+                .as("Expected no moves to be available to pawn at e5 because it blocks check")
+                .isEmpty();
+    }
+
+    @Test
+    void testPawnMovement_withFriendlyAndOpposingPawnsBlockingCheck() {
+        PieceConfiguration pieceConfiguration = FENReader.read("7k/8/8/K1p1P2r/8/8/8/8 w - - 0 1");
+
+        int pieceBitFlag = pieceConfiguration.getPieceAtPosition(36);
+        List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurationsForPiece(pieceBitFlag, false);
+
+        assertThat(pieceConfigurations)
+                .as("Expected the pawn to be able to move because an opposing pawn also blocks check")
+                .hasSize(1);
+    }
+
+    @Test
+    void testPawnMovement_withFriendlyPawnAndOpposingKingBlockingCheck() {
+        PieceConfiguration pieceConfiguration = FENReader.read("8/8/8/K1k1P2r/8/8/8/8 w - - 0 1");
+
+        int pieceBitFlag = pieceConfiguration.getPieceAtPosition(36);
+        List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurationsForPiece(pieceBitFlag, false);
+
+        assertThat(pieceConfigurations)
+                .as("Expected the pawn to be able to move because the opposing king also blocks check")
+                .hasSize(1);
+    }
+
+    @Test
+    void testPawnMovement_withKingCheckedByTakeableOpposingPawn() {
+        PieceConfiguration pieceConfiguration = FENReader.read("7k/8/8/3p4/2P1K3/8/8/3q4 w - - 0 1");
+
+        int pieceBitFlag = pieceConfiguration.getPieceAtPosition(26);
+        List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurationsForPiece(pieceBitFlag, false);
+
+        assertThat(pieceConfigurations)
+                .as("Expected pawn to be able to end check")
+                .hasSize(1);
+    }
+
+    @Test
+    void testPawnMovement_withKingCheckedByUntakeableOpposingPawn() {
+        PieceConfiguration pieceConfiguration = FENReader.read("7k/8/8/3p4/r1P1K3/8/8/3q4 w - - 0 1");
+
+        int pieceBitFlag = pieceConfiguration.getPieceAtPosition(26);
+        List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurationsForPiece(pieceBitFlag, false);
+
+        assertThat(pieceConfigurations)
+                .as("Expected pawn to be able to end check")
+                .isEmpty();
     }
 }

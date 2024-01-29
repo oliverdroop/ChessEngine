@@ -105,38 +105,4 @@ public class PositionEvaluator {
             return GameEndType.STALEMATE;
         }
     }
-
-    public static Map<String, Collection<String>> buildFENMap(String fen) {
-        PieceConfiguration configuration = FENReader.read(fen);
-        Map<String, Collection<String>> fenMap = new HashMap<>();
-
-        Collection<String> onwardFENs = configuration.getPossiblePieceConfigurations().stream()
-                .map(FENWriter::write)
-                .collect(Collectors.toList());
-
-        fenMap.put(fen, onwardFENs);
-        return fenMap;
-    }
-
-    public static void addToFENMap(Map<String, Collection<String>> fenMap, String fen) {
-        PieceConfiguration configuration = FENReader.read(fen);
-
-        Collection<String> onwardFENs = configuration.getPossiblePieceConfigurations().stream()
-                .map(FENWriter::write)
-                .collect(Collectors.toList());
-
-        fenMap.put(fen, onwardFENs);
-    }
-
-    public static void addToFENMapAsync(Map<String, Collection<String>> fenMap, String fen, ExecutorService executor) throws Exception {
-        PieceConfiguration configuration = FENReader.read(fen);
-
-        Callable pcCallable = new PCCallable(configuration);
-        Future<List<PieceConfiguration>> onwardConfigurations = executor.submit(pcCallable);
-        Collection<String> onwardFENs = onwardConfigurations.get().stream()
-                .map(FENWriter::write)
-                .collect(Collectors.toList());
-
-        fenMap.put(fen, onwardFENs);
-    }
 }

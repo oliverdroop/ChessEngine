@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import static chess.api.PieceConfiguration.*;
+
 public class Pawn extends Piece{
 
     private static final int[][] WHITE_DIRECTIONAL_LIMITS = {{-1, 1, 1}, {0, 1, 2}, {1, 1, 1}};
@@ -37,19 +39,19 @@ public class Pawn extends Piece{
                 }
 
                 // Is this player piece blocked by another player piece?
-                if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PieceConfiguration.PLAYER_OCCUPIED)) {
+                if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PLAYER_OCCUPIED)) {
                     break;
                 }
 
                 // Is this position a position which wouldn't block an existing checking direction?
-                if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PieceConfiguration.DOES_NOT_BLOCK_CHECK)) {
+                if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], DOES_NOT_BLOCK_CHECK)) {
                     limit--;
                     continue;
                 }
 
                 // Is there an opponent piece on the position?
                 int takenPieceBitFlag = -1;
-                if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PieceConfiguration.OPPONENT_OCCUPIED)) {
+                if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], OPPONENT_OCCUPIED)) {
                     if (directionX != 0) {
                         // This is a diagonal move so taking a piece is valid
                         takenPieceBitFlag = currentConfiguration.getPieceAtPosition(testPositionIndex);
@@ -83,7 +85,13 @@ public class Pawn extends Piece{
                 continue;
             }
 
-            positionBitFlags[testPositionIndex] = BitUtil.applyBitFlag(positionBitFlags[testPositionIndex], PieceConfiguration.THREATENED);
+            positionBitFlags[testPositionIndex] = BitUtil.applyBitFlag(positionBitFlags[testPositionIndex], THREATENED);
+
+            if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PLAYER_KING_OCCUPIED)) {
+                // Player piece encountered in this direction is the player's king
+                positionBitFlags[testPositionIndex] = setDirectionalFlags(
+                        positionBitFlags[testPositionIndex], directionX, directionY);
+            }
         }
         return positionBitFlags;
     }
@@ -154,8 +162,8 @@ public class Pawn extends Piece{
         if (testPosition < 0) {
             return false;
         }
-        return BitUtil.hasBitFlag(positionBitFlags[testPosition], PieceConfiguration.OPPONENT_OCCUPIED)
-                || BitUtil.hasBitFlag(positionBitFlags[testPosition], PieceConfiguration.EN_PASSANT_SQUARE);
+        return BitUtil.hasBitFlag(positionBitFlags[testPosition], OPPONENT_OCCUPIED)
+                || BitUtil.hasBitFlag(positionBitFlags[testPosition], EN_PASSANT_SQUARE);
     }
 
     public static char getFENCode(int pieceBitFlag) {

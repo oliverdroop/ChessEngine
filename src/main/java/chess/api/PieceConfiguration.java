@@ -74,6 +74,8 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
 
     public static final int CHECK_FLAGS_COMBINED = PLAYER_OCCUPIED | KING_OCCUPIED | THREATENED;
 
+    public static final int PLAYER_KING_OCCUPIED = KING_OCCUPIED | PLAYER_OCCUPIED;
+
     public static final int[] CENTRE_POSITIONS = {27, 28, 35, 36};
 
     private Integer enPassantSquare;
