@@ -54,6 +54,10 @@ public class Position {
         return getPosition(coordinateString.charAt(0) - 97, coordinateString.charAt(1) - 49);
     }
 
+    public static boolean isValidPosition(int testPosition) {
+        return (testPosition & 63) == testPosition;
+    }
+
     public static int applyTranslation(int position, int translationX, int translationY) {
         int newX = getX(position) + translationX;
         int newY = getY(position) + translationY;
@@ -66,25 +70,17 @@ public class Position {
     public static int applyTranslationTowardsThreat(int directionBitFlag, int positionBitFlag) {
 
         // Move in the opposite direction to the threat direction
-        switch(directionBitFlag) {
-            case PieceConfiguration.DIRECTION_N:
-                return Position.applyTranslation(positionBitFlag, 0, -1);
-            case PieceConfiguration.DIRECTION_NE:
-                return Position.applyTranslation(positionBitFlag, -1, -1);
-            case PieceConfiguration.DIRECTION_E:
-                return Position.applyTranslation(positionBitFlag, -1, 0);
-            case PieceConfiguration.DIRECTION_SE:
-                return Position.applyTranslation(positionBitFlag, -1, 1);
-            case PieceConfiguration.DIRECTION_S:
-                return Position.applyTranslation(positionBitFlag, 0, 1);
-            case PieceConfiguration.DIRECTION_SW:
-                return Position.applyTranslation(positionBitFlag, 1, 1);
-            case PieceConfiguration.DIRECTION_W:
-                return Position.applyTranslation(positionBitFlag, 1, 0);
-            case PieceConfiguration.DIRECTION_NW:
-                return Position.applyTranslation(positionBitFlag, 1, -1);
-        }
-        return -1;
+        return switch (directionBitFlag) {
+            case PieceConfiguration.DIRECTION_N -> Position.applyTranslation(positionBitFlag, 0, -1);
+            case PieceConfiguration.DIRECTION_NE -> Position.applyTranslation(positionBitFlag, -1, -1);
+            case PieceConfiguration.DIRECTION_E -> Position.applyTranslation(positionBitFlag, -1, 0);
+            case PieceConfiguration.DIRECTION_SE -> Position.applyTranslation(positionBitFlag, -1, 1);
+            case PieceConfiguration.DIRECTION_S -> Position.applyTranslation(positionBitFlag, 0, 1);
+            case PieceConfiguration.DIRECTION_SW -> Position.applyTranslation(positionBitFlag, 1, 1);
+            case PieceConfiguration.DIRECTION_W -> Position.applyTranslation(positionBitFlag, 1, 0);
+            case PieceConfiguration.DIRECTION_NW -> Position.applyTranslation(positionBitFlag, 1, -1);
+            default -> -1;
+        };
     }
 
     public static int getPositionFromCoordinateString(String coordinateString) {

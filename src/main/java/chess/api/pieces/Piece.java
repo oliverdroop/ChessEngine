@@ -10,6 +10,7 @@ import java.util.*;
 import java.util.function.Predicate;
 
 import static chess.api.PieceConfiguration.*;
+import static chess.api.Position.isValidPosition;
 
 public abstract class Piece {
 
@@ -53,7 +54,7 @@ public abstract class Piece {
 
             while (limit > 0) {
                 testPositionIndex = Position.applyTranslation(testPositionIndex, directionX, directionY);
-                if (testPositionIndex < 0 || testPositionIndex >= 64) {
+                if (!isValidPosition(testPositionIndex)) {
                     break;
                 }
 
@@ -172,7 +173,7 @@ public abstract class Piece {
             int potentialKingProtectorPosition = -1;
             while (limit > 0) {
                 testPositionIndex = Position.applyTranslation(testPositionIndex, directionX, directionY);
-                if (testPositionIndex < 0 || testPositionIndex >= 64) {
+                if (!isValidPosition(testPositionIndex)) {
                     break;
                 }
 

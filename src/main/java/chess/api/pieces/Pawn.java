@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 import static chess.api.PieceConfiguration.*;
+import static chess.api.Position.isValidPosition;
 
 public class Pawn extends Piece{
 
@@ -18,7 +19,7 @@ public class Pawn extends Piece{
 
     private static final int[][] BLACK_DIRECTIONAL_LIMITS = {{1, -1, 1}, {0, -1, 2}, {-1, -1, 1}};
 
-    private static final Map<Class<? extends Piece>, String> PROMOTION_CLASSES = ImmutableMap.of(Knight.class, "N", Bishop.class, "B", Rook.class, "R", Queen.class, "Q");
+    private static final Map<Integer, String> PROMOTION_PIECE_TYPES = ImmutableMap.of(KNIGHT_OCCUPIED, "N", BISHOP_OCCUPIED, "B", ROOK_OCCUPIED, "R", QUEEN_OCCUPIED, "Q");
 
     public static int[][] getDirectionalLimits(int pieceBitFlag) {
         return getSide(pieceBitFlag) == 0 ? WHITE_DIRECTIONAL_LIMITS : BLACK_DIRECTIONAL_LIMITS;
@@ -34,7 +35,7 @@ public class Pawn extends Piece{
 
             while (limit > 0) {
                 testPositionIndex = Position.applyTranslation(testPositionIndex, directionX, directionY);
-                if (testPositionIndex < 0 || testPositionIndex >= 64) {
+                if (!isValidPosition(testPositionIndex)) {
                     break;
                 }
 
@@ -81,7 +82,7 @@ public class Pawn extends Piece{
             int directionY = directionalLimit[1];
             int testPositionIndex = getPosition(pieceBitFlag);
             testPositionIndex = Position.applyTranslation(testPositionIndex, directionX, directionY);
-            if (testPositionIndex < 0 || testPositionIndex >= 64) {
+            if (!isValidPosition(testPositionIndex)) {
                 continue;
             }
 
@@ -125,12 +126,12 @@ public class Pawn extends Piece{
             // Promote pawn
             pieceConfigurations.remove(pieceConfigurations.size() - 1);
             currentConfiguration.getChildConfigurations().remove(newPieceConfiguration);
-            for(Class<? extends Piece> promotionClass : PROMOTION_CLASSES.keySet()) {
+            for(int promotionPieceTypeFlag : PROMOTION_PIECE_TYPES.keySet()) {
                 PieceConfiguration promotedPawnConfiguration = getPromotedPawnConfiguration(newPieceConfiguration,
-                        newPiecePosition, promotionClass);
+                        newPiecePosition, promotionPieceTypeFlag);
                 if (linkOnwardConfigurations) {
                     linkPromotedPieceConfigurations(pieceBitFlag, currentConfiguration, promotedPawnConfiguration, newPiecePosition,
-                            takenPieceBitFlag, PROMOTION_CLASSES.get(promotionClass).toLowerCase());
+                            takenPieceBitFlag, PROMOTION_PIECE_TYPES.get(promotionPieceTypeFlag).toLowerCase());
                 }
                 pieceConfigurations.add(promotedPawnConfiguration);
             }
@@ -145,9 +146,9 @@ public class Pawn extends Piece{
     }
 
     private static PieceConfiguration getPromotedPawnConfiguration(PieceConfiguration unpromotedPawnConfiguration,
-            int newPiecePosition, Class<? extends Piece> clazz) {
+            int newPiecePosition, int promotedPieceTypeFlag) {
         PieceConfiguration newPieceConfiguration = new PieceConfiguration(unpromotedPawnConfiguration, true);
-        newPieceConfiguration.promotePiece(newPiecePosition, clazz);
+        newPieceConfiguration.promotePiece(newPiecePosition, promotedPieceTypeFlag);
         return newPieceConfiguration;
     }
 

@@ -78,6 +78,9 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
 
     public static final int[] CENTRE_POSITIONS = {27, 28, 35, 36};
 
+    // 0 turnSide 1-5 enPassant, 6-9 castlePositions, 10-20 halfMoveClock, 21- 31 fullMoveNumber
+    private int auxiliaryData = 0;
+
     private Integer enPassantSquare;
 
     private List<Integer> castlePositions = new ArrayList<>();
@@ -92,7 +95,7 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
 
     private PieceConfiguration parentConfiguration;
 
-    private final List<PieceConfiguration> childConfigurations = new ArrayList<>();
+    private List<PieceConfiguration> childConfigurations;
 
     private String algebraicNotation;
 
@@ -168,21 +171,22 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
             int currentPosition = kingPositionBitFlag;
             int nextPositionIndex = Position.applyTranslationTowardsThreat(kingPositionDirectionalFlags, currentPosition);
 
-            while(!BitUtil.hasBitFlag(currentPosition, PieceConfiguration.OPPONENT_OCCUPIED) && nextPositionIndex >= 0) {
-                positionBitFlags[nextPositionIndex] = BitUtil.applyBitFlag(positionBitFlags[nextPositionIndex], PieceConfiguration.DOES_NOT_BLOCK_CHECK);
+            while(!BitUtil.hasBitFlag(currentPosition, OPPONENT_OCCUPIED) && nextPositionIndex >= 0) {
+                positionBitFlags[nextPositionIndex] = BitUtil.applyBitFlag(positionBitFlags[nextPositionIndex], DOES_NOT_BLOCK_CHECK);
                 currentPosition = positionBitFlags[nextPositionIndex];
                 nextPositionIndex = Position.applyTranslationTowardsThreat(kingPositionDirectionalFlags, currentPosition);
             }
 
-            if (kingPositionDirectionalFlags == PieceConfiguration.DIRECTION_ANY_KNIGHT) {
+            if (kingPositionDirectionalFlags == DIRECTION_ANY_KNIGHT) {
                 // The king is checked only by a knight
                 for(int[] directionalLimit : Knight.getKnightDirectionalLimits()) {
                     int possibleCheckingKnightPosition = Position.applyTranslation(currentPosition, directionalLimit[0], directionalLimit[1]);
                     if (possibleCheckingKnightPosition >= 0
                             && BitUtil.hasBitFlag(positionBitFlags[possibleCheckingKnightPosition],
-                            PieceConfiguration.KNIGHT_OCCUPIED | PieceConfiguration.OPPONENT_OCCUPIED)) {
+                            PieceConfiguration.KNIGHT_OCCUPIED | OPPONENT_OCCUPIED)) {
+                        // Stamp the checking knight's position so it becomes a movable position
                         positionBitFlags[possibleCheckingKnightPosition] = BitUtil.applyBitFlag(
-                                positionBitFlags[possibleCheckingKnightPosition], PieceConfiguration.DOES_NOT_BLOCK_CHECK);
+                                positionBitFlags[possibleCheckingKnightPosition], DOES_NOT_BLOCK_CHECK);
                     }
                 }
             }
@@ -190,7 +194,7 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
 
         // Now reverse the bit DOES_NOT_BLOCK_CHECK bit flags because they're on the squares which can block check
         for(int position : Position.POSITIONS) {
-            positionBitFlags[position] = BitUtil.reverseBitFlag(positionBitFlags[position], PieceConfiguration.DOES_NOT_BLOCK_CHECK);
+            positionBitFlags[position] = BitUtil.reverseBitFlag(positionBitFlags[position], DOES_NOT_BLOCK_CHECK);
         }
         return positionBitFlags;
     }
@@ -204,12 +208,6 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
 
     public int[] getPositionBitFlags() {
         return positionBitFlags;
-    }
-
-    public int countThreatFlags() {
-        return (int) Arrays.stream(positionBitFlags)
-                .filter(pbf -> BitUtil.hasBitFlag(pbf, PieceConfiguration.THREATENED))
-                .count();
     }
 
     public int[] getPieceBitFlags() {
@@ -239,18 +237,10 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
         return positionBitFlags[Position.getPosition(positionBitFlag)];
     }
 
-    public void promotePiece(int position, Class<? extends Piece> clazz) {
+    public void promotePiece(int position, int pieceTypeFlag) {
         int oldPieceBitFlag = getPieceAtPosition(position);
         int newPieceBitFlag = oldPieceBitFlag & ~ALL_PIECE_COLOUR_AND_OCCUPATION_FLAGS_COMBINED;
-        if (clazz.equals(Queen.class)) {
-            positionBitFlags[position] = newPieceBitFlag | QUEEN_OCCUPIED;
-        } else if (clazz.equals(Knight.class)) {
-            positionBitFlags[position] = newPieceBitFlag | KNIGHT_OCCUPIED;
-        } else if (clazz.equals(Bishop.class)) {
-            positionBitFlags[position] = newPieceBitFlag | BISHOP_OCCUPIED;
-        } else if (clazz.equals(Rook.class)) {
-            positionBitFlags[position] = newPieceBitFlag | ROOK_OCCUPIED;
-        }
+        positionBitFlags[position] = newPieceBitFlag | pieceTypeFlag;
     }
 
     public Integer getEnPassantSquare() {
@@ -286,6 +276,7 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
     }
 
     public void setTurnSide(Side turnSide) {
+//        auxiliaryData = auxiliaryData & ~(1);
         this.turnSide = turnSide;
     }
 
@@ -322,6 +313,9 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
     }
 
     public void addChildConfiguration(PieceConfiguration childConfiguration) {
+        if (childConfigurations == null) {
+            childConfigurations = new ArrayList<>();
+        }
         childConfigurations.add(childConfiguration);
     }
 
@@ -350,9 +344,9 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
 
     public boolean isCheck() {
         return Arrays.stream(this.positionBitFlags)
-                .anyMatch(position -> BitUtil.hasBitFlag(position, PieceConfiguration.PLAYER_OCCUPIED)
-                        && BitUtil.hasBitFlag(position, PieceConfiguration.KING_OCCUPIED)
-                        && BitUtil.hasBitFlag(position, PieceConfiguration.THREATENED));
+                .anyMatch(position -> BitUtil.hasBitFlag(position, PLAYER_OCCUPIED)
+                        && BitUtil.hasBitFlag(position, KING_OCCUPIED)
+                        && BitUtil.hasBitFlag(position, THREATENED));
     }
 
     public void logGameHistory() {
@@ -376,21 +370,56 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
     }
 
     public double getThreatScore() {
-        return Arrays.stream(positionBitFlags)
-                .filter(pbf -> BitUtil.hasBitFlag(pbf, PieceConfiguration.THREATENED))
-                .count() / (double) 64;
+        return countThreatFlags() / (double) 64;
+    }
+
+    public int countThreatFlags() {
+        return (int) Arrays.stream(positionBitFlags)
+                .filter(pbf -> BitUtil.hasBitFlag(pbf, THREATENED))
+                .count();
+    }
+
+    public double getLesserScore() {
+        int squaresThreatened = 0;
+        int playerPiecesThreatened = 0;
+        int opponentPiecesCovered = 0;
+        int midSquares = 0;
+        for (int positionBitFlag : positionBitFlags) {
+            if (BitUtil.hasBitFlag(positionBitFlag, THREATENED)) {
+                squaresThreatened++;
+                if (BitUtil.hasBitFlag(positionBitFlag, PLAYER_OCCUPIED)) {
+                    playerPiecesThreatened++;
+                } else if (BitUtil.hasBitFlag(positionBitFlag, OPPONENT_OCCUPIED)) {
+                    opponentPiecesCovered++;
+                }
+            }
+            if (BitUtil.hasBitFlag(positionBitFlag, 27)
+                    || BitUtil.hasBitFlag(positionBitFlag, 28)
+                    || BitUtil.hasBitFlag(positionBitFlag, 35)
+                    || BitUtil.hasBitFlag(positionBitFlag, 36)) {
+                if (BitUtil.hasBitFlag(positionBitFlag, PLAYER_OCCUPIED)) {
+                    midSquares++;
+                } else if (BitUtil.hasBitFlag(positionBitFlag, OPPONENT_OCCUPIED)) {
+                    midSquares--;
+                }
+            }
+        }
+        return - (squaresThreatened / (double) 160)
+                - (playerPiecesThreatened / (double) 80)
+                - (opponentPiecesCovered / (double) 80)
+                + (midSquares / (double) 20);
     }
 
     public double getOpponentThreatenedScore() {
         return Arrays.stream(positionBitFlags)
-                .filter(pbf -> BitUtil.hasBitFlag(pbf, PieceConfiguration.THREATENED)
+                .filter(pbf -> BitUtil.hasBitFlag(pbf, THREATENED)
                         && BitUtil.hasBitFlag(pbf, PieceConfiguration.OPPONENT_OCCUPIED))
                 .count() / (double) 64;
     }
 
     public double getOpponentCentrePositionScore() {
         return Arrays.stream(CENTRE_POSITIONS)
-                .filter(cp -> BitUtil.hasBitFlag(positionBitFlags[cp], PieceConfiguration.OPPONENT_OCCUPIED))
+                .filter(cp -> BitUtil.hasBitFlag(positionBitFlags[cp], OPPONENT_OCCUPIED))
                 .count() / (double) 4;
     }
 

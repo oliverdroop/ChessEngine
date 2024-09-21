@@ -5,10 +5,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.stream.Collectors;
 
 public class PositionEvaluator {
 
@@ -80,7 +76,8 @@ public class PositionEvaluator {
             onwardConfigurationScores[i] = comparison;
         }
 
-        final double threatValue = -(pieceConfiguration.countThreatFlags() / (double) 64);
+//        final double threatValue = -(pieceConfiguration.countThreatFlags() / (double) 64);
+        final double threatValue = pieceConfiguration.getLesserScore();
         int bestOnwardConfigurationIndex = -1;
         double bestOnwardConfigurationScore = -Double.MAX_VALUE;
         for(int i = 0; i < onwardConfigurationCount; i++) {

@@ -32,8 +32,8 @@
 <script>
 var canv = document.getElementById("canv");
 var ctx = canv.getContext('2d');
-var hostAddress = "http://127.0.0.1:8081/chess";
-//var hostAddress = "http://178.62.85.228:8081/chess";
+// var hostAddress = "http://127.0.0.1:8081/chess";
+var hostAddress = "http://178.62.85.228:8081/chess";
 var board = {
 	squares:[],
 	pieces:[],
@@ -320,22 +320,22 @@ function getBoardState(){
 	var kingW = getPiece(3, 0, board.pieces);
 	if (kingW != null && kingW.moveCount == 0) {
 		var rookWK = getPiece(0, 0, board.pieces);
-		if (rookWK != null && rookWK.moveCount == 0) {
+		if (rookWK != null && rookWK.pieceType == "rook" && rookWK.moveCount == 0) {
 			castling += 'K';
 		}
 		var rookWQ = getPiece(7, 0, board.pieces);
-		if (rookWQ != null && rookWQ.moveCount == 0) {
+		if (rookWQ != null && rookWQ.pieceType == "rook" && rookWQ.moveCount == 0) {
 			castling += 'Q';
 		}
 	}
 	var kingB = getPiece(3, 7, board.pieces);
 	if (kingB != null && kingB.moveCount == 0) {
 		var rookBK = getPiece(0, 7, board.pieces);
-		if (rookBK != null && rookBK.moveCount == 0) {
+		if (rookBK != null && rookBK.pieceType == "rook" && rookBK.moveCount == 0) {
 			castling += 'k';
 		}
 		var rookBQ = getPiece(7, 7, board.pieces);
-		if (rookBQ != null && rookBQ.moveCount == 0) {
+		if (rookBQ != null && rookBQ.pieceType == "rook" && rookBQ.moveCount == 0) {
 			castling += 'q';
 		}
 	}

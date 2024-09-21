@@ -8,6 +8,8 @@ import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.List;
 
+import static chess.api.Position.isValidPosition;
+
 public class King extends Piece{
 
     private static final int[][] STANDARD_DIRECTIONAL_LIMITS = {{-1, -1, 1}, {0, -1, 1}, {1, -1, 1}, {-1, 0, 1}, {1, 0, 1}, {-1, 1, 1}, {0, 1, 1}, {1, 1, 1}};
@@ -32,7 +34,7 @@ public class King extends Piece{
 
             while (limit > 0) {
                 testPositionIndex = Position.applyTranslation(testPositionIndex, directionX, directionY);
-                if (testPositionIndex < 0 || testPositionIndex >= 64) {
+                if (!isValidPosition(testPositionIndex)) {
                     break;
                 }
 
@@ -95,7 +97,7 @@ public class King extends Piece{
             // Limit is always 1 for the king (castling positions can't be threatened by the king)
             int testPositionIndex = Position.applyTranslation(Position.getPosition(pieceBitFlag),
                     directionalLimit[0], directionalLimit[1]);
-            if (testPositionIndex < 0 || testPositionIndex >= 64) {
+            if (!isValidPosition(testPositionIndex)) {
                 continue;
             }
 
