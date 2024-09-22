@@ -49,7 +49,7 @@ public class FENReader {
 		}
 		LOGGER.debug("Pieces set successfully");
 
-		pieceConfiguration.setTurnSide(fields[1].equals("w") ? Side.WHITE : Side.BLACK);
+		pieceConfiguration.setTurnSide(fields[1].equals("w") ? 0 : 1);
 		LOGGER.debug("Turn team set successfully");
 		
 		if (fields[2].contains("K")) {
@@ -70,7 +70,7 @@ public class FENReader {
 			pieceConfiguration.setEnPassantSquare(Position.getPositionFromCoordinateString(fields[3]));
 		}
 		else {
-			pieceConfiguration.setEnPassantSquare(null);
+			pieceConfiguration.setEnPassantSquare(-1);
 		}
 		LOGGER.debug("EnPassantable set successfully");
 

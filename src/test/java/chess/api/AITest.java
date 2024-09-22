@@ -82,7 +82,7 @@ public class AITest {
 		setupTest("8/kBPN4/8/8/8/8/8/KR6 w - - 0 1");
 		newPieceConfiguration = getBestMoveRecursively(pieceConfiguration, DEPTH);
 		assertThat(FENWriter.write(newPieceConfiguration))
-				.as("Upgrading white pawn should avoid stalemate")
+				.as("Promoting white pawn should choose knight to avoid stalemate")
 				.isEqualTo("2N5/kB1N4/8/8/8/8/8/KR6 b - - 0 1");
 	}
 

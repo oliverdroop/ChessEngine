@@ -8,6 +8,8 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static chess.api.BitUtil.*;
+
 public class PieceConfiguration implements Comparable<PieceConfiguration> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PieceConfiguration.class);
@@ -78,18 +80,27 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
 
     public static final int[] CENTRE_POSITIONS = {27, 28, 35, 36};
 
-    // 0 turnSide 1-5 enPassant, 6-9 castlePositions, 10-20 halfMoveClock, 21- 31 fullMoveNumber
-    private int auxiliaryData = 0;
+    private static final int[][] CASTLE_POSITION_COMBINATIONS = {
+            {},
+            {2},
+            {6},
+            {2, 6},
+            {58},
+            {2, 58},
+            {6, 58},
+            {2, 6, 58},
+            {62},
+            {2, 62},
+            {6, 62},
+            {2, 6, 62},
+            {58, 62},
+            {2, 58, 62},
+            {6, 58, 62},
+            {2, 6, 58, 62}
+    };
 
-    private Integer enPassantSquare;
-
-    private List<Integer> castlePositions = new ArrayList<>();
-
-    private Side turnSide;
-
-    private int halfMoveClock = 0;
-
-    private int fullMoveNumber = 0;
+    // 0 turnSide, 1-6 enPassant position, 7 enPassantIsNotSet, 8-11 castlePositions, 12-18 halfMoveClock, 19-31 fullMoveNumber
+    private int auxiliaryData = 128;
 
     private int[] positionBitFlags = Position.POSITIONS.clone();
 
@@ -104,10 +115,7 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
     }
 
     public PieceConfiguration(PieceConfiguration copiedConfiguration, boolean copyPieces) {
-        this.turnSide = copiedConfiguration.getTurnSide();
-        this.halfMoveClock = copiedConfiguration.getHalfMoveClock();
-        this.fullMoveNumber = copiedConfiguration.getFullMoveNumber();
-        this.castlePositions = new ArrayList<>(copiedConfiguration.getCastlePositions());
+        auxiliaryData = copiedConfiguration.auxiliaryData;
 
         if (copyPieces) {
             Arrays.stream(Position.POSITIONS)
@@ -134,14 +142,15 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
 
     private int[] stampOccupationFlags(int[] positions) {
         for(int pieceBitFlag : getPieceBitFlags()) {
-            int occupationFlag = Piece.getSide(pieceBitFlag) == turnSide.ordinal() ? PLAYER_OCCUPIED : OPPONENT_OCCUPIED;
+            int occupationFlag = Piece.getSide(pieceBitFlag) == getTurnSide() ? PLAYER_OCCUPIED : OPPONENT_OCCUPIED;
             int position = Position.getPosition(pieceBitFlag);
             positions[position] = BitUtil.applyBitFlag(positions[position], occupationFlag);
         }
-        if (enPassantSquare != null) {
+        int enPassantSquare = getEnPassantSquare();
+        if (enPassantSquare >= 0) {
             positions[enPassantSquare] = BitUtil.applyBitFlag(positions[enPassantSquare], EN_PASSANT_SQUARE);
         }
-        for(Integer castlePosition : castlePositions) {
+        for(int castlePosition : getCastlePositions()) {
             positions[castlePosition] = BitUtil.applyBitFlag(positions[castlePosition], CASTLE_AVAILABLE);
         }
         return positions;
@@ -149,7 +158,7 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
 
     private int[] stampThreatFlags(int[] positionBitFlags) {
         for(int pieceBitFlag : getPieceBitFlags()) {
-            if (Piece.getSide(pieceBitFlag) != turnSide.ordinal()) {
+            if (Piece.getSide(pieceBitFlag) != getTurnSide()) {
                 positionBitFlags = Piece.stampThreatFlags(pieceBitFlag, positionBitFlags);
             }
         }
@@ -223,13 +232,13 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
     }
 
     public void addPiece(int pieceBitFlag) {
-        int pieceFlag = getPieceAndColourBitFlags(pieceBitFlag);
-        int position = Position.getPosition(pieceBitFlag);
+        final int pieceFlag = getPieceAndColourBitFlags(pieceBitFlag);
+        final int position = Position.getPosition(pieceBitFlag);
         positionBitFlags[position] = BitUtil.applyBitFlag(positionBitFlags[position], pieceFlag);
     }
 
     public void removePiece(int pieceBitFlag) {
-        int position = Position.getPosition(pieceBitFlag);
+        final int position = Position.getPosition(pieceBitFlag);
         positionBitFlags[position] = positionBitFlags[position] & (~ALL_PIECE_COLOUR_AND_OCCUPATION_FLAGS_COMBINED);
     }
 
@@ -238,62 +247,64 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
     }
 
     public void promotePiece(int position, int pieceTypeFlag) {
-        int oldPieceBitFlag = getPieceAtPosition(position);
-        int newPieceBitFlag = oldPieceBitFlag & ~ALL_PIECE_COLOUR_AND_OCCUPATION_FLAGS_COMBINED;
+        final int oldPieceBitFlag = getPieceAtPosition(position);
+        final int newPieceBitFlag = oldPieceBitFlag & ~ALL_PIECE_COLOUR_AND_OCCUPATION_FLAGS_COMBINED;
         positionBitFlags[position] = newPieceBitFlag | pieceTypeFlag;
     }
 
-    public Integer getEnPassantSquare() {
-        return enPassantSquare;
+    public int getEnPassantSquare() {
+        final int pos = (auxiliaryData >> 1) & 63;
+        final int negativeBit = (auxiliaryData & 128) << 24;
+        return pos | negativeBit;
     }
 
-    public void setEnPassantSquare(Integer enPassantSquare) {
-        this.enPassantSquare = enPassantSquare;
+    public void setEnPassantSquare(int enPassantSquare) {
+        final int negativeBit = (enPassantSquare >> 24) & 128;
+        final int pos = (enPassantSquare << 1) & 254;
+        auxiliaryData = overwriteBits(auxiliaryData, 254, pos | negativeBit);
     }
 
-    public Side getTurnSide() {
-        return turnSide;
+    public int getTurnSide() {
+        return auxiliaryData & 1;
     }
 
-    public Side getOpposingSide() {
-        return turnSide == Side.WHITE ? Side.BLACK : Side.WHITE;
+    public void setTurnSide(int turnSide) {
+        auxiliaryData = clearBits(auxiliaryData, 1) | turnSide;
     }
 
-    public List<Integer> getCastlePositions() {
-        return castlePositions;
+    public int getOpposingSide() {
+        return (~auxiliaryData) & 1;
     }
 
-    public void setCastlePositions(List<Integer> castlePositions) {
-        this.castlePositions = castlePositions;
+    public int[] getCastlePositions() {
+        final int castlePositionBits = (auxiliaryData >> 8) & 15;
+        return CASTLE_POSITION_COMBINATIONS[castlePositionBits];
     }
 
-    public void addCastlePosition(Integer castlePosition) {
-        this.castlePositions.add(castlePosition);
+    public void addCastlePosition(int castlePosition) {
+        final int index = Arrays.binarySearch(CASTLE_POSITION_COMBINATIONS[15], castlePosition);
+        auxiliaryData = applyBitFlag(auxiliaryData, 256 << index);
     }
 
     public void removeCastlePosition(Integer castlePosition) {
-        this.castlePositions.remove(castlePosition);
-    }
-
-    public void setTurnSide(Side turnSide) {
-//        auxiliaryData = auxiliaryData & ~(1);
-        this.turnSide = turnSide;
+        final int index = Arrays.binarySearch(CASTLE_POSITION_COMBINATIONS[15], castlePosition);
+        auxiliaryData = clearBits(auxiliaryData, (256 << index));
     }
 
     public int getHalfMoveClock() {
-        return halfMoveClock;
+        return (auxiliaryData >> 12) & 127;
     }
 
     public void setHalfMoveClock(int halfMoveClock) {
-        this.halfMoveClock = halfMoveClock;
+        auxiliaryData = overwriteBits(auxiliaryData, 520192, halfMoveClock << 12);
     }
 
     public int getFullMoveNumber() {
-        return fullMoveNumber;
+        return auxiliaryData >> 19;
     }
 
     public void setFullMoveNumber(int fullMoveNumber) {
-        this.fullMoveNumber = fullMoveNumber;
+        auxiliaryData = overwriteBits(auxiliaryData, 2146959360, fullMoveNumber << 19);
     }
 
     public String toString() {
@@ -354,7 +365,7 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
         List<PieceConfiguration> gameHistory = getGameHistory();
         for (int i = 0; i < gameHistory.size(); i++) {
             PieceConfiguration pc = gameHistory.get(i);
-            boolean whiteMoved = pc.getTurnSide() == Side.BLACK;
+            boolean whiteMoved = pc.getTurnSide() == 1;
             if (whiteMoved) {
                 sb = new StringBuilder()
                         .append(pc.getFullMoveNumber())

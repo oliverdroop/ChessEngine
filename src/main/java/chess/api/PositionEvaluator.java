@@ -14,7 +14,7 @@ public class PositionEvaluator {
 
     public static int getValueDifferential(PieceConfiguration pieceConfiguration) {
         int valueDifferential = 0;
-        final int turnSide = pieceConfiguration.getTurnSide().ordinal();
+        final int turnSide = pieceConfiguration.getTurnSide();
         for (int positionBitFlag : pieceConfiguration.getPositionBitFlags()) {
             // Is it a piece?
             final int pieceBitFlag = positionBitFlag & PieceConfiguration.ALL_PIECE_FLAGS_COMBINED;
@@ -97,7 +97,7 @@ public class PositionEvaluator {
 
     public static GameEndType deriveGameEndType(PieceConfiguration finalConfiguration) {
         if (finalConfiguration.isCheck() || finalConfiguration.getHalfMoveClock() == NO_CAPTURE_OR_PAWN_MOVE_LIMIT) {
-            return GameEndType.values()[1 - finalConfiguration.getTurnSide().ordinal()];
+            return GameEndType.values()[1 - finalConfiguration.getTurnSide()];
         } else {
             return GameEndType.STALEMATE;
         }

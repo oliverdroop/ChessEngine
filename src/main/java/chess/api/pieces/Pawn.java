@@ -125,7 +125,9 @@ public class Pawn extends Piece{
         } else if (Position.getY(newPiecePosition) == 7 - (getSide(pieceBitFlag) * 7)) {
             // Promote pawn
             pieceConfigurations.remove(pieceConfigurations.size() - 1);
-            currentConfiguration.getChildConfigurations().remove(newPieceConfiguration);
+            if (currentConfiguration.getChildConfigurations() != null) {
+                currentConfiguration.getChildConfigurations().remove(newPieceConfiguration);
+            }
             for(int promotionPieceTypeFlag : PROMOTION_PIECE_TYPES.keySet()) {
                 PieceConfiguration promotedPawnConfiguration = getPromotedPawnConfiguration(newPieceConfiguration,
                         newPiecePosition, promotionPieceTypeFlag);
