@@ -1,6 +1,7 @@
 package chess.api;
 
 import chess.api.pieces.*;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ComparisonChain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -262,7 +263,7 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
     }
 
     public void setTurnSide(int turnSide) {
-        auxiliaryData = clearBits(auxiliaryData, 1) | turnSide;
+        auxiliaryData = overwriteBits(auxiliaryData, 1, turnSide);
     }
 
     public int getOpposingSide() {
@@ -276,12 +277,12 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
 
     public void addCastlePosition(int castlePosition) {
         final int index = Arrays.binarySearch(CASTLE_POSITION_COMBINATIONS[15], castlePosition);
-        auxiliaryData = applyBitFlag(auxiliaryData, 0b11110 << index);
+        auxiliaryData = applyBitFlag(auxiliaryData, 0b10 << index);
     }
 
-    public void removeCastlePosition(Integer castlePosition) {
+    public void removeCastlePosition(int castlePosition) {
         final int index = Arrays.binarySearch(CASTLE_POSITION_COMBINATIONS[15], castlePosition);
-        auxiliaryData = clearBits(auxiliaryData, (0b11110 << index));
+        auxiliaryData = clearBits(auxiliaryData, (0b10 << index));
     }
 
     public int getHalfMoveClock() {
@@ -341,6 +342,16 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
 
     public void setAlgebraicNotation(String algebraicNotation) {
         this.algebraicNotation = algebraicNotation;
+    }
+
+    @VisibleForTesting
+    int getAuxiliaryData() {
+        return auxiliaryData;
+    }
+
+    @VisibleForTesting
+    void setAuxiliaryData(int auxiliaryData) {
+        this.auxiliaryData = auxiliaryData;
     }
 
     public List<PieceConfiguration> getGameHistory() {
