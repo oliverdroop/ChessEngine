@@ -99,8 +99,8 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
             {2, 6, 58, 62}
     };
 
-    // 0 turnSide, 1-6 enPassant position, 7 enPassantIsNotSet, 8-11 castlePositions, 12-18 halfMoveClock, 19-31 fullMoveNumber
-    private int auxiliaryData = 128;
+    // 0 turnSide, 1-4 castlePositions, 5-11 halfMoveClock, 12-24 fullMoveNumber, 25-30 enPassant position, 31 enPassantIsNotSet
+    private int auxiliaryData = Integer.MIN_VALUE;
 
     private int[] positionBitFlags = Position.POSITIONS.clone();
 
@@ -165,7 +165,7 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
         return positionBitFlags;
     }
 
-    private int[] stampCheckNonBlockerFlags(int[] positionBitFlags) {
+    private static int[] stampCheckNonBlockerFlags(int[] positionBitFlags) {
         final int checkedPlayerKingBitFlag = isPlayerInCheck(positionBitFlags);
         if (checkedPlayerKingBitFlag >= 0) {
             return getCheckNonBlockerPositionBitFlags(checkedPlayerKingBitFlag, positionBitFlags);
@@ -215,6 +215,11 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
                 .orElse(-1);
     }
 
+    public boolean isCheck() {
+        return Arrays.stream(this.positionBitFlags)
+                .anyMatch(position -> BitUtil.hasBitFlag(position, CHECK_FLAGS_COMBINED));
+    }
+
     public int[] getPositionBitFlags() {
         return positionBitFlags;
     }
@@ -252,18 +257,6 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
         positionBitFlags[position] = newPieceBitFlag | pieceTypeFlag;
     }
 
-    public int getEnPassantSquare() {
-        final int pos = (auxiliaryData >> 1) & 63;
-        final int negativeBit = (auxiliaryData & 128) << 24;
-        return pos | negativeBit;
-    }
-
-    public void setEnPassantSquare(int enPassantSquare) {
-        final int negativeBit = (enPassantSquare >> 24) & 128;
-        final int pos = (enPassantSquare << 1) & 254;
-        auxiliaryData = overwriteBits(auxiliaryData, 254, pos | negativeBit);
-    }
-
     public int getTurnSide() {
         return auxiliaryData & 1;
     }
@@ -277,38 +270,46 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
     }
 
     public int[] getCastlePositions() {
-        final int castlePositionBits = (auxiliaryData >> 8) & 15;
+        final int castlePositionBits = (auxiliaryData >> 1) & 0b1111;
         return CASTLE_POSITION_COMBINATIONS[castlePositionBits];
     }
 
     public void addCastlePosition(int castlePosition) {
         final int index = Arrays.binarySearch(CASTLE_POSITION_COMBINATIONS[15], castlePosition);
-        auxiliaryData = applyBitFlag(auxiliaryData, 256 << index);
+        auxiliaryData = applyBitFlag(auxiliaryData, 0b11110 << index);
     }
 
     public void removeCastlePosition(Integer castlePosition) {
         final int index = Arrays.binarySearch(CASTLE_POSITION_COMBINATIONS[15], castlePosition);
-        auxiliaryData = clearBits(auxiliaryData, (256 << index));
+        auxiliaryData = clearBits(auxiliaryData, (0b11110 << index));
     }
 
     public int getHalfMoveClock() {
-        return (auxiliaryData >> 12) & 127;
+        return (auxiliaryData >> 5) & 0b1111111;
     }
 
     public void setHalfMoveClock(int halfMoveClock) {
-        auxiliaryData = overwriteBits(auxiliaryData, 520192, halfMoveClock << 12);
+        auxiliaryData = overwriteBits(auxiliaryData, 0b111111100000, halfMoveClock << 5);
     }
 
     public int getFullMoveNumber() {
-        return auxiliaryData >> 19;
+        return (auxiliaryData >> 12) & 0b1111111111111;
     }
 
     public void setFullMoveNumber(int fullMoveNumber) {
-        auxiliaryData = overwriteBits(auxiliaryData, 2146959360, fullMoveNumber << 19);
+        auxiliaryData = overwriteBits(auxiliaryData, 0b1111111111111000000000000, fullMoveNumber << 12);
     }
 
-    public String toString() {
-        return FENWriter.write(this);
+    public int getEnPassantSquare() {
+        final int pos = (auxiliaryData >> 25) & 0b111111;
+        final int negativeBit = auxiliaryData & Integer.MIN_VALUE;
+        return pos | negativeBit;
+    }
+
+    public void setEnPassantSquare(int enPassantSquare) {
+        final int negativeBit = enPassantSquare & Integer.MIN_VALUE;
+        final int pos = (enPassantSquare & 0b111111) << 25 ;
+        auxiliaryData = overwriteBits(auxiliaryData, 0b11111110000000000000000000000000, pos | negativeBit);
     }
 
     public PieceConfiguration getParentConfiguration() {
@@ -328,6 +329,10 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
             childConfigurations = new ArrayList<>();
         }
         childConfigurations.add(childConfiguration);
+    }
+
+    public String toString() {
+        return FENWriter.write(this);
     }
 
     public String getAlgebraicNotation() {
@@ -351,13 +356,6 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
             outputPcs.add(pcs.get(i));
         }
         return outputPcs;
-    }
-
-    public boolean isCheck() {
-        return Arrays.stream(this.positionBitFlags)
-                .anyMatch(position -> BitUtil.hasBitFlag(position, PLAYER_OCCUPIED)
-                        && BitUtil.hasBitFlag(position, KING_OCCUPIED)
-                        && BitUtil.hasBitFlag(position, THREATENED));
     }
 
     public void logGameHistory() {
@@ -421,26 +419,11 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
                 + (midSquares / (double) 20);
     }
 
-    public double getOpponentThreatenedScore() {
-        return Arrays.stream(positionBitFlags)
-                .filter(pbf -> BitUtil.hasBitFlag(pbf, THREATENED)
-                        && BitUtil.hasBitFlag(pbf, PieceConfiguration.OPPONENT_OCCUPIED))
-                .count() / (double) 64;
-    }
-
-    public double getOpponentCentrePositionScore() {
-        return Arrays.stream(CENTRE_POSITIONS)
-                .filter(cp -> BitUtil.hasBitFlag(positionBitFlags[cp], OPPONENT_OCCUPIED))
-                .count() / (double) 4;
-    }
-
     @Override
     public int compareTo(PieceConfiguration pieceConfiguration) {
         return ComparisonChain.start()
                 .compare(PositionEvaluator.getValueDifferential(this),
                         PositionEvaluator.getValueDifferential(pieceConfiguration))
-//                .compare(PositionEvaluator.getCentrePositionDifferential(this),
-//                        PositionEvaluator.getCentrePositionDifferential(pieceConfiguration))
                 .result();
     }
 }

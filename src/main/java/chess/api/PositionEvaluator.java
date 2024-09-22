@@ -76,7 +76,6 @@ public class PositionEvaluator {
             onwardConfigurationScores[i] = comparison;
         }
 
-//        final double threatValue = -(pieceConfiguration.countThreatFlags() / (double) 64);
         final double threatValue = pieceConfiguration.getLesserScore();
         int bestOnwardConfigurationIndex = -1;
         double bestOnwardConfigurationScore = -Double.MAX_VALUE;

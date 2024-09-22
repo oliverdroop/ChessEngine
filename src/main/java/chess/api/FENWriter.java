@@ -10,8 +10,8 @@ import static chess.api.PieceConfiguration.*;
 public class FENWriter {
 
 	public static final String STARTING_POSITION = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-	private static final char[] CASTLE_POSITION_CODES = new char[]{'K', 'Q', 'k', 'q'};
-	private static final int[] CASTLE_POSITIONS = new int[]{6, 2, 62, 58};
+	private static final char[] CASTLE_POSITION_CODES = {'K', 'Q', 'k', 'q'};
+	private static final int[] CASTLE_POSITIONS = {6, 2, 62, 58};
 	public static String write(PieceConfiguration pieceConfiguration){
 		StringBuilder fenBuilder = new StringBuilder();
 		//board pieces
