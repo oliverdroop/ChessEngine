@@ -126,12 +126,17 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
     }
 
     public List<PieceConfiguration> getPossiblePieceConfigurations() {
+        clearNonPieceFlags(); // Necessary for nested evaluations
         positionBitFlags = stampCheckNonBlockerFlags(stampThreatFlags(stampOccupationFlags(positionBitFlags)));
         return Arrays.stream(getPieceBitFlags())
                 .boxed()
                 .filter(p -> BitUtil.hasBitFlag(p, PLAYER_OCCUPIED))
                 .flatMap(p -> getPossiblePieceConfigurationsForPiece(p, false).stream())
                 .collect(Collectors.toList());
+    }
+
+    private void clearNonPieceFlags() {
+        Arrays.stream(Position.POSITIONS).forEach(pos -> positionBitFlags[pos] = BitUtil.clearBits(positionBitFlags[pos], ~(63 | ALL_PIECE_AND_COLOUR_FLAGS_COMBINED)));
     }
 
     public List<PieceConfiguration> getPossiblePieceConfigurationsForPiece(int pieceBitFlag, boolean linkOnwardConfigurations) {

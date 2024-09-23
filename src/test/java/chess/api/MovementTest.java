@@ -620,4 +620,13 @@ public class MovementTest {
                 .as("Expected pawn not to be able to end check because of opposing rook")
                 .isEmpty();
     }
+
+    @Test
+    void testEnPassantSquareIsCleared() {
+        PieceConfiguration pieceConfiguration = FENReader.read("rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq d3 0 1");
+
+        List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
+        List<String> fens = pieceConfigurations.stream().map(PieceConfiguration::toString).toList();
+        assertThat(fens).as("En-passant square should be cleared after every move").noneMatch(fen -> fen.contains(" d3 "));
+    }
 }

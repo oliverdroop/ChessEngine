@@ -109,6 +109,7 @@ public abstract class Piece {
             return;
         }
         newConfiguration.setTurnSide(currentConfiguration.getOpposingSide());
+        newConfiguration.setEnPassantSquare(-1);
 
         if (takenPieceBitFlag >= 0 || BitUtil.hasBitFlag(pieceBitFlag, PieceConfiguration.PAWN_OCCUPIED)) {
             newConfiguration.setHalfMoveClock(0);
