@@ -3,8 +3,6 @@ package chess.api.pieces;
 import chess.api.PieceConfiguration;
 import com.google.common.collect.ImmutableMap;
 
-import java.util.List;
-
 public class Rook extends Piece {
 
     private static final int[][] DIRECTIONAL_LIMITS = {{0, -1, 7}, {-1, 0, 7}, {1, 0, 7}, {0, 1, 7}};
@@ -30,9 +28,5 @@ public class Rook extends Piece {
 
     public static char getFENCode(int pieceBitFlag) {
         return (char) (82 + (getSide(pieceBitFlag) * 32));
-    }
-
-    public static int getValue() {
-        return 5;
     }
 }

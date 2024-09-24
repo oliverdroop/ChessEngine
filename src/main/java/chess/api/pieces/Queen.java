@@ -18,8 +18,4 @@ public class Queen extends Piece{
     public static char getFENCode(int pieceBitFlag) {
         return (char) (81 + (getSide(pieceBitFlag) * 32));
     }
-
-    public static int getValue() {
-        return 9;
-    }
 }

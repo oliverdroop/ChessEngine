@@ -3,6 +3,8 @@ package chess.api;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static chess.api.PieceConfiguration.*;
+
 public class Position {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Position.class);
@@ -61,24 +63,24 @@ public class Position {
     public static int applyTranslation(int position, int translationX, int translationY) {
         int newX = getX(position) + translationX;
         int newY = getY(position) + translationY;
-        if (newX < 0 || newX > 7 || newY < 0 || newY > 7) {
-            return -1;
+        if (((newX | newY) & ~7) == 0) {
+            return getPosition(newX, newY);
         }
-        return getPosition(newX, newY);
+        return -1;
     }
 
     public static int applyTranslationTowardsThreat(int directionBitFlag, int positionBitFlag) {
 
         // Move in the opposite direction to the threat direction
         return switch (directionBitFlag) {
-            case PieceConfiguration.DIRECTION_N -> Position.applyTranslation(positionBitFlag, 0, -1);
-            case PieceConfiguration.DIRECTION_NE -> Position.applyTranslation(positionBitFlag, -1, -1);
-            case PieceConfiguration.DIRECTION_E -> Position.applyTranslation(positionBitFlag, -1, 0);
-            case PieceConfiguration.DIRECTION_SE -> Position.applyTranslation(positionBitFlag, -1, 1);
-            case PieceConfiguration.DIRECTION_S -> Position.applyTranslation(positionBitFlag, 0, 1);
-            case PieceConfiguration.DIRECTION_SW -> Position.applyTranslation(positionBitFlag, 1, 1);
-            case PieceConfiguration.DIRECTION_W -> Position.applyTranslation(positionBitFlag, 1, 0);
-            case PieceConfiguration.DIRECTION_NW -> Position.applyTranslation(positionBitFlag, 1, -1);
+            case DIRECTION_N -> applyTranslation(positionBitFlag, 0, -1);
+            case DIRECTION_NE -> applyTranslation(positionBitFlag, -1, -1);
+            case DIRECTION_E -> applyTranslation(positionBitFlag, -1, 0);
+            case DIRECTION_SE -> applyTranslation(positionBitFlag, -1, 1);
+            case DIRECTION_S -> applyTranslation(positionBitFlag, 0, 1);
+            case DIRECTION_SW -> applyTranslation(positionBitFlag, 1, 1);
+            case DIRECTION_W -> applyTranslation(positionBitFlag, 1, 0);
+            case DIRECTION_NW -> applyTranslation(positionBitFlag, 1, -1);
             default -> -1;
         };
     }

@@ -15,15 +15,7 @@ public class Knight extends Piece{
         return AN_CODE;
     }
 
-    public static int[][] getKnightDirectionalLimits() {
-        return DIRECTIONAL_LIMITS;
-    }
-
     public static char getFENCode(int pieceBitFlag) {
         return (char) (78 + (getSide(pieceBitFlag) * 32));
-    }
-
-    public static int getValue() {
-        return 3;
     }
 }

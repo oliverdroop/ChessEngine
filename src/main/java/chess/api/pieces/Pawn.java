@@ -75,7 +75,7 @@ public class Pawn extends Piece{
     }
 
     public static int[] stampThreatFlags(int pieceBitFlag, int[] positionBitFlags) {
-        int[] directionalLimitThreatIndexes = {0, 2};
+        int[] directionalLimitThreatIndexes = {0, 2}; // Pawns can only threaten diagonally
         for(int i : directionalLimitThreatIndexes) {
             int[] directionalLimit = getDirectionalLimits(pieceBitFlag)[i];
             int directionX = directionalLimit[0];
@@ -176,9 +176,5 @@ public class Pawn extends Piece{
     @Override
     public String getANCode() {
         return Strings.EMPTY;
-    }
-
-    public static int getValue() {
-        return 1;
     }
 }

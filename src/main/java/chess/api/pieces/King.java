@@ -136,8 +136,4 @@ public class King extends Piece{
     public static char getFENCode(int pieceBitFlag) {
         return (char) (75 + (getSide(pieceBitFlag) * 32));
     }
-
-    public static int getValue() {
-        return 0;
-    }
 }

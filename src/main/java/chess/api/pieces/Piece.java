@@ -16,6 +16,8 @@ public abstract class Piece {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Piece.class);
 
+    private static final int[] FAST_VALUE_ARRAY = {0, 3, 3, 0, 5, 0, 0, 0, 9, 0, 0, 0, 0, 0, 0, 0, 1};
+
     /**
      * @return An array of size-3 int arrays, where the first two ints correspond to a direction
      * and the third int corresponds to the maximum number of times the piece can move in that direction
@@ -320,14 +322,6 @@ public abstract class Piece {
 
     public static int getValue(int pieceBitFlag) {
         int pieceTypeFlag = getPieceTypeBitFlag(pieceBitFlag);
-        return switch (pieceTypeFlag) {
-            case KING_OCCUPIED -> King.getValue();
-            case KNIGHT_OCCUPIED -> Knight.getValue();
-            case BISHOP_OCCUPIED -> Bishop.getValue();
-            case ROOK_OCCUPIED -> Rook.getValue();
-            case QUEEN_OCCUPIED -> Queen.getValue();
-            case PAWN_OCCUPIED -> Pawn.getValue();
-            default -> 0;
-        };
+        return FAST_VALUE_ARRAY[pieceTypeFlag >> 11];
     }
 }

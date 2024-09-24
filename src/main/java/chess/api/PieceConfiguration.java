@@ -194,7 +194,7 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
 
             if (kingPositionDirectionalFlags == DIRECTION_ANY_KNIGHT) {
                 // The king is checked only by a knight
-                for(int[] directionalLimit : Knight.getKnightDirectionalLimits()) {
+                for(int[] directionalLimit : Knight.getDirectionalLimits()) {
                     int possibleCheckingKnightPosition = Position.applyTranslation(currentPosition, directionalLimit[0], directionalLimit[1]);
                     if (possibleCheckingKnightPosition >= 0
                             && BitUtil.hasBitFlag(positionBitFlags[possibleCheckingKnightPosition],

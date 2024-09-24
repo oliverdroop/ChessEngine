@@ -13,11 +13,11 @@ public class BitUtil {
         return number ^ bitFlag;
     }
 
-    public static int clearBits(int number, int mask) {
-        return number & ~mask;
+    public static int clearBits(int number, int bitsToClear) {
+        return number & ~bitsToClear;
     }
 
-    public static int overwriteBits(int number, int mask, int bitsToWrite) {
-        return clearBits(number, mask) | bitsToWrite;
+    public static int overwriteBits(int number, int bitsToClear, int bitsToWrite) {
+        return clearBits(number, bitsToClear) | bitsToWrite;
     }
 }

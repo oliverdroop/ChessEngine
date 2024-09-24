@@ -18,8 +18,4 @@ public class Bishop extends Piece {
     public static char getFENCode(int pieceBitFlag) {
         return (char) (66 + (getSide(pieceBitFlag) * 32));
     }
-
-    public static int getValue() {
-        return 3;
-    }
 }
