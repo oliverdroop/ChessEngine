@@ -3,8 +3,6 @@ package chess.api;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static chess.api.PieceConfiguration.*;
-
 public class Position {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Position.class);
@@ -20,6 +18,20 @@ public class Position {
             {PieceConfiguration.DIRECTION_W, -1, PieceConfiguration.DIRECTION_E},
             {PieceConfiguration.DIRECTION_NW, PieceConfiguration.DIRECTION_N, PieceConfiguration.DIRECTION_NE}
     };
+
+    private static final int[][] TRANSLATIONS_TOWARDS_THREAT = new int[129][];
+
+    static {
+        TRANSLATIONS_TOWARDS_THREAT[0] = new int[]{0, -1};
+        TRANSLATIONS_TOWARDS_THREAT[1] = new int[]{-1, -1};
+        TRANSLATIONS_TOWARDS_THREAT[2] = new int[]{ -1, 0};
+        TRANSLATIONS_TOWARDS_THREAT[4] = new int[]{-1, 1};
+        TRANSLATIONS_TOWARDS_THREAT[8] = new int[]{0, 1};
+        TRANSLATIONS_TOWARDS_THREAT[16] = new int[]{1, 1};
+        TRANSLATIONS_TOWARDS_THREAT[32] = new int[]{1, 0};
+        TRANSLATIONS_TOWARDS_THREAT[64] = new int[]{1, -1};
+        TRANSLATIONS_TOWARDS_THREAT[128] = new int[]{-8, -8};
+    }
 
     public static int[] getCoordinates(int position) {
         return new int[] {getX(position), getY(position)};
@@ -72,17 +84,9 @@ public class Position {
     public static int applyTranslationTowardsThreat(int directionBitFlag, int positionBitFlag) {
 
         // Move in the opposite direction to the threat direction
-        return switch (directionBitFlag) {
-            case DIRECTION_N -> applyTranslation(positionBitFlag, 0, -1);
-            case DIRECTION_NE -> applyTranslation(positionBitFlag, -1, -1);
-            case DIRECTION_E -> applyTranslation(positionBitFlag, -1, 0);
-            case DIRECTION_SE -> applyTranslation(positionBitFlag, -1, 1);
-            case DIRECTION_S -> applyTranslation(positionBitFlag, 0, 1);
-            case DIRECTION_SW -> applyTranslation(positionBitFlag, 1, 1);
-            case DIRECTION_W -> applyTranslation(positionBitFlag, 1, 0);
-            case DIRECTION_NW -> applyTranslation(positionBitFlag, 1, -1);
-            default -> -1;
-        };
+        int translationIndex = directionBitFlag >> 18;
+        int[] translation = TRANSLATIONS_TOWARDS_THREAT[translationIndex];
+        return applyTranslation(positionBitFlag, translation[0], translation[1]);
     }
 
     public static int getPositionFromCoordinateString(String coordinateString) {
