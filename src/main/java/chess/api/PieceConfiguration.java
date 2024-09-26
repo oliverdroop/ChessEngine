@@ -419,9 +419,9 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
                 }
             }
             if (BitUtil.hasBitFlag(positionBitFlag, 27)
-                    || BitUtil.hasBitFlag(positionBitFlag, 28)
-                    || BitUtil.hasBitFlag(positionBitFlag, 35)
-                    || BitUtil.hasBitFlag(positionBitFlag, 36)) {
+                    | BitUtil.hasBitFlag(positionBitFlag, 28)
+                    | BitUtil.hasBitFlag(positionBitFlag, 35)
+                    | BitUtil.hasBitFlag(positionBitFlag, 36)) {
                 if (BitUtil.hasBitFlag(positionBitFlag, PLAYER_OCCUPIED)) {
                     midSquares++;
                 } else if (BitUtil.hasBitFlag(positionBitFlag, OPPONENT_OCCUPIED)) {

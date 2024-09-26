@@ -48,7 +48,7 @@ public class PositionTest {
                 Arguments.of(DIRECTION_E, 17),
                 Arguments.of(DIRECTION_SE, 25),
                 Arguments.of(DIRECTION_S, 26),
-                Arguments.of(DIRECTION_ANY_KNIGHT, 18)
+                Arguments.of(DIRECTION_ANY_KNIGHT, -1)
         );
     }
 }

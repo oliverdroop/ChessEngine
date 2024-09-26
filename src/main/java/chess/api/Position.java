@@ -15,7 +15,7 @@ public class Position {
 
     public static final int[][] DIRECTIONAL_BIT_FLAG_GRID = {
             {PieceConfiguration.DIRECTION_SW, PieceConfiguration.DIRECTION_S, PieceConfiguration.DIRECTION_SE},
-            {PieceConfiguration.DIRECTION_W, -1, PieceConfiguration.DIRECTION_E},
+            {PieceConfiguration.DIRECTION_W, 0, PieceConfiguration.DIRECTION_E},
             {PieceConfiguration.DIRECTION_NW, PieceConfiguration.DIRECTION_N, PieceConfiguration.DIRECTION_NE}
     };
 

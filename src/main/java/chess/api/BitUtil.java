@@ -9,6 +9,10 @@ public class BitUtil {
         return (number & bitFlag) == bitFlag;
     }
 
+    public static boolean hasAnyBits(int number, int bitsToTest) {
+        return (number & bitsToTest) != 0;
+    }
+
     public static int reverseBitFlag(int number, int bitFlag) {
         return number ^ bitFlag;
     }

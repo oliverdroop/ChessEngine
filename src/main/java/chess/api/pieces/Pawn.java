@@ -119,10 +119,11 @@ public class Pawn extends Piece{
         Piece.addNewPieceConfigurations(pieceBitFlag, pieceConfigurations, currentConfiguration, newPiecePosition, takenPieceBitFlag, linkOnwardConfigurations);
         int translation = newPiecePosition - getPosition(pieceBitFlag);
         PieceConfiguration newPieceConfiguration = pieceConfigurations.get(pieceConfigurations.size() - 1);
+        int newY = Position.getY(newPiecePosition);
         if (Math.abs(translation) == 16) {
             // Set the en passant square
             newPieceConfiguration.setEnPassantSquare(getPosition(pieceBitFlag) + (translation / 2));
-        } else if (Position.getY(newPiecePosition) == 7 - (getSide(pieceBitFlag) * 7)) {
+        } else if (newY == 7 | newY == 0) {
             // Promote pawn
             pieceConfigurations.remove(pieceConfigurations.size() - 1);
             if (currentConfiguration.getChildConfigurations() != null) {
