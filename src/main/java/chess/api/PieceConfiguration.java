@@ -197,8 +197,7 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
                 for(int[] directionalLimit : Knight.getDirectionalLimits()) {
                     int possibleCheckingKnightPosition = Position.applyTranslation(currentPosition, directionalLimit[0], directionalLimit[1]);
                     if (possibleCheckingKnightPosition >= 0
-                            && BitUtil.hasBitFlag(positionBitFlags[possibleCheckingKnightPosition],
-                            PieceConfiguration.KNIGHT_OCCUPIED | OPPONENT_OCCUPIED)) {
+                            && BitUtil.hasBitFlag(positionBitFlags[possibleCheckingKnightPosition], KNIGHT_OCCUPIED | OPPONENT_OCCUPIED)) {
                         // Stamp the checking knight's position so it becomes a movable position
                         positionBitFlags[possibleCheckingKnightPosition] = BitUtil.applyBitFlag(
                                 positionBitFlags[possibleCheckingKnightPosition], DOES_NOT_BLOCK_CHECK);
@@ -287,7 +286,7 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
 
     public void removeCastlePosition(int castlePosition) {
         final int index = Arrays.binarySearch(CASTLE_POSITION_COMBINATIONS[15], castlePosition);
-        auxiliaryData = clearBits(auxiliaryData, (0b10 << index));
+        auxiliaryData = clearBits(auxiliaryData, 0b10 << index);
     }
 
     public int getHalfMoveClock() {
@@ -405,34 +404,22 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
     }
 
     public double getLesserScore() {
-        int squaresThreatened = 0;
-        int playerPiecesThreatened = 0;
-        int opponentPiecesCovered = 0;
-        int midSquares = 0;
+        double lesserScore = 0;
         for (int positionBitFlag : positionBitFlags) {
             if (BitUtil.hasBitFlag(positionBitFlag, THREATENED)) {
-                squaresThreatened++;
-                if (BitUtil.hasBitFlag(positionBitFlag, PLAYER_OCCUPIED)) {
-                    playerPiecesThreatened++;
-                } else if (BitUtil.hasBitFlag(positionBitFlag, OPPONENT_OCCUPIED)) {
-                    opponentPiecesCovered++;
-                }
+                lesserScore -= 0.00625;
+                lesserScore -= ((positionBitFlag >> 6) & 1) * 0.00625; // Count threatened player pieces
+                lesserScore += ((positionBitFlag >> 7) & 1) * 0.00625; // Count threatened opponent pieces
             }
             if (BitUtil.hasBitFlag(positionBitFlag, 27)
                     | BitUtil.hasBitFlag(positionBitFlag, 28)
                     | BitUtil.hasBitFlag(positionBitFlag, 35)
                     | BitUtil.hasBitFlag(positionBitFlag, 36)) {
-                if (BitUtil.hasBitFlag(positionBitFlag, PLAYER_OCCUPIED)) {
-                    midSquares++;
-                } else if (BitUtil.hasBitFlag(positionBitFlag, OPPONENT_OCCUPIED)) {
-                    midSquares--;
-                }
+                lesserScore -= ((positionBitFlag >> 6) & 1) * 0.05; // Count player-occupied centre squares
+                lesserScore += ((positionBitFlag >> 7) & 1) * 0.05; // Count opponent-occupied centre squares
             }
         }
-        return - (squaresThreatened / (double) 160)
-                - (playerPiecesThreatened / (double) 80)
-                - (opponentPiecesCovered / (double) 80)
-                + (midSquares / (double) 20);
+        return lesserScore;
     }
 
     @Override
