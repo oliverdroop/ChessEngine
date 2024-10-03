@@ -217,7 +217,7 @@ function transmitAvailableMovesRequest(piece, allPieces) {
 function processAvailableMovesResponse(e) {
 	if (xhr.readyState == 4 && xhr.status == 200) {
 		var response = xhr.responseText;
-		console.log(response);
+		console.log(`Available moves: ${response}`);
 		var availableMoveStrings = JSON.parse(response);
 		availableMoves = availableMoveStrings.map(s => parseCoordinateString(s));
 	} else {
@@ -277,7 +277,7 @@ function parseCoordinateString(s) {
 		square: representedSquare,
 		pieceType: upgrade
 	};
-	console.log(move);
+	// console.log(move);
 	return move;
 }
 
@@ -320,22 +320,22 @@ function getBoardState(){
 	var kingW = getPiece(3, 0, board.pieces);
 	if (kingW != null && kingW.moveCount == 0) {
 		var rookWK = getPiece(0, 0, board.pieces);
-		if (rookWK != null && rookWK.pieceType == "rook" && rookWK.moveCount == 0) {
+		if (rookWK != null && rookWK.type == "rook" && rookWK.moveCount == 0) {
 			castling += 'K';
 		}
 		var rookWQ = getPiece(7, 0, board.pieces);
-		if (rookWQ != null && rookWQ.pieceType == "rook" && rookWQ.moveCount == 0) {
+		if (rookWQ != null && rookWQ.type == "rook" && rookWQ.moveCount == 0) {
 			castling += 'Q';
 		}
 	}
 	var kingB = getPiece(3, 7, board.pieces);
 	if (kingB != null && kingB.moveCount == 0) {
 		var rookBK = getPiece(0, 7, board.pieces);
-		if (rookBK != null && rookBK.pieceType == "rook" && rookBK.moveCount == 0) {
+		if (rookBK != null && rookBK.type == "rook" && rookBK.moveCount == 0) {
 			castling += 'k';
 		}
 		var rookBQ = getPiece(7, 7, board.pieces);
-		if (rookBQ != null && rookBQ.pieceType == "rook" && rookBQ.moveCount == 0) {
+		if (rookBQ != null && rookBQ.type == "rook" && rookBQ.moveCount == 0) {
 			castling += 'q';
 		}
 	}
