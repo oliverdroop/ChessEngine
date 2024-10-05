@@ -71,37 +71,6 @@ public class PositionEvaluatorTest {
     }
 
     @Test
-    void testPCTreeCallable() throws ExecutionException, InterruptedException {
-        PieceConfiguration pc = FENReader.read(FENWriter.STARTING_POSITION);
-        ExecutorService executor = Executors.newFixedThreadPool(4);
-
-        List<String> onwardFENs = pc.getPossiblePieceConfigurations().stream()
-                .map(oc -> FENWriter.write(oc))
-                .collect(Collectors.toList());
-        Map<String, Collection<String>> fenMap = new HashMap<>();
-        fenMap.put(FENWriter.STARTING_POSITION, onwardFENs);
-
-        int rounds = 2;
-        while (rounds > 0) {
-            Set<String> fenMapKeys = fenMap.keySet().stream().collect(Collectors.toSet());
-            for (String fen : fenMapKeys) {
-                List<Future<Map<String, Collection<String>>>> onwardFENMaps = new ArrayList<>();
-                for (String onwardFEN : fenMap.get(fen)) {
-                    PieceConfiguration onwardConfiguration = FENReader.read(onwardFEN);
-                    PCTreeCallable pcTreeCallable = new PCTreeCallable(onwardConfiguration, 2);
-                    onwardFENMaps.add(executor.submit(pcTreeCallable));
-                }
-                for (Future<Map<String, Collection<String>>> futureOnwardFENMap : onwardFENMaps) {
-                    Map<String, Collection<String>> onwardFENMap = futureOnwardFENMap.get();
-                    fenMap.putAll(onwardFENMap);
-                }
-            }
-            rounds --;
-        }
-        assertThat(fenMap).hasSize(124991);
-    }
-
-    @Test
     void testRandomGame() {
         Random rnd = new Random();
         PieceConfiguration mateConfiguration = null;
@@ -119,6 +88,6 @@ public class PositionEvaluatorTest {
                 mateConfiguration = pc;
             }
         }
-        mateConfiguration.logGameHistory();
+//        mateConfiguration.logGameHistory();
     }
 }

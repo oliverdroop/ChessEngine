@@ -73,9 +73,9 @@ public class FENController {
                     Side.values()[Piece.getSide(pieceBitFlag)], Piece.getPieceType(pieceBitFlag),
                     Position.getCoordinateString(Position.getPosition(pieceBitFlag)));
 
-            final List<String> algebraicNotations = inputConfiguration.getPossiblePieceConfigurationsForPiece(pieceBitFlag, true)
+            final List<String> algebraicNotations = inputConfiguration.getPossiblePieceConfigurationsForPiece(pieceBitFlag)
                     .stream()
-                    .map(PieceConfiguration::getAlgebraicNotation)
+                    .map(pc -> pc.getAlgebraicNotation(inputConfiguration))
                     .collect(Collectors.toList());
             LOGGER.info("Response: {}", algebraicNotations);
             return ResponseEntity.ok(algebraicNotations);

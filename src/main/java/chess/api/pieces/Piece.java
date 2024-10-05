@@ -36,14 +36,13 @@ public abstract class Piece {
     }
 
     public static List<PieceConfiguration> getPossibleMoves(int pieceBitFlag, int[] positionBitFlags,
-                                                            PieceConfiguration currentConfiguration,
-                                                            boolean linkOnwardConfigurations) {
+                                                            PieceConfiguration currentConfiguration) {
         int pieceFlag = getPieceTypeBitFlag(pieceBitFlag);
         switch(pieceFlag) {
             case PAWN_OCCUPIED:
-                return Pawn.getPossibleMoves(pieceBitFlag, positionBitFlags, currentConfiguration, linkOnwardConfigurations);
+                return Pawn.getPossibleMoves(pieceBitFlag, positionBitFlags, currentConfiguration);
             case KING_OCCUPIED:
-                return King.getPossibleMoves(pieceBitFlag, positionBitFlags, currentConfiguration, linkOnwardConfigurations);
+                return King.getPossibleMoves(pieceBitFlag, positionBitFlags, currentConfiguration);
             default:
                 break;
         }
@@ -81,8 +80,8 @@ public abstract class Piece {
                     }
                 }
 
-                addNewPieceConfigurations(pieceBitFlag, pieceConfigurations, currentConfiguration, testPositionIndex,
-                        takenPieceBitFlag, linkOnwardConfigurations);
+                addNewPieceConfigurations(
+                        pieceBitFlag, pieceConfigurations, currentConfiguration, testPositionIndex, takenPieceBitFlag);
 
                 if (takenPieceBitFlag >= 0) {
                     // Stop considering moves beyond this taken piece
@@ -96,7 +95,7 @@ public abstract class Piece {
 
     protected static void addNewPieceConfigurations(int pieceBitFlag, List<PieceConfiguration> pieceConfigurations,
                                                     PieceConfiguration currentConfiguration, int newPiecePosition,
-                                                    int takenPieceBitFlag, boolean linkOnwardConfigurations) {
+                                                    int takenPieceBitFlag) {
         PieceConfiguration newConfiguration = new PieceConfiguration(currentConfiguration, false);
         for(int pieceBitFlag2 : currentConfiguration.getPieceBitFlags()) {
             if (pieceBitFlag2 != pieceBitFlag && pieceBitFlag2 != takenPieceBitFlag) {
@@ -124,32 +123,20 @@ public abstract class Piece {
         }
         pieceConfigurations.add(newConfiguration);
 
-        if (linkOnwardConfigurations) {
-            linkPieceConfigurations(pieceBitFlag, currentConfiguration, newConfiguration, newPiecePosition, takenPieceBitFlag);
-        }
-
         // Remove castling options when rook moves
         if (BitUtil.hasBitFlag(pieceBitFlag, ROOK_OCCUPIED)) {
             Rook.removeCastlingOptions(pieceBitFlag, newConfiguration);
         }
     }
 
-    protected static void linkPieceConfigurations(int pieceBitFlag, PieceConfiguration currentConfiguration, PieceConfiguration newConfiguration,
-                                           int newPiecePosition, int takenPieceBitFlag) {
-        currentConfiguration.addChildConfiguration(newConfiguration);
-        newConfiguration.setParentConfiguration(currentConfiguration);
-        newConfiguration.setAlgebraicNotation(getAlgebraicNotation(
-                getPosition(pieceBitFlag), newPiecePosition, takenPieceBitFlag >= 0, null));
-    }
-
-    public static String getAlgebraicNotation(int currentPosition, int nextPosition, boolean capturing, String promotionTo) {
+    public static String getAlgebraicNotation(
+            int parentPosition, int childPosition, boolean capturing, String promotionTo) {
         StringBuilder sb = new StringBuilder()
-//                .append(getANCode())
-                .append(Position.getCoordinateString(currentPosition));
+                .append(Position.getCoordinateString(parentPosition));
         if (capturing) {
             sb.append('x');
         }
-        sb.append(Position.getCoordinateString(nextPosition));
+        sb.append(Position.getCoordinateString(childPosition));
         if (promotionTo != null) {
             sb.append(promotionTo);
         }
@@ -297,14 +284,6 @@ public abstract class Piece {
 
     public static int getSide(int pieceBitFlag) {
         return (pieceBitFlag & PieceConfiguration.BLACK_OCCUPIED) >> 9;
-    }
-
-    public String toString(int pieceBitFlag) {
-        return new StringBuilder()
-                .append(getPieceType(pieceBitFlag).toString())
-                .append(':')
-                .append(Position.getCoordinateString(getPosition(pieceBitFlag)))
-                .toString();
     }
 
     public static char getFENCode(int pieceBitFlag) {

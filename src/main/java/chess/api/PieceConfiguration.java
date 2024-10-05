@@ -10,6 +10,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static chess.api.BitUtil.*;
+import static chess.api.pieces.Pawn.PROMOTION_PIECE_TYPES;
 
 public class PieceConfiguration implements Comparable<PieceConfiguration> {
 
@@ -79,7 +80,7 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
 
     public static final int PLAYER_KING_OCCUPIED = KING_OCCUPIED | PLAYER_OCCUPIED;
 
-    public static final int[] CENTRE_POSITIONS = {27, 28, 35, 36};
+    private static final int COLOUR_FLAGS_COMBINED = WHITE_OCCUPIED | BLACK_OCCUPIED;
 
     private static final int[][] CASTLE_POSITION_COMBINATIONS = {
             {},
@@ -105,15 +106,9 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
 
     private int[] positionBitFlags = Position.POSITIONS.clone();
 
-    private PieceConfiguration parentConfiguration;
+//    private int[] state = new int[65];
 
-    private List<PieceConfiguration> childConfigurations;
-
-    private String algebraicNotation;
-
-    public PieceConfiguration() {
-
-    }
+    public PieceConfiguration() {}
 
     public PieceConfiguration(PieceConfiguration copiedConfiguration, boolean copyPieces) {
         auxiliaryData = copiedConfiguration.auxiliaryData;
@@ -131,7 +126,7 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
         return Arrays.stream(getPieceBitFlags())
                 .boxed()
                 .filter(p -> BitUtil.hasBitFlag(p, PLAYER_OCCUPIED))
-                .flatMap(p -> getPossiblePieceConfigurationsForPiece(p, false).stream())
+                .flatMap(p -> getPossiblePieceConfigurationsForPiece(p).stream())
                 .collect(Collectors.toList());
     }
 
@@ -139,11 +134,11 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
         Arrays.stream(Position.POSITIONS).forEach(pos -> positionBitFlags[pos] = BitUtil.clearBits(positionBitFlags[pos], ~(63 | ALL_PIECE_AND_COLOUR_FLAGS_COMBINED)));
     }
 
-    public List<PieceConfiguration> getPossiblePieceConfigurationsForPiece(int pieceBitFlag, boolean linkOnwardConfigurations) {
+    public List<PieceConfiguration> getPossiblePieceConfigurationsForPiece(int pieceBitFlag) {
         if (Arrays.stream(positionBitFlags).noneMatch(pbf -> pbf > 65535)) {
             positionBitFlags = stampCheckNonBlockerFlags(stampThreatFlags(stampOccupationFlags(positionBitFlags)));
         }
-        return Piece.getPossibleMoves(pieceBitFlag, positionBitFlags, this, linkOnwardConfigurations);
+        return Piece.getPossibleMoves(pieceBitFlag, positionBitFlags, this);
     }
 
     private int[] stampOccupationFlags(int[] positions) {
@@ -317,35 +312,39 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
         auxiliaryData = overwriteBits(auxiliaryData, 0b11111110000000000000000000000000, pos | negativeBit);
     }
 
-    public PieceConfiguration getParentConfiguration() {
-        return parentConfiguration;
-    }
-
-    public void setParentConfiguration(PieceConfiguration parentConfiguration) {
-        this.parentConfiguration = parentConfiguration;
-    }
-
-    public List<PieceConfiguration> getChildConfigurations() {
-        return childConfigurations;
-    }
-
-    public void addChildConfiguration(PieceConfiguration childConfiguration) {
-        if (childConfigurations == null) {
-            childConfigurations = new ArrayList<>();
-        }
-        childConfigurations.add(childConfiguration);
-    }
-
     public String toString() {
         return FENWriter.write(this);
     }
 
-    public String getAlgebraicNotation() {
-        return algebraicNotation;
-    }
-
-    public void setAlgebraicNotation(String algebraicNotation) {
-        this.algebraicNotation = algebraicNotation;
+    public String getAlgebraicNotation(PieceConfiguration previousConfiguration) {
+        boolean capturing = false;
+        int previousBitFlag = Integer.MIN_VALUE;
+        int currentBitFlag = Integer.MIN_VALUE;
+        for(int pos : Position.POSITIONS) {
+            int currentPieceOnPosition = positionBitFlags[pos] & ALL_PIECE_AND_COLOUR_FLAGS_COMBINED;
+            int previousPieceOnPosition = previousConfiguration.positionBitFlags[pos] & ALL_PIECE_AND_COLOUR_FLAGS_COMBINED;
+            int currentColour = currentPieceOnPosition & COLOUR_FLAGS_COMBINED;
+            int previousColour = previousPieceOnPosition & COLOUR_FLAGS_COMBINED;
+            if (currentPieceOnPosition == previousPieceOnPosition) {
+                continue;
+            }
+            if (currentPieceOnPosition == 0 && !BitUtil.hasBitFlag(previousBitFlag, KING_OCCUPIED)) {
+                // Moving from this position
+                previousBitFlag = previousConfiguration.positionBitFlags[pos];
+            } else if (previousPieceOnPosition == 0 && !BitUtil.hasBitFlag(currentBitFlag, KING_OCCUPIED)) {
+                // Moving to this position
+                currentBitFlag = positionBitFlags[pos];
+            } else if (currentColour != 0 && previousColour != 0 && currentColour != previousColour) {
+                currentBitFlag = positionBitFlags[pos];
+                capturing = true;
+            }
+        }
+        String promotionTo = null;
+        if ((previousBitFlag & ALL_PIECE_FLAGS_COMBINED) != (currentBitFlag & ALL_PIECE_FLAGS_COMBINED)) {
+            promotionTo = PROMOTION_PIECE_TYPES.get(currentBitFlag & ALL_PIECE_FLAGS_COMBINED).toLowerCase();
+        }
+        return Piece.getAlgebraicNotation(
+                Piece.getPosition(previousBitFlag), Piece.getPosition(currentBitFlag), capturing, promotionTo);
     }
 
     @VisibleForTesting
@@ -356,51 +355,6 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
     @VisibleForTesting
     void setAuxiliaryData(int auxiliaryData) {
         this.auxiliaryData = auxiliaryData;
-    }
-
-    public List<PieceConfiguration> getGameHistory() {
-        List<PieceConfiguration> pcs = new ArrayList<>();
-        PieceConfiguration pc = this;
-        while(pc.getParentConfiguration() != null) {
-            pcs.add(pc);
-            pc = pc.getParentConfiguration();
-        }
-
-        List<PieceConfiguration> outputPcs = new ArrayList<>();
-        for(int i = pcs.size() - 1; i >= 0; i--) {
-            outputPcs.add(pcs.get(i));
-        }
-        return outputPcs;
-    }
-
-    public void logGameHistory() {
-        StringBuilder sb = new StringBuilder();
-        List<PieceConfiguration> gameHistory = getGameHistory();
-        for (int i = 0; i < gameHistory.size(); i++) {
-            PieceConfiguration pc = gameHistory.get(i);
-            boolean whiteMoved = pc.getTurnSide() == 1;
-            if (whiteMoved) {
-                sb = new StringBuilder()
-                        .append(pc.getFullMoveNumber())
-                        .append(". ");
-            }
-            sb.append(pc.getAlgebraicNotation());
-            if (whiteMoved && i < gameHistory.size() - 1) {
-                sb.append(" ");
-            } else {
-                LOGGER.info(sb.toString());
-            }
-        }
-    }
-
-    public double getThreatScore() {
-        return countThreatFlags() / (double) 64;
-    }
-
-    public int countThreatFlags() {
-        return (int) Arrays.stream(positionBitFlags)
-                .filter(pbf -> BitUtil.hasBitFlag(pbf, THREATENED))
-                .count();
     }
 
     public double getLesserScore() {

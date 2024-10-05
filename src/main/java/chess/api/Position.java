@@ -19,7 +19,7 @@ public class Position {
             {PieceConfiguration.DIRECTION_NW, PieceConfiguration.DIRECTION_N, PieceConfiguration.DIRECTION_NE}
     };
 
-    private static final int[][] TRANSLATIONS_TOWARDS_THREAT = new int[129][];
+    private static final int[][] TRANSLATIONS_TOWARDS_THREAT = new int[129][2];
 
     static {
         TRANSLATIONS_TOWARDS_THREAT[0] = new int[]{0, -1};

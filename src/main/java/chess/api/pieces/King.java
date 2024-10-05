@@ -24,7 +24,7 @@ public class King extends Piece{
         return isOnStartingPosition(pieceBitFlag) ? STARTING_POSITION_DIRECTIONAL_LIMITS : STANDARD_DIRECTIONAL_LIMITS;
     }
 
-    public static List<PieceConfiguration> getPossibleMoves(int pieceBitFlag, int[] positionBitFlags, PieceConfiguration currentConfiguration, boolean linkOnwardConfigurations) {
+    public static List<PieceConfiguration> getPossibleMoves(int pieceBitFlag, int[] positionBitFlags, PieceConfiguration currentConfiguration) {
         List<PieceConfiguration> pieceConfigurations = new ArrayList<>();
         for(int[] directionalLimit : getMovableDirectionalLimits(pieceBitFlag, positionBitFlags)) {
             int directionX = directionalLimit[0];
@@ -59,7 +59,7 @@ public class King extends Piece{
                     takenPieceBitFlag = currentConfiguration.getPieceAtPosition(testPositionIndex);
                 }
 
-                addNewPieceConfigurations(pieceBitFlag, pieceConfigurations, currentConfiguration, testPositionIndex, takenPieceBitFlag, linkOnwardConfigurations);
+                addNewPieceConfigurations(pieceBitFlag, pieceConfigurations, currentConfiguration, testPositionIndex, takenPieceBitFlag);
 
                 if (takenPieceBitFlag >= 0) {
                     // Stop considering moves beyond this taken piece
@@ -111,8 +111,8 @@ public class King extends Piece{
     }
 
     protected static void addNewPieceConfigurations(int pieceBitFlag, List<PieceConfiguration> pieceConfigurations,
-            PieceConfiguration currentConfiguration, int newPiecePosition, int takenPieceBitFlag, boolean linkOnwardConfigurations) {
-        Piece.addNewPieceConfigurations(pieceBitFlag, pieceConfigurations, currentConfiguration, newPiecePosition, takenPieceBitFlag, linkOnwardConfigurations);
+            PieceConfiguration currentConfiguration, int newPiecePosition, int takenPieceBitFlag) {
+        Piece.addNewPieceConfigurations(pieceBitFlag, pieceConfigurations, currentConfiguration, newPiecePosition, takenPieceBitFlag);
         if (isOnStartingPosition(pieceBitFlag)) {
             PieceConfiguration newPieceConfiguration = pieceConfigurations.get(pieceConfigurations.size() - 1);
             newPieceConfiguration.removeCastlePosition(getPosition(pieceBitFlag) - 2);

@@ -9,7 +9,7 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class PieceConfigurationAuxiliaryDataTest {
+public class PieceConfigurationTest {
 
     private final PieceConfiguration pieceConfiguration = new PieceConfiguration();
 
@@ -145,6 +145,17 @@ public class PieceConfigurationAuxiliaryDataTest {
         assertThat(pieceConfiguration.getEnPassantSquare()).isEqualTo(expectedEnPassantPosition);
     }
 
+    @ParameterizedTest
+    @MethodSource("getAlgebraicNotationFENs")
+    void testGetAlgebraicNotation(String fen1, String fen2, String expectedNotation) {
+        PieceConfiguration pieceConfiguration1 = FENReader.read(fen1);
+        PieceConfiguration pieceConfiguration2 = FENReader.read(fen2);
+
+        assertThat(pieceConfiguration2.getAlgebraicNotation(pieceConfiguration1))
+                .as("Unexpected algebraic notation")
+                .isEqualTo(expectedNotation);
+    }
+
     private static Stream<Arguments> getEnPassantSquareValues() {
         return Stream.of(
                 Arguments.of(16, 0b00100001111111111111111111111111),
@@ -163,6 +174,20 @@ public class PieceConfigurationAuxiliaryDataTest {
                 Arguments.of(45, 0b01011011111111111111111111111111),
                 Arguments.of(46, 0b01011101111111111111111111111111),
                 Arguments.of(47, 0b01011111111111111111111111111111)
+        );
+    }
+
+    private static Stream<Arguments> getAlgebraicNotationFENs() {
+        return Stream.of(
+                Arguments.of("7k/8/8/8/8/P7/8/7K w - - 0 1", "7k/8/8/8/P7/8/8/7K b - - 0 1", "a3a4"),
+                Arguments.of("7k/8/8/8/8/Q7/8/7K w - - 0 1", "7k/8/8/8/Q7/8/8/7K b - - 1 1", "a3a4"),
+                Arguments.of("7k/8/8/8/p7/Q7/8/7K w - - 0 1", "7k/8/8/8/Q7/8/8/7K b - - 0 1", "a3xa4"),
+                Arguments.of("7k/P7/8/8/8/8/8/7K w - - 0 1", "Q6k/8/8/8/8/8/8/7K b - - 0 1", "a7a8q"),
+                Arguments.of("p6k/1P6/8/8/8/8/8/7K w - - 0 1", "Q6k/8/8/8/8/8/8/7K b - - 0 1", "b7xa8q"),
+                Arguments.of("7k/8/8/8/8/8/p7/7K w - - 0 1", "7k/8/8/8/8/8/8/q6K b - - 0 1", "a2a1q"),
+                Arguments.of("7k/8/8/8/8/8/1p6/P6K w - - 0 1", "7k/8/8/8/8/8/8/q6K b - - 0 1", "b2xa1q"),
+                Arguments.of("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1", "r3k2r/8/8/8/8/8/8/R4RK1 b kq - 1 1", "e1g1"),
+                Arguments.of("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1", "r3k2r/8/8/8/8/8/8/2KR3R b kq - 1 1", "e1c1")
         );
     }
 }

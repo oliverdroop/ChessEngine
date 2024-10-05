@@ -1,7 +1,5 @@
 package chess.api;
 
-import chess.api.PieceConfiguration;
-
 import java.util.List;
 import java.util.concurrent.Callable;
 

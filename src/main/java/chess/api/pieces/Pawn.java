@@ -19,13 +19,13 @@ public class Pawn extends Piece{
 
     private static final int[][] BLACK_DIRECTIONAL_LIMITS = {{1, -1, 1}, {0, -1, 2}, {-1, -1, 1}};
 
-    private static final Map<Integer, String> PROMOTION_PIECE_TYPES = ImmutableMap.of(KNIGHT_OCCUPIED, "N", BISHOP_OCCUPIED, "B", ROOK_OCCUPIED, "R", QUEEN_OCCUPIED, "Q");
+    public static final Map<Integer, String> PROMOTION_PIECE_TYPES = ImmutableMap.of(KNIGHT_OCCUPIED, "N", BISHOP_OCCUPIED, "B", ROOK_OCCUPIED, "R", QUEEN_OCCUPIED, "Q");
 
     public static int[][] getDirectionalLimits(int pieceBitFlag) {
         return getSide(pieceBitFlag) == 0 ? WHITE_DIRECTIONAL_LIMITS : BLACK_DIRECTIONAL_LIMITS;
     }
 
-    public static List<PieceConfiguration> getPossibleMoves(int pieceBitFlag, int[] positionBitFlags, PieceConfiguration currentConfiguration, boolean linkOnwardConfigurations) {
+    public static List<PieceConfiguration> getPossibleMoves(int pieceBitFlag, int[] positionBitFlags, PieceConfiguration currentConfiguration) {
         List<PieceConfiguration> pieceConfigurations = new ArrayList<>();
         for(int[] directionalLimit : getMovableDirectionalLimits(pieceBitFlag, positionBitFlags)) {
             int directionX = directionalLimit[0];
@@ -62,7 +62,7 @@ public class Pawn extends Piece{
                     }
                 }
 
-                addNewPieceConfigurations(pieceBitFlag, pieceConfigurations, currentConfiguration, testPositionIndex, takenPieceBitFlag, linkOnwardConfigurations);
+                addNewPieceConfigurations(pieceBitFlag, pieceConfigurations, currentConfiguration, testPositionIndex, takenPieceBitFlag);
 
                 if (takenPieceBitFlag >= 0) {
                     // Stop considering moves beyond this taken piece
@@ -115,8 +115,8 @@ public class Pawn extends Piece{
     }
 
     protected static void addNewPieceConfigurations(int pieceBitFlag, List<PieceConfiguration> pieceConfigurations,
-            PieceConfiguration currentConfiguration, int newPiecePosition, int takenPieceBitFlag, boolean linkOnwardConfigurations) {
-        Piece.addNewPieceConfigurations(pieceBitFlag, pieceConfigurations, currentConfiguration, newPiecePosition, takenPieceBitFlag, linkOnwardConfigurations);
+            PieceConfiguration currentConfiguration, int newPiecePosition, int takenPieceBitFlag) {
+        Piece.addNewPieceConfigurations(pieceBitFlag, pieceConfigurations, currentConfiguration, newPiecePosition, takenPieceBitFlag);
         int translation = newPiecePosition - getPosition(pieceBitFlag);
         PieceConfiguration newPieceConfiguration = pieceConfigurations.get(pieceConfigurations.size() - 1);
         int newY = Position.getY(newPiecePosition);
@@ -126,26 +126,12 @@ public class Pawn extends Piece{
         } else if (newY == 7 | newY == 0) {
             // Promote pawn
             pieceConfigurations.remove(pieceConfigurations.size() - 1);
-            if (currentConfiguration.getChildConfigurations() != null) {
-                currentConfiguration.getChildConfigurations().remove(newPieceConfiguration);
-            }
             for(int promotionPieceTypeFlag : PROMOTION_PIECE_TYPES.keySet()) {
                 PieceConfiguration promotedPawnConfiguration = getPromotedPawnConfiguration(newPieceConfiguration,
                         newPiecePosition, promotionPieceTypeFlag);
-                if (linkOnwardConfigurations) {
-                    linkPromotedPieceConfigurations(pieceBitFlag, currentConfiguration, promotedPawnConfiguration, newPiecePosition,
-                            takenPieceBitFlag, PROMOTION_PIECE_TYPES.get(promotionPieceTypeFlag).toLowerCase());
-                }
                 pieceConfigurations.add(promotedPawnConfiguration);
             }
         }
-    }
-
-    protected static void linkPromotedPieceConfigurations(int pieceBitFlag, PieceConfiguration currentConfiguration, PieceConfiguration newConfiguration,
-                                           int newPiecePosition, int takenPieceBitFlag, String promotionTo) {
-        currentConfiguration.addChildConfiguration(newConfiguration);
-        newConfiguration.setParentConfiguration(currentConfiguration);
-        newConfiguration.setAlgebraicNotation(getAlgebraicNotation(getPosition(pieceBitFlag), newPiecePosition, takenPieceBitFlag >= 0, promotionTo));
     }
 
     private static PieceConfiguration getPromotedPawnConfiguration(PieceConfiguration unpromotedPawnConfiguration,
