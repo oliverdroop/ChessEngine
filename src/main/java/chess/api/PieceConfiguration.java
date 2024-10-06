@@ -2,7 +2,6 @@ package chess.api;
 
 import chess.api.pieces.*;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ComparisonChain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,7 +11,7 @@ import java.util.stream.Collectors;
 import static chess.api.BitUtil.*;
 import static chess.api.pieces.Pawn.PROMOTION_PIECE_TYPES;
 
-public class PieceConfiguration implements Comparable<PieceConfiguration> {
+public class PieceConfiguration {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PieceConfiguration.class);
 
@@ -61,9 +60,6 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
     public static final int CASTLE_AVAILABLE = 134217728; // 27
 
     public static final int EN_PASSANT_SQUARE = 268435456; // 28
-
-    private static final int[] ALL_DIRECTIONAL_FLAGS = new int[]{DIRECTION_N, DIRECTION_NE,
-            DIRECTION_E, DIRECTION_SE, DIRECTION_S, DIRECTION_SW, DIRECTION_W, DIRECTION_NW, DIRECTION_ANY_KNIGHT};
     
     public static final int ALL_DIRECTIONAL_FLAGS_COMBINED = DIRECTION_N | DIRECTION_NE | DIRECTION_E | DIRECTION_SE
             | DIRECTION_S | DIRECTION_SW | DIRECTION_W | DIRECTION_NW | DIRECTION_ANY_KNIGHT;
@@ -81,6 +77,18 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
     public static final int PLAYER_KING_OCCUPIED = KING_OCCUPIED | PLAYER_OCCUPIED;
 
     private static final int COLOUR_FLAGS_COMBINED = WHITE_OCCUPIED | BLACK_OCCUPIED;
+
+    private static final int[] ALL_DIRECTIONAL_FLAGS = {
+            DIRECTION_N,
+            DIRECTION_NE,
+            DIRECTION_E,
+            DIRECTION_SE,
+            DIRECTION_S,
+            DIRECTION_SW,
+            DIRECTION_W,
+            DIRECTION_NW,
+            DIRECTION_ANY_KNIGHT
+    };
 
     private static final int[][] CASTLE_POSITION_COMBINATIONS = {
             {},
@@ -105,8 +113,6 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
     private int auxiliaryData = Integer.MIN_VALUE;
 
     private int[] positionBitFlags = Position.POSITIONS.clone();
-
-//    private int[] state = new int[65];
 
     public PieceConfiguration() {}
 
@@ -374,13 +380,5 @@ public class PieceConfiguration implements Comparable<PieceConfiguration> {
             }
         }
         return lesserScore;
-    }
-
-    @Override
-    public int compareTo(PieceConfiguration pieceConfiguration) {
-        return ComparisonChain.start()
-                .compare(PositionEvaluator.getValueDifferential(this),
-                        PositionEvaluator.getValueDifferential(pieceConfiguration))
-                .result();
     }
 }

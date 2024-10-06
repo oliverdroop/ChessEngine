@@ -5,13 +5,20 @@ import com.google.common.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.*;
+import java.util.function.Supplier;
 
-public class PositionEvaluator {
+import static chess.api.PositionEvaluator.getBestScoreDifferentialRecursively;
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(PositionEvaluator.class);
+public class ConcurrentPositionEvaluator {
 
-    private static final int NO_CAPTURE_OR_PAWN_MOVE_LIMIT = 99;
+    private static final Logger LOGGER = LoggerFactory.getLogger(ConcurrentPositionEvaluator.class);
+
+    private static final int CONCURRENCY_DEPTH_THRESHOLD = 5;
+
+    private static final ExecutorService executorService = Executors.newFixedThreadPool(16);
 
     @VisibleForTesting
     static int getValueDifferential(PieceConfiguration pieceConfiguration) {
@@ -34,54 +41,41 @@ public class PositionEvaluator {
     }
 
     public static PieceConfiguration getBestMoveRecursively(PieceConfiguration pieceConfiguration, int depth) {
-        final Optional<ConfigurationScorePair> optionalBestEntry = getBestConfigurationScorePairRecursively(pieceConfiguration, depth);
+        final Optional<ConfigurationScorePair> optionalBestEntry;
+        if (depth >= CONCURRENCY_DEPTH_THRESHOLD) {
+            // Use a multithreading method
+            optionalBestEntry = getBestConfigurationScorePairConcurrently(pieceConfiguration, depth);
+        } else {
+            // Use a single-threaded method
+            optionalBestEntry = PositionEvaluator.getBestConfigurationScorePairRecursively(pieceConfiguration, depth);
+        }
         return optionalBestEntry.map(ConfigurationScorePair::pieceConfiguration).orElse(null);
     }
 
-    static double getBestScoreDifferentialRecursively(PieceConfiguration pieceConfiguration, int depth) {
-        // The entry object below consists of a PieceConfiguration and a Double representing the score
-        final Optional<ConfigurationScorePair> optionalBestEntry = getBestConfigurationScorePairRecursively(pieceConfiguration, depth);
-        if (optionalBestEntry.isPresent()) {
-            return optionalBestEntry.get().score();
-        } else if (pieceConfiguration.isCheck()) {
-            // Checkmate
-            return Float.MAX_VALUE;
-        }
-        // Stalemate
-        return -Float.MAX_VALUE;
-    }
-
-    static boolean isFiftyMoveRuleFailure(PieceConfiguration pieceConfiguration) {
-        return pieceConfiguration.getHalfMoveClock() > NO_CAPTURE_OR_PAWN_MOVE_LIMIT;
-    }
-
-    static Optional<ConfigurationScorePair> getBestConfigurationScorePairRecursively(PieceConfiguration pieceConfiguration, int depth) {
+    private static Optional<ConfigurationScorePair> getBestConfigurationScorePairConcurrently(PieceConfiguration pieceConfiguration, int depth) {
         final double currentDiff = getValueDifferential(pieceConfiguration);
 
         depth--;
         final List<PieceConfiguration> onwardPieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
         final int onwardConfigurationCount = onwardPieceConfigurations.size();
-        final double[] onwardConfigurationScores = new double[onwardConfigurationCount];
+        final CompletableFuture<Double>[] onwardConfigurationScoreFutures = new CompletableFuture[onwardConfigurationCount];
         final boolean[] fiftyMoveRuleChecks = new boolean[onwardConfigurationCount];
+
         for (int i = 0; i < onwardConfigurationCount; i++) {
             PieceConfiguration onwardPieceConfiguration = onwardPieceConfigurations.get(i);
 
-            fiftyMoveRuleChecks[i] = isFiftyMoveRuleFailure(onwardPieceConfiguration);
+            fiftyMoveRuleChecks[i] = PositionEvaluator.isFiftyMoveRuleFailure(onwardPieceConfiguration);
 
-            double nextDiff = getValueDifferential(onwardPieceConfiguration);
-            double comparison = currentDiff - nextDiff;
-            if (depth > 0) {
-                comparison += getBestScoreDifferentialRecursively(onwardPieceConfiguration, depth) * 0.99; // This modifier adjusts for uncertainty at depth
-                // Below is where the position can be evaluated for more than just the value differential (because the position bit flags have been calculated)
-            }
-            onwardConfigurationScores[i] = comparison;
+            CompletableFuture<Double> comparisonFuture = CompletableFuture.supplyAsync(
+                    getCallableComparison(onwardPieceConfiguration, currentDiff, depth), executorService);
+            onwardConfigurationScoreFutures[i] = comparisonFuture;
         }
 
         final double threatValue = pieceConfiguration.getLesserScore();
         int bestOnwardConfigurationIndex = -1;
         double bestOnwardConfigurationScore = -Double.MAX_VALUE;
         for(int i = 0; i < onwardConfigurationCount; i++) {
-            double onwardConfigurationScore = onwardConfigurationScores[i] + threatValue;
+            double onwardConfigurationScore = onwardConfigurationScoreFutures[i].join() + threatValue;
             if (onwardConfigurationScore > bestOnwardConfigurationScore && !fiftyMoveRuleChecks[i]) {
                 bestOnwardConfigurationScore = onwardConfigurationScore;
                 bestOnwardConfigurationIndex = i;
@@ -95,11 +89,13 @@ public class PositionEvaluator {
         return Optional.empty();
     }
 
-    public static GameEndType deriveGameEndType(PieceConfiguration finalConfiguration) {
-        if (finalConfiguration.isCheck() || finalConfiguration.getHalfMoveClock() == NO_CAPTURE_OR_PAWN_MOVE_LIMIT) {
-            return GameEndType.values()[1 - finalConfiguration.getTurnSide()];
-        } else {
-            return GameEndType.STALEMATE;
-        }
+    private static Supplier<Double> getCallableComparison(
+            PieceConfiguration onwardPieceConfiguration, double currentDiff, int depth) {
+        return () -> {
+            final double nextDiff = getValueDifferential(onwardPieceConfiguration);
+            final double comparison = currentDiff - nextDiff;
+            final double recursiveDiff = getBestScoreDifferentialRecursively(onwardPieceConfiguration, depth) * 0.99;
+            return comparison + recursiveDiff;
+        };
     }
 }

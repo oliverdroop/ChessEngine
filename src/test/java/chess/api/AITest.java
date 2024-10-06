@@ -2,7 +2,7 @@ package chess.api;
 
 import org.junit.jupiter.api.Test;
 
-import static chess.api.PositionEvaluator.getBestMoveRecursively;
+import static chess.api.ConcurrentPositionEvaluator.getBestMoveRecursively;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class AITest {

@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static chess.api.PositionEvaluator.deriveGameEndType;
-import static chess.api.PositionEvaluator.getBestMoveRecursively;
+import static chess.api.ConcurrentPositionEvaluator.getBestMoveRecursively;
 
 @RestController
 @CrossOrigin("*")
