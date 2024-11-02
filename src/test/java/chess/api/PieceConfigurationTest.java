@@ -156,6 +156,33 @@ public class PieceConfigurationTest {
                 .isEqualTo(expectedNotation);
     }
 
+    @Test
+    void testStartingDifferential() {
+        PieceConfiguration pieceConfiguration = FENReader.read("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+
+        assertThat(pieceConfiguration.getValueDifferential())
+                .as("The starting position piece values should be equal")
+                .isEqualTo(0);
+    }
+
+    @Test
+    void testPlayerTeamTotalValue() {
+        PieceConfiguration pieceConfiguration = FENReader.read("8/8/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+
+        assertThat(pieceConfiguration.getValueDifferential())
+                .as("The player side values should be totalled correctly")
+                .isEqualTo(39);
+    }
+
+    @Test
+    void testOpponentTotalValue() {
+        PieceConfiguration pieceConfiguration = FENReader.read("rnbqkbnr/pppppppp/8/8/8/8/8/8 w KQkq - 0 1");
+
+        assertThat(pieceConfiguration.getValueDifferential())
+                .as("The opposing side values should be totalled correctly")
+                .isEqualTo(-39);
+    }
+
     private static Stream<Arguments> getEnPassantSquareValues() {
         return Stream.of(
                 Arguments.of(16, 0b00100001111111111111111111111111),

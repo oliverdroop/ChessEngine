@@ -20,33 +20,6 @@ public class PositionEvaluatorTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(PositionEvaluatorTest.class);
 
     @Test
-    void testStartingDifferential() {
-        PieceConfiguration pieceConfiguration = FENReader.read("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-
-        assertThat(PositionEvaluator.getValueDifferential(pieceConfiguration))
-                .as("The starting position piece values should be equal")
-                .isEqualTo(0);
-    }
-
-    @Test
-    void testPlayerTeamTotalValue() {
-        PieceConfiguration pieceConfiguration = FENReader.read("8/8/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-
-        assertThat(PositionEvaluator.getValueDifferential(pieceConfiguration))
-                .as("The player side values should be totalled correctly")
-                .isEqualTo(39);
-    }
-
-    @Test
-    void testOpponentTotalValue() {
-        PieceConfiguration pieceConfiguration = FENReader.read("rnbqkbnr/pppppppp/8/8/8/8/8/8 w KQkq - 0 1");
-
-        assertThat(PositionEvaluator.getValueDifferential(pieceConfiguration))
-                .as("The opposing side values should be totalled correctly")
-                .isEqualTo(-39);
-    }
-
-    @Test
     void testGetBestMoveRecursively() {
         PieceConfiguration pieceConfiguration = FENReader.read(FENWriter.STARTING_POSITION);
 

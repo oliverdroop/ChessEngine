@@ -214,6 +214,25 @@ public class PieceConfiguration {
         return positionBitFlags;
     }
 
+    public int getValueDifferential() {
+        int valueDifferential = 0;
+        final int turnSide = getTurnSide();
+        for (int positionBitFlag : positionBitFlags) {
+            // Is it a piece?
+            final int pieceBitFlag = positionBitFlag & PieceConfiguration.ALL_PIECE_FLAGS_COMBINED;
+            if (pieceBitFlag == 0) {
+                continue;
+            }
+            final int value = Piece.getValue(pieceBitFlag);
+            // Is it a black piece?
+            final int isBlackOccupied = (positionBitFlag & PieceConfiguration.BLACK_OCCUPIED) >> 9;
+            // Is it a player or opposing piece?
+            final int turnSideFactor = 1 - ((turnSide ^ isBlackOccupied) << 1);
+            valueDifferential += value * turnSideFactor;
+        }
+        return valueDifferential;
+    }
+
     public static int isPlayerInCheck(int[] positionBitFlags) {
         return Arrays.stream(positionBitFlags)
                 .filter(pbf -> BitUtil.hasBitFlag(pbf, CHECK_FLAGS_COMBINED))
@@ -224,10 +243,6 @@ public class PieceConfiguration {
     public boolean isCheck() {
         return Arrays.stream(this.positionBitFlags)
                 .anyMatch(position -> BitUtil.hasBitFlag(position, CHECK_FLAGS_COMBINED));
-    }
-
-    public int[] getPositionBitFlags() {
-        return positionBitFlags;
     }
 
     public int[] getPieceBitFlags() {

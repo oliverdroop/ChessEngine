@@ -1,7 +1,5 @@
 package chess.api;
 
-import chess.api.pieces.Piece;
-import com.google.common.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,26 +10,6 @@ public class PositionEvaluator {
     private static final Logger LOGGER = LoggerFactory.getLogger(PositionEvaluator.class);
 
     private static final int NO_CAPTURE_OR_PAWN_MOVE_LIMIT = 99;
-
-    @VisibleForTesting
-    static int getValueDifferential(PieceConfiguration pieceConfiguration) {
-        int valueDifferential = 0;
-        final int turnSide = pieceConfiguration.getTurnSide();
-        for (int positionBitFlag : pieceConfiguration.getPositionBitFlags()) {
-            // Is it a piece?
-            final int pieceBitFlag = positionBitFlag & PieceConfiguration.ALL_PIECE_FLAGS_COMBINED;
-            if (pieceBitFlag == 0) {
-                continue;
-            }
-            final int value = Piece.getValue(pieceBitFlag);
-            // Is it a black piece?
-            final int isBlackOccupied = (positionBitFlag & PieceConfiguration.BLACK_OCCUPIED) >> 9;
-            // Is it a player or opposing piece?
-            final int turnSideFactor = 1 - ((turnSide ^ isBlackOccupied) << 1);
-            valueDifferential += value * turnSideFactor;
-        }
-        return valueDifferential;
-    }
 
     public static PieceConfiguration getBestMoveRecursively(PieceConfiguration pieceConfiguration, int depth) {
         final Optional<ConfigurationScorePair> optionalBestEntry = getBestConfigurationScorePairRecursively(pieceConfiguration, depth);
@@ -56,7 +34,7 @@ public class PositionEvaluator {
     }
 
     static Optional<ConfigurationScorePair> getBestConfigurationScorePairRecursively(PieceConfiguration pieceConfiguration, int depth) {
-        final double currentDiff = getValueDifferential(pieceConfiguration);
+        final double currentDiff = pieceConfiguration.getValueDifferential();
 
         depth--;
         final List<PieceConfiguration> onwardPieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -68,7 +46,7 @@ public class PositionEvaluator {
 
             fiftyMoveRuleChecks[i] = isFiftyMoveRuleFailure(onwardPieceConfiguration);
 
-            double nextDiff = getValueDifferential(onwardPieceConfiguration);
+            double nextDiff = onwardPieceConfiguration.getValueDifferential();
             double comparison = currentDiff - nextDiff;
             if (depth > 0) {
                 comparison += getBestScoreDifferentialRecursively(onwardPieceConfiguration, depth) * 0.99; // This modifier adjusts for uncertainty at depth

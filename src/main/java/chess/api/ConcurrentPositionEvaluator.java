@@ -1,7 +1,5 @@
 package chess.api;
 
-import chess.api.pieces.Piece;
-import com.google.common.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,30 +16,13 @@ public class ConcurrentPositionEvaluator {
 
     private static final int CONCURRENCY_DEPTH_THRESHOLD = 5;
 
-    private static final ExecutorService executorService = Executors.newFixedThreadPool(16);
+    private static final int THREAD_POOL_SIZE = Runtime.getRuntime().availableProcessors();
 
-    @VisibleForTesting
-    static int getValueDifferential(PieceConfiguration pieceConfiguration) {
-        int valueDifferential = 0;
-        final int turnSide = pieceConfiguration.getTurnSide();
-        for (int positionBitFlag : pieceConfiguration.getPositionBitFlags()) {
-            // Is it a piece?
-            final int pieceBitFlag = positionBitFlag & PieceConfiguration.ALL_PIECE_FLAGS_COMBINED;
-            if (pieceBitFlag == 0) {
-                continue;
-            }
-            final int value = Piece.getValue(pieceBitFlag);
-            // Is it a black piece?
-            final int isBlackOccupied = (positionBitFlag & PieceConfiguration.BLACK_OCCUPIED) >> 9;
-            // Is it a player or opposing piece?
-            final int turnSideFactor = 1 - ((turnSide ^ isBlackOccupied) << 1);
-            valueDifferential += value * turnSideFactor;
-        }
-        return valueDifferential;
-    }
+    private static final ExecutorService executorService = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
 
     public static PieceConfiguration getBestMoveRecursively(PieceConfiguration pieceConfiguration, int depth) {
         final Optional<ConfigurationScorePair> optionalBestEntry;
+        LOGGER.info("Thread pool size is {}", THREAD_POOL_SIZE);
         if (depth >= CONCURRENCY_DEPTH_THRESHOLD) {
             // Use a multithreading method
             optionalBestEntry = getBestConfigurationScorePairConcurrently(pieceConfiguration, depth);
@@ -53,7 +34,7 @@ public class ConcurrentPositionEvaluator {
     }
 
     private static Optional<ConfigurationScorePair> getBestConfigurationScorePairConcurrently(PieceConfiguration pieceConfiguration, int depth) {
-        final double currentDiff = getValueDifferential(pieceConfiguration);
+        final double currentDiff = pieceConfiguration.getValueDifferential();
 
         depth--;
         final List<PieceConfiguration> onwardPieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
@@ -92,7 +73,7 @@ public class ConcurrentPositionEvaluator {
     private static Supplier<Double> getCallableComparison(
             PieceConfiguration onwardPieceConfiguration, double currentDiff, int depth) {
         return () -> {
-            final double nextDiff = getValueDifferential(onwardPieceConfiguration);
+            final double nextDiff = onwardPieceConfiguration.getValueDifferential();
             final double comparison = currentDiff - nextDiff;
             final double recursiveDiff = getBestScoreDifferentialRecursively(onwardPieceConfiguration, depth) * 0.99;
             return comparison + recursiveDiff;
