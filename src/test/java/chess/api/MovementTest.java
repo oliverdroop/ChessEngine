@@ -629,4 +629,14 @@ public class MovementTest {
         List<String> fens = pieceConfigurations.stream().map(PieceConfiguration::toString).toList();
         assertThat(fens).as("En-passant square should be cleared after every move").noneMatch(fen -> fen.contains(" d3 "));
     }
+
+    @Test
+    void testPromotionWhileTaking() {
+        PieceConfiguration pieceConfiguration = FENReader.read("7k/8/8/8/8/8/p7/1Q5K b - - 0 1");
+
+        List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
+        List<String> fens = pieceConfigurations.stream().map(PieceConfiguration::toString).toList();
+
+        assertThat(fens).as("Promotion to black queen should be possible").contains("7k/8/8/8/8/8/8/1q5K w - - 0 2");
+    }
 }
