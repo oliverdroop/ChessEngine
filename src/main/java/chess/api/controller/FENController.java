@@ -22,7 +22,7 @@ import static chess.api.PositionEvaluator.deriveGameEndType;
 import static chess.api.ConcurrentPositionEvaluator.getBestMoveRecursively;
 
 @RestController
-@CrossOrigin("*")
+@CrossOrigin("https://178.62.85.228")
 public class FENController {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FENController.class);
