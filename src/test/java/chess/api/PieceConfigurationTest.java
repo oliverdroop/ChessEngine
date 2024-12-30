@@ -5,6 +5,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.List;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -154,6 +155,18 @@ public class PieceConfigurationTest {
         assertThat(pieceConfiguration2.getAlgebraicNotation(pieceConfiguration1))
                 .as("Unexpected algebraic notation")
                 .isEqualTo(expectedNotation);
+    }
+
+    @Test
+    void testGetAlgebraicNotation_fromStartingPosition() {
+        final PieceConfiguration pieceConfiguration1 = FENReader.read(FENWriter.STARTING_POSITION);
+        final int pieceBitFlag = pieceConfiguration1.getPieceAtPosition(12);
+        final List<String> algebraicNotations = pieceConfiguration1.getPossiblePieceConfigurationsForPiece(pieceBitFlag)
+            .stream()
+            .map(pieceConfiguration -> pieceConfiguration.getAlgebraicNotation(pieceConfiguration1))
+            .toList();
+
+        assertThat(algebraicNotations).containsExactlyInAnyOrder("e2e3", "e2e4");
     }
 
     @Test

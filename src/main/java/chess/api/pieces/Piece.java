@@ -105,6 +105,7 @@ public abstract class Piece {
         try {
             int movedPieceBitFlag = (pieceBitFlag ^ getPosition(pieceBitFlag)) | newPiecePosition;
             newConfiguration.addPiece(movedPieceBitFlag);
+            newConfiguration.removePiece(pieceBitFlag);
         } catch (Exception e) {
             LOGGER.error("Problem creating new piece configuration");
             return;

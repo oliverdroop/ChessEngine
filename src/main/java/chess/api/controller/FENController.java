@@ -9,7 +9,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -22,18 +21,16 @@ import static chess.api.PositionEvaluator.deriveGameEndType;
 import static chess.api.ConcurrentPositionEvaluator.getBestMoveRecursively;
 
 @RestController
-@CrossOrigin("https://178.62.85.228")
 public class FENController {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FENController.class);
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @PostMapping("/chess")
     public ResponseEntity<AiMoveResponseDto> getAiMove(@RequestBody String body) {
         LOGGER.info("Received AI move request: {}", body);
         final AiMoveResponseDto response = new AiMoveResponseDto();
         try {
+            final ObjectMapper objectMapper = new ObjectMapper();
             final AiMoveRequestDto aiMoveRequestDto = objectMapper.readValue(body, AiMoveRequestDto.class);
             LOGGER.debug("FEN: {}", aiMoveRequestDto.getFen());
             LOGGER.debug("Depth: {}", aiMoveRequestDto.getDepth());
@@ -52,7 +49,7 @@ public class FENController {
             }
             LOGGER.info("Response: {}", objectMapper.writeValueAsString(response));
             return ResponseEntity.ok().body(response);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             final String errorMessage = String.format("Unable to get AI move: %s", e);
             LOGGER.error(errorMessage, e);
             response.setError(errorMessage);
@@ -64,7 +61,7 @@ public class FENController {
     public ResponseEntity<List<String>> getAvailableMoves(@RequestBody String body) {
         LOGGER.info("Received available moves request: {}", body);
         try {
-            final AvailableMovesRequestDto availableMovesRequestDto = objectMapper.readValue(body, AvailableMovesRequestDto.class);
+            final AvailableMovesRequestDto availableMovesRequestDto = new ObjectMapper().readValue(body, AvailableMovesRequestDto.class);
             LOGGER.debug("FEN: {}", availableMovesRequestDto.getFen());
             LOGGER.debug("From: {}", availableMovesRequestDto.getFrom());
             final PieceConfiguration inputConfiguration = FENReader.read(availableMovesRequestDto.getFen());
@@ -79,7 +76,7 @@ public class FENController {
                     .collect(Collectors.toList());
             LOGGER.info("Response: {}", algebraicNotations);
             return ResponseEntity.ok(algebraicNotations);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             final String errorMessage = String.format("Unable to get available moves: %s", e.getMessage());
             LOGGER.error(errorMessage, e);
             return ResponseEntity.internalServerError().body(Collections.singletonList(errorMessage));
