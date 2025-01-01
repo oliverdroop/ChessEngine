@@ -43,6 +43,7 @@ public class FENController {
                     response.setGameResult(deriveGameEndType(outputConfiguration).toString());
                 }
                 response.setFen(outputFEN);
+                response.setAlgebraicNotation(outputConfiguration.getAlgebraicNotation(inputConfiguration));
                 response.setCheck(outputConfiguration.isCheck());
             } else {
                 response.setGameResult(deriveGameEndType(inputConfiguration).toString());
