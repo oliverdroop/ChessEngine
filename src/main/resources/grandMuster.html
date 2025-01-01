@@ -254,7 +254,7 @@ function processAIMoveResponse(e) {
 
 		// Display game result
 		if (response.gameResult !== null) {
-			alert(response.gameResult);
+			setTimeout(function() {alert(response.gameResult);}, 1000);
 		}
 	}
 }
