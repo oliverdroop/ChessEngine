@@ -44,12 +44,6 @@ public class Pawn extends Piece{
                     break;
                 }
 
-                // Is this position a position which wouldn't block an existing checking direction?
-                if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], DOES_NOT_BLOCK_CHECK)) {
-                    limit--;
-                    continue;
-                }
-
                 // Is there an opponent piece on the position?
                 int takenPieceBitFlag = -1;
                 if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], OPPONENT_OCCUPIED)) {
@@ -60,6 +54,12 @@ public class Pawn extends Piece{
                         // This is a straight forward move so taking a piece is not possible
                         break;
                     }
+                }
+
+                // Is this position a position which wouldn't block an existing checking direction?
+                if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], DOES_NOT_BLOCK_CHECK)) {
+                    limit--;
+                    continue;
                 }
 
                 addNewPieceConfigurations(pieceBitFlag, pieceConfigurations, currentConfiguration, testPositionIndex, takenPieceBitFlag);

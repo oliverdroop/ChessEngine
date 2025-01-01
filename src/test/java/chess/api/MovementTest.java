@@ -639,4 +639,16 @@ public class MovementTest {
 
         assertThat(fens).as("Promotion to black queen should be possible").contains("7k/8/8/8/8/8/8/1q5K w - - 0 2");
     }
+
+    @Test
+    void testPawnMovementWhenJumpingForwards() {
+        PieceConfiguration pieceConfiguration = FENReader.read("rnk5/pp3ppp/5P2/8/2P1n1B1/1Pr5/PK5P/3RR3 b - - 1 26");
+
+        List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
+        List<String> fens = pieceConfigurations.stream().map(PieceConfiguration::toString).toList();
+
+        assertThat(fens)
+            .as("Pawns should not be able to jump other pieces")
+            .doesNotContain("rnk5/pp4pp/5P2/5p2/2P1n1B1/1Pr5/PK5P/3RR3 w - f6 0 27");
+    }
 }
