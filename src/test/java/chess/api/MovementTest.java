@@ -651,4 +651,34 @@ public class MovementTest {
             .as("Pawns should not be able to jump other pieces")
             .doesNotContain("rnk5/pp4pp/5P2/5p2/2P1n1B1/1Pr5/PK5P/3RR3 w - f6 0 27");
     }
+
+    @Test
+    void testEnPassant_1() {
+        PieceConfiguration pieceConfiguration = FENReader.read("rnb1k2r/p1p2pp1/1b2p3/1p1pN1Pp/qP1P1P2/P1PK4/1B1N4/R7 w kq h6 0 24");
+
+        int pieceBitFlag = pieceConfiguration.getPieceAtPosition(38);
+        List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurationsForPiece(pieceBitFlag);
+        List<String> fens = pieceConfigurations.stream()
+            .map(PieceConfiguration::toString)
+            .toList();
+
+        assertThat(fens)
+            .as("En-passant should be available")
+            .contains("rnb1k2r/p1p2pp1/1b2p2P/1p1pN3/qP1P1P2/P1PK4/1B1N4/R7 b kq - 0 24");
+    }
+
+    @Test
+    void testEnPassant_2() {
+        PieceConfiguration pieceConfiguration = FENReader.read("rnb1k2r/ppqpb3/2p1p2p/4Pppn/1PB5/P1N1QNPP/2PB1P2/3RK2R w Kkq f6 0 16");
+
+        int pieceBitFlag = pieceConfiguration.getPieceAtPosition(36);
+        List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurationsForPiece(pieceBitFlag);
+        List<String> fens = pieceConfigurations.stream()
+            .map(PieceConfiguration::toString)
+            .toList();
+
+        assertThat(fens)
+            .as("En-passant should be available")
+            .contains("rnb1k2r/ppqpb3/2p1pP1p/6pn/1PB5/P1N1QNPP/2PB1P2/3RK2R b Kkq - 0 16");
+    }
 }

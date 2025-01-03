@@ -46,10 +46,14 @@ public class Pawn extends Piece{
 
                 // Is there an opponent piece on the position?
                 int takenPieceBitFlag = -1;
-                if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], OPPONENT_OCCUPIED)) {
+                if (BitUtil.hasAnyBits(positionBitFlags[testPositionIndex], OPPONENT_OCCUPIED | EN_PASSANT_SQUARE)) {
                     if (directionX != 0) {
                         // This is a diagonal move so taking a piece is valid
                         takenPieceBitFlag = currentConfiguration.getPieceAtPosition(testPositionIndex);
+                        if ((takenPieceBitFlag & ALL_PIECE_FLAGS_COMBINED) == 0) {
+                            // This is an en-passant move
+                            takenPieceBitFlag = currentConfiguration.getPieceAtPosition(testPositionIndex - 8 + (16 * currentConfiguration.getTurnSide()));
+                        }
                     } else {
                         // This is a straight forward move so taking a piece is not possible
                         break;
@@ -152,8 +156,7 @@ public class Pawn extends Piece{
         if (testPosition < 0) {
             return false;
         }
-        return BitUtil.hasBitFlag(positionBitFlags[testPosition], OPPONENT_OCCUPIED)
-                || BitUtil.hasBitFlag(positionBitFlags[testPosition], EN_PASSANT_SQUARE);
+        return BitUtil.hasAnyBits(positionBitFlags[testPosition], OPPONENT_OCCUPIED | EN_PASSANT_SQUARE);
     }
 
     public static char getFENCode(int pieceBitFlag) {
