@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RestController;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 import static java.lang.String.format;
@@ -25,7 +24,7 @@ public class ResourceController {
     @GetMapping("/{path}")
     public ResponseEntity<byte[]> getResource(@PathVariable String path) throws FileNotFoundException {
         final File file = ResourceUtils.getFile(format("classpath:%s", path));
-        try(final FileInputStream fileInputStream = new FileInputStream(file); ) {
+        try(final FileInputStream fileInputStream = new FileInputStream(file)) {
             return ResponseEntity.ok(fileInputStream.readAllBytes());
         } catch (Throwable e) {
             LOGGER.error("Unable to return {}", path, e);
