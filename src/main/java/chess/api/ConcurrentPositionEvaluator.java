@@ -22,7 +22,7 @@ public class ConcurrentPositionEvaluator {
 
     public static PieceConfiguration getBestMoveRecursively(PieceConfiguration pieceConfiguration, int depth) {
         final Optional<ConfigurationScorePair> optionalBestEntry;
-        LOGGER.info("Thread pool size is {}", THREAD_POOL_SIZE);
+        LOGGER.debug("Thread pool size is {}", THREAD_POOL_SIZE);
         if (depth >= CONCURRENCY_DEPTH_THRESHOLD && THREAD_POOL_SIZE > 1) {
             // Use a multithreading method
             optionalBestEntry = getBestConfigurationScorePairConcurrently(pieceConfiguration, depth);
