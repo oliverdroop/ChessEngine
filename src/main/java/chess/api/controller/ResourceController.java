@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.io.FileInputStream;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 import static java.lang.String.format;
@@ -22,7 +22,7 @@ public class ResourceController {
     @GetMapping("/{path}")
     public ResponseEntity<byte[]> getResource(@PathVariable String path) {
         final ClassPathResource resource = new ClassPathResource(path);
-        try(final FileInputStream fileInputStream = new FileInputStream(resource.getFile())) {
+        try(final InputStream fileInputStream = resource.getInputStream()) {
             return ResponseEntity.ok(fileInputStream.readAllBytes());
         } catch (Throwable e) {
             LOGGER.error("Unable to return {}", path, e);
