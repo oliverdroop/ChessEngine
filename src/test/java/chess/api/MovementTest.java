@@ -681,4 +681,19 @@ public class MovementTest {
             .as("En-passant should be available")
             .contains("rnb1k2r/ppqpb3/2p1pP1p/6pn/1PB5/P1N1QNPP/2PB1P2/3RK2R b Kkq - 0 16");
     }
+
+    @Test
+    void testEnPassant_3() {
+        PieceConfiguration pieceConfiguration = FENReader.read("r1b1k1n1/p1p2p2/2n1p3/1p1pP3/3P1P2/2P2B2/PP6/R1K5 w q d6 0 22");
+
+        int pieceBitFlag = pieceConfiguration.getPieceAtPosition(36);
+        List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getPossiblePieceConfigurationsForPiece(pieceBitFlag);
+        List<String> fens = pieceConfigurations.stream()
+            .map(PieceConfiguration::toString)
+            .toList();
+
+        assertThat(fens)
+            .as("En-passant should be available")
+            .contains("r1b1k1n1/p1p2p2/2nPp3/1p6/3P1P2/2P2B2/PP6/R1K5 b q - 0 22");
+    }
 }

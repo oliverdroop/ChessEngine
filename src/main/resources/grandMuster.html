@@ -57,7 +57,7 @@
     createSquares();
     createPieces();
     var pieceSelected = null;
-    var enPassantable = null;
+    var enPassantSquare = null;
     var availableMoves = [];
     var turnTeam = 0;
     var halfmoveClock = 0;
@@ -109,6 +109,7 @@
     function move(piece, square) {
         isCheck = false;
         var distX = Math.abs(piece.x - square.x);
+        var distY = Math.abs(piece.y - square.y);
         halfmoveClock++;
         // Find the index of any pieces which are on the destination square
         var takenPieceIndex = -1;
@@ -121,6 +122,19 @@
         // Remove the taken piece if it exists
         if (takenPieceIndex >= 0) {
             board.pieces.splice(takenPieceIndex, 1);
+            halfmoveClock = 0;
+        }
+
+        //Find out if the en passant square should be set
+        if (piece.type == "pawn") {
+            halfmoveClock = 0;
+            if (distY == 2) {
+                enPassantSquare = {x: piece.x, y: piece.y + 1 - (2 * piece.team)};
+            } else {
+                enPassantSquare = null;
+            }
+        } else {
+            enPassantSquare = null;
         }
 
         // Find out if this is a pawn promotion
@@ -356,10 +370,9 @@
         fen += ' ';
         //en Passant piece
         var enPassant = "";
-        if (enPassantable != null) {
-            var x = String.fromCharCode(enPassantable.x + 97);
-            var yBehind = 1 + enPassantable.y + ((-1) + (2 * enPassantable.team));
-            var y = yBehind;
+        if (enPassantSquare != null) {
+            var x = String.fromCharCode((7 - enPassantSquare.x) + 97);
+            var y = enPassantSquare.y + 1;
             enPassant += x;
             enPassant += y;
         }
@@ -430,13 +443,12 @@
         }
 
         if (fields[3].length == 2) {
-            var x = Number(fields[3].charCodeAt(0) - 97);
-            var y = Number(fields[3].charAt(1));
-            y += Number(0) - Number(2 * (1 - turnTeam));
-            enPassantable = getPiece(x, y, board.pieces);
+            var x = 7 - Number(fields[3].charCodeAt(0) - 97);
+            var y = Number(fields[3].charAt(1)) - 1;
+            enPassantSquare = {x: x, y: y};
         }
         else {
-            enPassantable = null;
+            enPassantSquare = null;
         }
 
         halfmoveClock = fields[4];
