@@ -24,7 +24,8 @@
 <div class="canvasDiv" id="canvasDiv">
     <canvas id="canv" name="canv"/>
 </div>
-<input type="range" min="1" max="6" value="4" class="slider" id="difficultySlider">
+<input type="range" name="AI Depth" min="1" max="6" value="4" class="slider" id="difficultySlider" />
+<input type="button" value="Play as Black" onclick="switchSide()" id="switchSideButton" />
 </body>
 <script>
     var canv = document.getElementById("canv");
@@ -60,6 +61,7 @@
     var enPassantSquare = null;
     var availableMoves = [];
     var turnTeam = 0;
+    var playerTeam = 0;
     var halfmoveClock = 0;
     var fullmoveNumber = 1;
     var isCheck = false;
@@ -153,6 +155,9 @@
         if (piece.type == "king" && distX == 2){
             continueCastle(square, board.pieces);
         }
+
+        // Prevent switching sides after the game has started
+        document.getElementById('switchSideButton').style.visibility = 'hidden';
     }
 
     function promptForPromotionType() {
@@ -198,8 +203,8 @@
 
     function getCoordinates(canvX, canvY){
         var size = board.squareSize;
-        var x = 8 - Math.ceil(canvX / size);
-        var y = 8 - Math.ceil(canvY / size);
+        var x = playerSideOffset(8) - Math.ceil(playerSideFactor(canvX / size));
+        var y = playerSideOffset(8) - Math.ceil(playerSideFactor(canvY / size));
         return {x:x, y:y};
     }
 
@@ -519,10 +524,23 @@
         var size = board.squareSize;
         var img = piece.image;
         if (img != null){
-            var x = canv.width - (piece.x * size) - size;
-            var y = canv.height - (piece.y * size) - size;
+            var x = getBoxStart(piece.x);
+            var y = getBoxStart(piece.y);
             ctx.drawImage(piece.image, x, y, size, size);
         }
+    }
+
+    function getBoxStart(coordinate){
+        var size = board.squareSize;
+        return playerSideOffset(canv.width - size) - playerSideFactor(coordinate * size);
+    }
+
+    function playerSideOffset(value){
+        return value * (1 - playerTeam);
+    }
+
+    function playerSideFactor(value){
+        return value * (1 - (2 * playerTeam));
     }
 
     function drawPieces(){
@@ -533,8 +551,8 @@
     }
 
     function drawBox(piece, color){
-        var x = canv.width - ((piece.x * board.squareSize) + board.squareSize);
-        var y = canv.height - ((piece.y * board.squareSize) + board.squareSize);
+        var x = getBoxStart(piece.x);
+        var y = getBoxStart(piece.y);
         ctx.strokeStyle = color;
         ctx.lineWidth = 4;
         ctx.beginPath();
@@ -567,8 +585,10 @@
             for(var i = 0; i < availableMoves.length; i++){
                 var square = availableMoves[i].square;
                 ctx.fillStyle = "#00ff00";
-                var screenX = canv.width - ((square.x * board.squareSize) + (board.squareSize / 2));
-                var screenY = canv.height - ((square.y * board.squareSize) + (board.squareSize / 2));
+                //var screenX = canv.width - ((square.x * board.squareSize) + (board.squareSize / 2));
+                //var screenY = canv.height - ((square.y * board.squareSize) + (board.squareSize / 2));
+                var screenX = getBoxStart(square.x) + (board.squareSize / 2);
+                var screenY = getBoxStart(square.y) + (board.squareSize / 2);
                 ctx.beginPath();
                 ctx.arc(screenX, screenY, 10, 0, Math.PI * 2);
                 ctx.fill();
@@ -663,6 +683,13 @@
             board.pieces.push({team:c, type:"knight", image:img, x:1, y:(c * 7), moveCount:0});
             board.pieces.push({team:c, type:"knight", image:img, x:6, y:(c * 7), moveCount:0});
         }
+    }
+
+    function switchSide(){
+        console.log('Switching side');
+        document.getElementById('switchSideButton').style.visibility = 'hidden';
+        playerTeam = 1;
+        transmitBoardState();
     }
 
     function loadImage(isrc){
