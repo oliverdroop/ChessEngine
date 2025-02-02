@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static chess.api.OpeningBook.getOpeningResponse;
 import static chess.api.PositionEvaluator.deriveGameEndType;
 import static chess.api.ConcurrentPositionEvaluator.getBestMoveRecursively;
 
@@ -36,7 +37,11 @@ public class FENController {
             LOGGER.debug("Depth: {}", aiMoveRequestDto.getDepth());
             final PieceConfiguration inputConfiguration = FENReader.read(aiMoveRequestDto.getFen());
 
-            final PieceConfiguration outputConfiguration = getBestMoveRecursively(inputConfiguration, aiMoveRequestDto.getDepth());
+            PieceConfiguration outputConfiguration = getOpeningResponse(inputConfiguration);
+            if (outputConfiguration == null) {
+                outputConfiguration = getBestMoveRecursively(inputConfiguration, aiMoveRequestDto.getDepth());
+            }
+
             if (outputConfiguration != null) {
                 String outputFEN = FENWriter.write(outputConfiguration);
                 if (FENReader.read(outputFEN).getPossiblePieceConfigurations().isEmpty()) {
