@@ -9,6 +9,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static chess.api.BitUtil.*;
+import static chess.api.WeightingConfig.*;
 import static chess.api.pieces.Pawn.PROMOTION_PIECE_TYPES;
 
 public class PieceConfiguration {
@@ -382,16 +383,16 @@ public class PieceConfiguration {
         double lesserScore = 0;
         for (int positionBitFlag : positionBitFlags) {
             if (BitUtil.hasBitFlag(positionBitFlag, THREATENED)) {
-                lesserScore -= 0.00625;
-                lesserScore -= ((positionBitFlag >> 6) & 1) * 0.00625; // Count threatened player pieces
-                lesserScore += ((positionBitFlag >> 7) & 1) * 0.00625; // Count threatened opponent pieces
+                lesserScore -= getThreatenedSquareWeighting(getTurnSide());
+                lesserScore -= ((positionBitFlag >> 6) & 1) * getThreatenedPieceWeighting(getTurnSide()); // Count threatened player pieces
+                lesserScore += ((positionBitFlag >> 7) & 1) * getThreatenedPieceWeighting(getTurnSide()); // Count threatened opponent pieces
             }
             if (BitUtil.hasBitFlag(positionBitFlag, 27)
                     | BitUtil.hasBitFlag(positionBitFlag, 28)
                     | BitUtil.hasBitFlag(positionBitFlag, 35)
                     | BitUtil.hasBitFlag(positionBitFlag, 36)) {
-                lesserScore -= ((positionBitFlag >> 6) & 1) * 0.05; // Count player-occupied centre squares
-                lesserScore += ((positionBitFlag >> 7) & 1) * 0.05; // Count opponent-occupied centre squares
+                lesserScore -= ((positionBitFlag >> 6) & 1) * getOccupiedCentreWeighting(getTurnSide()); // Count player-occupied centre squares
+                lesserScore += ((positionBitFlag >> 7) & 1) * getOccupiedCentreWeighting(getTurnSide()); // Count opponent-occupied centre squares
             }
         }
         return lesserScore;

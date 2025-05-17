@@ -36,10 +36,73 @@ public class PositionEvaluatorTest {
     @Test
     void testPlayAIGame() {
         PieceConfiguration pieceConfiguration = FENReader.read(FENWriter.STARTING_POSITION);
+        PieceConfiguration previousConfiguration = null;
 
         while(pieceConfiguration != null) {
-            LOGGER.info(pieceConfiguration.toString());
+            previousConfiguration = pieceConfiguration;
+            LOGGER.debug(pieceConfiguration.toString());
             pieceConfiguration = PositionEvaluator.getBestMoveRecursively(pieceConfiguration, 4);
+        }
+
+        if (previousConfiguration.isCheck()) {
+            Side winner = Side.values()[previousConfiguration.getOpposingSide()];
+            LOGGER.info("Win for {}", winner);
+        } else {
+            LOGGER.info("Stalemate");
+        }
+    }
+
+    @Test
+    void testPlayAIGames() {
+        final int matchesToPlay = 20;
+        int matchNumber = 0;
+        while (matchNumber < matchesToPlay) {
+            final Integer winner0 = playGame(matchNumber, 0);
+            WeightingConfig.swapWeightings();
+            final Integer winner1 = playGame(matchNumber, 1);
+            if (winner0 != null && winner1 != null) {
+                // Neither game was a stalemate
+                if (winner0.equals(winner1)) {
+                    // One of the weighting configurations is superior
+                    WeightingConfig.generateRandomWeightings(1 - winner0);
+                } else {
+                    // The weighting configs are similar
+                    WeightingConfig.generateRandomWeightings();
+                }
+            } else if (winner0 == null && winner1 == null)  {
+                // Both games were a stalemate
+                WeightingConfig.generateRandomWeightings();
+            } else if (winner0 == null) {
+                // The first game was a stalemate
+                WeightingConfig.generateRandomWeightings(1 - winner1);
+            } else {
+                // The second game was a stalemate
+                WeightingConfig.generateRandomWeightings(1 - winner0);
+            }
+            matchNumber++;
+        }
+        WeightingConfig.logWeightings(0);
+        WeightingConfig.logWeightings(1);
+    }
+
+    private Integer playGame(int matchNumber, int gameNumber) {
+        PieceConfiguration pieceConfiguration = FENReader.read(FENWriter.STARTING_POSITION);
+        PieceConfiguration previousConfiguration = null;
+
+        while (pieceConfiguration != null) {
+            previousConfiguration = pieceConfiguration;
+            LOGGER.debug(pieceConfiguration.toString());
+            pieceConfiguration = PositionEvaluator.getBestMoveRecursively(pieceConfiguration, 3);
+        }
+
+        LOGGER.info(previousConfiguration.toString());
+        if (previousConfiguration.isCheck()) {
+            Side winner = Side.values()[previousConfiguration.getOpposingSide()];
+            LOGGER.info("Match {} game {} win for {}", matchNumber, gameNumber, winner);
+            return winner.ordinal();
+        } else {
+            LOGGER.info("Match {} game {} stalemate", matchNumber, gameNumber);
+            return null;
         }
     }
 
