@@ -54,7 +54,7 @@ public class PositionEvaluatorTest {
 
     @Test
     void testPlayAIGames() {
-        final int matchesToPlay = 20;
+        final int matchesToPlay = 100;
         int matchNumber = 0;
         while (matchNumber < matchesToPlay) {
             final Integer winner0 = playGame(matchNumber, 0);
@@ -63,21 +63,23 @@ public class PositionEvaluatorTest {
             if (winner0 != null && winner1 != null) {
                 // Neither game was a stalemate
                 if (winner0.equals(winner1)) {
-                    // One of the weighting configurations is superior
-                    WeightingConfig.generateRandomWeightings(1 - winner0);
+                    // Neither of the weighting configurations is measurably superior
+//                    WeightingConfig.generateRandomWeightings(0);
+                    WeightingConfig.breedWeightings();
                 } else {
-                    // The weighting configs are similar
-                    WeightingConfig.generateRandomWeightings();
+                    // One of the weighting configs is superior
+                    WeightingConfig.generateRandomWeightings(1 - winner1);
                 }
             } else if (winner0 == null && winner1 == null)  {
                 // Both games were a stalemate
-                WeightingConfig.generateRandomWeightings();
+//                WeightingConfig.generateRandomWeightings(0);
+                WeightingConfig.breedWeightings();
             } else if (winner0 == null) {
                 // The first game was a stalemate
                 WeightingConfig.generateRandomWeightings(1 - winner1);
             } else {
                 // The second game was a stalemate
-                WeightingConfig.generateRandomWeightings(1 - winner0);
+                WeightingConfig.generateRandomWeightings(winner0);
             }
             matchNumber++;
         }

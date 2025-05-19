@@ -69,6 +69,26 @@ public class WeightingConfig {
         logWeightings(turnSide);
     }
 
+    public static void breedWeightings() {
+        LOGGER.info("Preserving an average of the weightings");
+        double rawWhiteThreatenedSquareWeighting = getThreatenedSquareWeighting(0) * THREATENED_SQUARE_MAX;
+        double rawWhiteThreatenedPieceWeighting = getThreatenedPieceWeighting(0) * THREATENED_PIECE_MAX;
+        double rawWhiteOccupiedCentreWeighting = getOccupiedCentreWeighting(0) * OCCUPIED_CENTRE_MAX;
+        double rawBlackThreatenedSquareWeighting = getThreatenedSquareWeighting(1) * THREATENED_SQUARE_MAX;
+        double rawBlackThreatenedPieceWeighting = getThreatenedPieceWeighting(1) * THREATENED_PIECE_MAX;
+        double rawBlackOccupiedCentreWeighting = getOccupiedCentreWeighting(1) * OCCUPIED_CENTRE_MAX;
+
+        double averageRawThreatenedSquareWeighting = (rawWhiteThreatenedSquareWeighting + rawBlackThreatenedSquareWeighting) / 2;
+        double averageRawThreatenedPieceWeighting = (rawWhiteThreatenedPieceWeighting + rawBlackThreatenedPieceWeighting) / 2;
+        double averageRawOccupiedCentreWeighting = (rawWhiteOccupiedCentreWeighting + rawBlackOccupiedCentreWeighting) / 2;
+
+        threatenedSquareWeightings[0] = averageRawThreatenedSquareWeighting / (double) THREATENED_SQUARE_MAX;
+        threatenedPieceWeightings[0] = averageRawThreatenedPieceWeighting / (double) THREATENED_PIECE_MAX;
+        occupiedCentreWeightings[0] = averageRawOccupiedCentreWeighting / (double) OCCUPIED_CENTRE_MAX;
+        logWeightings(0);
+        generateRandomWeightings(1);
+    }
+
     public static void logWeightings(int turnSide) {
         final Side side = Side.values()[turnSide];
         LOGGER.info("{} Threatened square weighting is {}", side, threatenedSquareWeightings[turnSide]);
