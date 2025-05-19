@@ -56,30 +56,48 @@ public class PositionEvaluatorTest {
     void testPlayAIGames() {
         final int matchesToPlay = 100;
         int matchNumber = 0;
+        final int maxDepth = 5;
         while (matchNumber < matchesToPlay) {
-            final Integer winner0 = playGame(matchNumber, 0);
-            WeightingConfig.swapWeightings();
-            final Integer winner1 = playGame(matchNumber, 1);
-            if (winner0 != null && winner1 != null) {
-                // Neither game was a stalemate
-                if (winner0.equals(winner1)) {
-                    // Neither of the weighting configurations is measurably superior
-//                    WeightingConfig.generateRandomWeightings(0);
-                    WeightingConfig.breedWeightings();
-                } else {
-                    // One of the weighting configs is superior
+            int depth = 1;
+            int gameNumber = 0;
+            while (depth < maxDepth) {
+                final Integer winner0 = playGame(matchNumber, gameNumber, depth);
+                WeightingConfig.swapWeightings();
+                final Integer winner1 = playGame(matchNumber, gameNumber + 1, depth);
+                if (winner0 != null && winner1 != null) {
+                    // Neither game was a stalemate
+                    if (winner0.equals(winner1)) {
+                        // Neither of the weighting configurations is measurably superior
+                        if (depth < maxDepth - 1) {
+                            depth++;
+                            gameNumber += 2;
+                        } else {
+                            WeightingConfig.breedWeightings();
+                            break;
+                        }
+                    } else {
+                        // One of the weighting configs is superior
+                        WeightingConfig.generateRandomWeightings(1 - winner1);
+                        break;
+                    }
+                } else if (winner0 == null && winner1 == null) {
+                    // Both games were a stalemate
+                    if (depth < maxDepth - 1) {
+                        depth++;
+                        gameNumber += 2;
+                    } else {
+                        WeightingConfig.breedWeightings();
+                        break;
+                    }
+                } else if (winner0 == null) {
+                    // The first game was a stalemate
                     WeightingConfig.generateRandomWeightings(1 - winner1);
+                    break;
+                } else {
+                    // The second game was a stalemate
+                    WeightingConfig.generateRandomWeightings(winner0);
+                    break;
                 }
-            } else if (winner0 == null && winner1 == null)  {
-                // Both games were a stalemate
-//                WeightingConfig.generateRandomWeightings(0);
-                WeightingConfig.breedWeightings();
-            } else if (winner0 == null) {
-                // The first game was a stalemate
-                WeightingConfig.generateRandomWeightings(1 - winner1);
-            } else {
-                // The second game was a stalemate
-                WeightingConfig.generateRandomWeightings(winner0);
             }
             matchNumber++;
         }
@@ -87,14 +105,14 @@ public class PositionEvaluatorTest {
         WeightingConfig.logWeightings(1);
     }
 
-    private Integer playGame(int matchNumber, int gameNumber) {
+    private Integer playGame(int matchNumber, int gameNumber, int depth) {
         PieceConfiguration pieceConfiguration = FENReader.read(FENWriter.STARTING_POSITION);
         PieceConfiguration previousConfiguration = null;
 
         while (pieceConfiguration != null) {
             previousConfiguration = pieceConfiguration;
             LOGGER.debug(pieceConfiguration.toString());
-            pieceConfiguration = PositionEvaluator.getBestMoveRecursively(pieceConfiguration, 3);
+            pieceConfiguration = PositionEvaluator.getBestMoveRecursively(pieceConfiguration, depth);
         }
 
         LOGGER.info(previousConfiguration.toString());
