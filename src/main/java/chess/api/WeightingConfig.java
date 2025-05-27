@@ -96,6 +96,13 @@ public class WeightingConfig {
         LOGGER.info("{} Occupied centre weighting is {}", side, occupiedCentreWeightings[turnSide]);
     }
 
+    public static void logRawWeightings(int turnSide) {
+        final Side side = Side.values()[turnSide];
+        LOGGER.info("{} Threatened square raw weighting is {}", side, threatenedSquareWeightings[turnSide] * THREATENED_SQUARE_MAX);
+        LOGGER.info("{} Threatened piece raw weighting is {}", side, threatenedPieceWeightings[turnSide] * THREATENED_PIECE_MAX);
+        LOGGER.info("{} Occupied centre raw weighting is {}", side, occupiedCentreWeightings[turnSide] * OCCUPIED_CENTRE_MAX);
+    }
+
     public static void generateRandomWeightings() {
         LOGGER.info("Generating new random weighting values for both sides");
         generateRandomWeightings(0);

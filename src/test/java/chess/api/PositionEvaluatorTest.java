@@ -61,14 +61,22 @@ public class PositionEvaluatorTest {
             int depth = 1;
             int gameNumber = 0;
             while (depth < maxDepth) {
-                final Integer winner0 = playGame(matchNumber, gameNumber, depth);
+                final WinningTuple winningTuple0 = playGame(matchNumber, gameNumber, depth);
+                final Integer winner0 = winningTuple0.winner();
                 WeightingConfig.swapWeightings();
-                final Integer winner1 = playGame(matchNumber, gameNumber + 1, depth);
+                final WinningTuple winningTuple1 = playGame(matchNumber, gameNumber + 1, depth);
+                final Integer winner1 = winningTuple1.winner();
                 if (winner0 != null && winner1 != null) {
                     // Neither game was a stalemate
                     if (winner0.equals(winner1)) {
                         // Neither of the weighting configurations is measurably superior
-                        if (depth < maxDepth - 1) {
+                        if (winningTuple0.fullMoveNumber() < winningTuple1.fullMoveNumber()){
+                            WeightingConfig.generateRandomWeightings(1 - winner0);
+                            break;
+                        } else if (winningTuple0.fullMoveNumber() > winningTuple1.fullMoveNumber()){
+                            WeightingConfig.generateRandomWeightings(1 - winner1);
+                            break;
+                        } else if (depth < maxDepth - 1){
                             depth++;
                             gameNumber += 2;
                         } else {
@@ -103,9 +111,11 @@ public class PositionEvaluatorTest {
         }
         WeightingConfig.logWeightings(0);
         WeightingConfig.logWeightings(1);
+        WeightingConfig.logRawWeightings(0);
+        WeightingConfig.logRawWeightings(1);
     }
 
-    private Integer playGame(int matchNumber, int gameNumber, int depth) {
+    private WinningTuple playGame(int matchNumber, int gameNumber, int depth) {
         PieceConfiguration pieceConfiguration = FENReader.read(FENWriter.STARTING_POSITION);
         PieceConfiguration previousConfiguration = null;
 
@@ -119,10 +129,10 @@ public class PositionEvaluatorTest {
         if (previousConfiguration.isCheck()) {
             Side winner = Side.values()[previousConfiguration.getOpposingSide()];
             LOGGER.info("Match {} game {} win for {}", matchNumber, gameNumber, winner);
-            return winner.ordinal();
+            return new WinningTuple(winner.ordinal(), previousConfiguration.getFullMoveNumber());
         } else {
             LOGGER.info("Match {} game {} stalemate", matchNumber, gameNumber);
-            return null;
+            return new WinningTuple(null, previousConfiguration.getFullMoveNumber());
         }
     }
 
@@ -145,5 +155,8 @@ public class PositionEvaluatorTest {
             }
         }
 //        mateConfiguration.logGameHistory();
+    }
+
+    record WinningTuple(Integer winner, int fullMoveNumber) {
     }
 }
