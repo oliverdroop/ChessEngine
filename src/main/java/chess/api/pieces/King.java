@@ -3,10 +3,10 @@ package chess.api.pieces;
 import chess.api.BitUtil;
 import chess.api.PieceConfiguration;
 import chess.api.Position;
-import com.google.common.collect.ImmutableMap;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static chess.api.Position.isValidPosition;
 
@@ -16,7 +16,7 @@ public class King extends Piece{
 
     private static final int[][] STARTING_POSITION_DIRECTIONAL_LIMITS = {{-1, -1, 1}, {0, -1, 1}, {1, -1, 1}, {-1, 0, 2}, {1, 0, 2}, {-1, 1, 1}, {0, 1, 1}, {1, 1, 1}};
 
-    private static final ImmutableMap<Integer, Integer> CASTLE_POSITION_MAPPINGS = ImmutableMap.of(2, 0, 6, 7, 58, 56, 62, 63);
+    private static final Map<Integer, Integer> CASTLE_POSITION_MAPPINGS = Map.of(2, 0, 6, 7, 58, 56, 62, 63);
 
     public static final String AN_CODE = "K";
 

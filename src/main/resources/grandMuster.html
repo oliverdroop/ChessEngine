@@ -227,6 +227,7 @@
         xhr = new XMLHttpRequest();
         var endpointUrl = hostAddress + "/available-moves"
         xhr.open("POST", endpointUrl, true);
+        xhr.setRequestHeader("Content-Type", "application/json");
         var coordinatreString = getCoordinateString(piece.x, piece.y + 1);
         var body = {
             fen: getBoardState(),
@@ -255,6 +256,7 @@
         //Transmit board state
         xhr = new XMLHttpRequest();
         xhr.open("POST", hostAddress, true);
+        xhr.setRequestHeader("Content-Type", "application/json");
         var body = {
             fen: getBoardState(),
             depth: document.getElementById("difficultySlider").value

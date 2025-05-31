@@ -1,8 +1,12 @@
-package chess.api;
+package chess.api.ai;
 
+import chess.api.FENReader;
+import chess.api.FENWriter;
+import chess.api.PieceConfiguration;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import static chess.api.ConcurrentPositionEvaluator.getBestMoveRecursively;
+import static chess.api.ai.ConcurrentPositionEvaluator.getBestMoveRecursively;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class AITest {
@@ -17,7 +21,7 @@ public class AITest {
 	void testAITakesQueen_edgeOfBoard() {
 		setupTest("7k/8/8/q7/1P6/8/8/7K w - - 0 1");
 		newPieceConfiguration = getBestMoveRecursively(pieceConfiguration, DEPTH);
-		assertThat(FENWriter.write(newPieceConfiguration))
+		Assertions.assertThat(FENWriter.write(newPieceConfiguration))
 				.as("White pawn should take black queen")
 				.isEqualTo("7k/8/8/P7/8/8/8/7K b - - 0 1");
 	}

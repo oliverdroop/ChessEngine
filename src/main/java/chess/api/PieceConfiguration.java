@@ -1,7 +1,6 @@
 package chess.api;
 
 import chess.api.pieces.*;
-import com.google.common.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -368,12 +367,10 @@ public class PieceConfiguration {
                 Piece.getPosition(previousBitFlag), Piece.getPosition(currentBitFlag), capturing, promotionTo);
     }
 
-    @VisibleForTesting
     int getAuxiliaryData() {
         return auxiliaryData;
     }
 
-    @VisibleForTesting
     void setAuxiliaryData(int auxiliaryData) {
         this.auxiliaryData = auxiliaryData;
     }

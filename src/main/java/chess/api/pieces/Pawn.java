@@ -3,7 +3,6 @@ package chess.api.pieces;
 import chess.api.BitUtil;
 import chess.api.PieceConfiguration;
 import chess.api.Position;
-import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.util.Strings;
 
 import java.util.ArrayList;
@@ -19,7 +18,7 @@ public class Pawn extends Piece{
 
     private static final int[][] BLACK_DIRECTIONAL_LIMITS = {{1, -1, 1}, {0, -1, 2}, {-1, -1, 1}};
 
-    public static final Map<Integer, String> PROMOTION_PIECE_TYPES = ImmutableMap.of(KNIGHT_OCCUPIED, "N", BISHOP_OCCUPIED, "B", ROOK_OCCUPIED, "R", QUEEN_OCCUPIED, "Q");
+    public static final Map<Integer, String> PROMOTION_PIECE_TYPES = Map.of(KNIGHT_OCCUPIED, "N", BISHOP_OCCUPIED, "B", ROOK_OCCUPIED, "R", QUEEN_OCCUPIED, "Q");
 
     public static int[][] getDirectionalLimits(int pieceBitFlag) {
         return getSide(pieceBitFlag) == 0 ? WHITE_DIRECTIONAL_LIMITS : BLACK_DIRECTIONAL_LIMITS;

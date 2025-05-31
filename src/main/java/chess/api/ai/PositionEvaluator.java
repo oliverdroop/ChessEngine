@@ -1,5 +1,7 @@
-package chess.api;
+package chess.api.ai;
 
+import chess.api.GameEndType;
+import chess.api.PieceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

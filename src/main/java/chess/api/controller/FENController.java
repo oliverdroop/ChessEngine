@@ -6,6 +6,7 @@ import chess.api.dto.AiMoveRequestDto;
 import chess.api.dto.AiMoveResponseDto;
 import chess.api.pieces.Piece;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.validation.Valid;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
 import org.springframework.http.ResponseEntity;
@@ -17,9 +18,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static chess.api.OpeningBook.getOpeningResponse;
-import static chess.api.PositionEvaluator.deriveGameEndType;
-import static chess.api.ConcurrentPositionEvaluator.getBestMoveRecursively;
+import static chess.api.ai.OpeningBook.getOpeningResponse;
+import static chess.api.ai.PositionEvaluator.deriveGameEndType;
+import static chess.api.ai.ConcurrentPositionEvaluator.getBestMoveRecursively;
 
 @RestController
 public class FENController {
@@ -27,12 +28,11 @@ public class FENController {
     private static final Logger LOGGER = LoggerFactory.getLogger(FENController.class);
 
     @PostMapping("/chess")
-    public ResponseEntity<AiMoveResponseDto> getAiMove(@RequestBody String body) {
-        LOGGER.info("Received AI move request: {}", body);
+    public ResponseEntity<AiMoveResponseDto> getAiMove(@RequestBody @Valid AiMoveRequestDto aiMoveRequestDto) {
+        LOGGER.info("Received AI move request: {}", aiMoveRequestDto);
         final AiMoveResponseDto response = new AiMoveResponseDto();
         try {
             final ObjectMapper objectMapper = new ObjectMapper();
-            final AiMoveRequestDto aiMoveRequestDto = objectMapper.readValue(body, AiMoveRequestDto.class);
             LOGGER.debug("FEN: {}", aiMoveRequestDto.getFen());
             LOGGER.debug("Depth: {}", aiMoveRequestDto.getDepth());
             final PieceConfiguration inputConfiguration = FENReader.read(aiMoveRequestDto.getFen());
@@ -64,10 +64,9 @@ public class FENController {
     }
 
     @PostMapping("/chess/available-moves")
-    public ResponseEntity<List<String>> getAvailableMoves(@RequestBody String body) {
-        LOGGER.info("Received available moves request: {}", body);
+    public ResponseEntity<List<String>> getAvailableMoves(@RequestBody @Valid AvailableMovesRequestDto availableMovesRequestDto) {
+        LOGGER.info("Received available moves request: {}", availableMovesRequestDto);
         try {
-            final AvailableMovesRequestDto availableMovesRequestDto = new ObjectMapper().readValue(body, AvailableMovesRequestDto.class);
             LOGGER.debug("FEN: {}", availableMovesRequestDto.getFen());
             LOGGER.debug("From: {}", availableMovesRequestDto.getFrom());
             final PieceConfiguration inputConfiguration = FENReader.read(availableMovesRequestDto.getFen());

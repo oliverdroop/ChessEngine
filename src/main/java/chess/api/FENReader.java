@@ -1,11 +1,8 @@
 package chess.api;
 
-import chess.api.pieces.*;
-import com.google.common.collect.ImmutableMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,19 +12,23 @@ public class FENReader {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(FENReader.class);
 
-	private static final Map<Character, Integer> pieceMappings = new ImmutableMap.Builder<Character, Integer>()
-			.put('K', KING_OCCUPIED)
-			.put('k', KING_OCCUPIED)
-			.put('Q', QUEEN_OCCUPIED)
-			.put('q', QUEEN_OCCUPIED)
-			.put('R', ROOK_OCCUPIED)
-			.put('r', ROOK_OCCUPIED)
-			.put('N', KNIGHT_OCCUPIED)
-			.put('n', KNIGHT_OCCUPIED)
-			.put('B', BISHOP_OCCUPIED)
-			.put('b', BISHOP_OCCUPIED)
-			.put('P', PAWN_OCCUPIED)
-			.put('p', PAWN_OCCUPIED).build();
+	private static final Map<Character, Integer> pieceMappings = new HashMap<>();
+
+	static {
+		pieceMappings.put('K', KING_OCCUPIED);
+		pieceMappings.put('k', KING_OCCUPIED);
+		pieceMappings.put('Q', QUEEN_OCCUPIED);
+		pieceMappings.put('q', QUEEN_OCCUPIED);
+		pieceMappings.put('R', ROOK_OCCUPIED);
+		pieceMappings.put('r', ROOK_OCCUPIED);
+		pieceMappings.put('N', KNIGHT_OCCUPIED);
+		pieceMappings.put('n', KNIGHT_OCCUPIED);
+		pieceMappings.put('B', BISHOP_OCCUPIED);
+		pieceMappings.put('b', BISHOP_OCCUPIED);
+		pieceMappings.put('P', PAWN_OCCUPIED);
+		pieceMappings.put('p', PAWN_OCCUPIED);
+	}
+
 	
 	public static PieceConfiguration read(String fen) {
 		PieceConfiguration pieceConfiguration = new PieceConfiguration();

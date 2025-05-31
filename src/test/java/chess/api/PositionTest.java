@@ -29,6 +29,12 @@ public class PositionTest {
                 .isEqualTo(expectedPosition);
     }
 
+    @ParameterizedTest
+    @MethodSource("getExpectedTranslations")
+    void testApplyTranslation(int position, int x, int y, boolean isNotNegative) {
+        assertThat(Position.applyTranslation(position, x, y) >= 0).isEqualTo(isNotNegative);
+    }
+
     private static Stream<Arguments> getCoordinateStrings() {
         return Stream.of(
                 Arguments.of("a1", 0),
@@ -49,6 +55,32 @@ public class PositionTest {
                 Arguments.of(DIRECTION_SE, 25),
                 Arguments.of(DIRECTION_S, 26),
                 Arguments.of(DIRECTION_ANY_KNIGHT, -1)
+        );
+    }
+
+    private static Stream<Arguments> getExpectedTranslations() {
+        return Stream.of(
+            Arguments.of(0, 0, 0, true),
+            Arguments.of(0, 0, 1, true),
+            Arguments.of(0, 0, 2, true),
+            Arguments.of(0, 1, 0, true),
+            Arguments.of(0, 1, 1, true),
+            Arguments.of(0, 1, 2, true),
+            Arguments.of(0, 2, 2, true),
+            Arguments.of(0, -1, 0, false),
+            Arguments.of(0, -1, 1, false),
+            Arguments.of(0, -1, -1, false),
+            Arguments.of(0, -1, -2, false),
+            Arguments.of(0, -2, 0, false),
+            Arguments.of(0, -2, -1, false),
+            Arguments.of(7, -1, 0, true),
+            Arguments.of(7, 0, 1, true),
+            Arguments.of(7, 0, -1, false),
+            Arguments.of(63, 1, 0, false),
+            Arguments.of(63, 0, 1, false),
+            Arguments.of(56, 1, 0, true),
+            Arguments.of(56, -1, 0, false),
+            Arguments.of(56, 0, 1, false)
         );
     }
 }

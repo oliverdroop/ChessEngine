@@ -1,5 +1,6 @@
-package chess.api;
+package chess.api.ai;
 
+import chess.api.PieceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -8,7 +9,7 @@ import java.util.Optional;
 import java.util.concurrent.*;
 import java.util.function.Supplier;
 
-import static chess.api.PositionEvaluator.getBestScoreDifferentialRecursively;
+import static chess.api.ai.PositionEvaluator.getBestScoreDifferentialRecursively;
 
 public class ConcurrentPositionEvaluator {
 

@@ -55,10 +55,8 @@ public class Position {
 
     public static String getCoordinateString(int position) {
         int[] coordinates = getCoordinates(position);
-        return new StringBuilder()
-                .append((char) (coordinates[0] + 97))
-                .append((char) (coordinates[1] + 49))
-                .toString();
+        return String.valueOf((char) (coordinates[0] + 97)) +
+            (char) (coordinates[1] + 49);
     }
 
     public static int getPosition(String coordinateString) {
@@ -73,9 +71,10 @@ public class Position {
     }
 
     public static int applyTranslation(int position, int translationX, int translationY) {
-        int newX = getX(position) + translationX;
-        int newY = getY(position) + translationY;
-        if (((newX | newY) & ~7) == 0) {
+        final int newX = getX(position) + translationX;
+        final int newY = getY(position) + translationY;
+        final int combination = newX | newY;
+        if ((combination & 7) == combination) {
             return getPosition(newX, newY);
         }
         return -1;

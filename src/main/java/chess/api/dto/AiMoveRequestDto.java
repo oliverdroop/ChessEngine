@@ -1,9 +1,13 @@
 package chess.api.dto;
 
-public class AiMoveRequestDto {
+import jakarta.validation.constraints.NotNull;
+
+public class AiMoveRequestDto extends FENRequestDto{
+
+    @NotNull
     private int depth;
 
-    private String fen;
+    public AiMoveRequestDto(){}
 
     public int getDepth() {
         return depth;
@@ -11,13 +15,5 @@ public class AiMoveRequestDto {
 
     public void setDepth(int depth) {
         this.depth = depth;
-    }
-
-    public String getFen() {
-        return fen;
-    }
-
-    public void setFen(String fen) {
-        this.fen = fen;
     }
 }

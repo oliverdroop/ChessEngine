@@ -209,7 +209,7 @@ public abstract class Piece {
     }
 
     protected static int setDirectionalFlags(int number, int x, int y) {
-        if (Math.abs(x) == 2 | Math.abs(y) == 2) {
+        if ((x & 3) == 2 | (y & 3) == 2) {
             return number | PieceConfiguration.DIRECTION_ANY_KNIGHT;
         }
         return number | Position.DIRECTIONAL_BIT_FLAG_GRID[y + 1][x + 1];
