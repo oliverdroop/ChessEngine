@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
@@ -24,6 +25,9 @@ public class ResourceController {
         final ClassPathResource resource = new ClassPathResource(path);
         try(final InputStream fileInputStream = resource.getInputStream()) {
             return ResponseEntity.ok(fileInputStream.readAllBytes());
+        } catch (FileNotFoundException e) {
+            LOGGER.warn("File not found: {}", path);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         } catch (Throwable e) {
             LOGGER.error("Unable to return {}", path, e);
             final HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;

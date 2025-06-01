@@ -71,7 +71,7 @@ public class FENController {
             LOGGER.debug("From: {}", availableMovesRequestDto.getFrom());
             final PieceConfiguration inputConfiguration = FENReader.read(availableMovesRequestDto.getFen());
             final int pieceBitFlag = inputConfiguration.getPieceAtPosition(Position.getPosition(availableMovesRequestDto.getFrom()));
-            LOGGER.info("The piece for which to get available moves is the {} {} at {}",
+            LOGGER.info("Getting available moves for the {} {} at {}",
                     Side.values()[Piece.getSide(pieceBitFlag)], Piece.getPieceType(pieceBitFlag),
                     Position.getCoordinateString(Position.getPosition(pieceBitFlag)));
 
