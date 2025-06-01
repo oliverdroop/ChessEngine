@@ -244,6 +244,9 @@
             console.log(`Available moves: ${response}`);
             var availableMoveStrings = JSON.parse(response);
             availableMoves = availableMoveStrings.map(s => parseCoordinateString(s));
+            if (availableMoves.length === 0) {
+                pieceSelected = null;
+            }
         } else {
             availableMoves = [];
         }
