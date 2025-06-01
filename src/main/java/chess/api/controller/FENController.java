@@ -18,7 +18,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static chess.api.ai.OpeningBook.getOpeningResponse;
+import static chess.api.ai.openings.OpeningBook.getOpeningResponse;
 import static chess.api.ai.PositionEvaluator.deriveGameEndType;
 import static chess.api.ai.ConcurrentPositionEvaluator.getBestMoveRecursively;
 
@@ -40,6 +40,8 @@ public class FENController {
             PieceConfiguration outputConfiguration = getOpeningResponse(inputConfiguration);
             if (outputConfiguration == null) {
                 outputConfiguration = getBestMoveRecursively(inputConfiguration, aiMoveRequestDto.getDepth());
+            } else {
+                Thread.sleep(500); // Wait a bit to simulate some thinking time
             }
 
             if (outputConfiguration != null) {
