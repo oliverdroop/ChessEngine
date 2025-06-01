@@ -22,7 +22,7 @@ public class ResourceController {
 
     @GetMapping("/{path}")
     public ResponseEntity<byte[]> getResource(@PathVariable String path) {
-        final ClassPathResource resource = new ClassPathResource(path);
+        final ClassPathResource resource = new ClassPathResource(String.format("public/%s", path));
         try(final InputStream fileInputStream = resource.getInputStream()) {
             return ResponseEntity.ok(fileInputStream.readAllBytes());
         } catch (FileNotFoundException e) {
