@@ -27,6 +27,7 @@
 </div>
 <input type="range" name="AI Depth" min="1" max="6" value="4" class="slider" id="difficultySlider" />
 <input type="button" value="Play as Black" onclick="switchSide()" id="switchSideButton" />
+<input type="text" value="" onchange="inputFenDirectly()" id="fenInputTextBox" hidden/>
 </body>
 <script>
     var canv = document.getElementById("canv");
@@ -120,10 +121,21 @@
 
         // Find the index of any pieces which are on the destination square
         var takenPieceIndex = -1;
+        var enPassantOffset = playerTeam == 0 ? -1 : 1;
         for(var pieceIndex = 0; pieceIndex < board.pieces.length; pieceIndex++) {
             var possibleTakenPiece = board.pieces[pieceIndex];
-            if (possibleTakenPiece.x == square.x && possibleTakenPiece.y == square.y) {
-                takenPieceIndex = pieceIndex;
+            if (possibleTakenPiece.x == square.x) {
+                if (possibleTakenPiece.y == square.y) {
+                    // Take the piece on the destination square
+                    takenPieceIndex = pieceIndex;
+                } else if (enPassantSquare != null
+                        && piece.type == "pawn"
+                        && enPassantSquare.x == square.x
+                        && enPassantSquare.y == square.y
+                        && possibleTakenPiece.y == square.y + enPassantOffset) {
+                    // Take the en-passant pawn
+                    takenPieceIndex = pieceIndex;
+                }
             }
         }
         // Remove the taken piece if it exists
@@ -468,6 +480,11 @@
 
         halfmoveClock = fields[4];
         fullmoveNumber = fields[5];
+    }
+
+    function inputFenDirectly() {
+        var fen = document.getElementById("fenInputTextBox").value;
+        setBoardState(fen);
     }
 
     function getPieceCharacter(piece){
