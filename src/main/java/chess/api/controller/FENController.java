@@ -18,8 +18,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static chess.api.PieceConfiguration.deriveGameEndType;
 import static chess.api.ai.openings.OpeningBook.getOpeningResponse;
-import static chess.api.ai.PositionEvaluator.deriveGameEndType;
 import static chess.api.ai.ConcurrentPositionEvaluator.getBestMoveRecursively;
 
 @RestController

@@ -7,11 +7,12 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
+import static chess.api.PieceConfiguration.NO_CAPTURE_OR_PAWN_MOVE_LIMIT;
+import static chess.api.PieceConfiguration.isFiftyMoveRuleFailure;
+
 public class PositionEvaluator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PositionEvaluator.class);
-
-    private static final int NO_CAPTURE_OR_PAWN_MOVE_LIMIT = 99;
 
     public static PieceConfiguration getBestMoveRecursively(PieceConfiguration pieceConfiguration, int depth) {
         final Optional<ConfigurationScorePair> optionalBestEntry = getBestConfigurationScorePairRecursively(pieceConfiguration, depth);
@@ -29,10 +30,6 @@ public class PositionEvaluator {
         }
         // Stalemate
         return -Float.MAX_VALUE;
-    }
-
-    static boolean isFiftyMoveRuleFailure(PieceConfiguration pieceConfiguration) {
-        return pieceConfiguration.getHalfMoveClock() > NO_CAPTURE_OR_PAWN_MOVE_LIMIT;
     }
 
     static Optional<ConfigurationScorePair> getBestConfigurationScorePairRecursively(PieceConfiguration pieceConfiguration, int depth) {
@@ -73,13 +70,5 @@ public class PositionEvaluator {
             return Optional.of(new ConfigurationScorePair(bestOnwardConfiguration, -bestOnwardConfigurationScore));
         }
         return Optional.empty();
-    }
-
-    public static GameEndType deriveGameEndType(PieceConfiguration finalConfiguration) {
-        if (finalConfiguration.isCheck() || finalConfiguration.getHalfMoveClock() == NO_CAPTURE_OR_PAWN_MOVE_LIMIT) {
-            return GameEndType.values()[1 - finalConfiguration.getTurnSide()];
-        } else {
-            return GameEndType.STALEMATE;
-        }
     }
 }

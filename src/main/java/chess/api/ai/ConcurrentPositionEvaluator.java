@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.concurrent.*;
 import java.util.function.Supplier;
 
+import static chess.api.PieceConfiguration.isFiftyMoveRuleFailure;
 import static chess.api.ai.PositionEvaluator.getBestScoreDifferentialRecursively;
 
 public class ConcurrentPositionEvaluator {
@@ -46,7 +47,7 @@ public class ConcurrentPositionEvaluator {
         for (int i = 0; i < onwardConfigurationCount; i++) {
             PieceConfiguration onwardPieceConfiguration = onwardPieceConfigurations.get(i);
 
-            fiftyMoveRuleChecks[i] = PositionEvaluator.isFiftyMoveRuleFailure(onwardPieceConfiguration);
+            fiftyMoveRuleChecks[i] = isFiftyMoveRuleFailure(onwardPieceConfiguration);
 
             CompletableFuture<Double> comparisonFuture = CompletableFuture.supplyAsync(
                     getCallableComparison(onwardPieceConfiguration, currentDiff, depth), executorService);

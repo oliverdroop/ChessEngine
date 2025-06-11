@@ -89,6 +89,8 @@ public class PieceConfiguration {
             DIRECTION_ANY_KNIGHT
     };
 
+    public static final int NO_CAPTURE_OR_PAWN_MOVE_LIMIT = 99;
+
     private static final int[][] CASTLE_POSITION_COMBINATIONS = {
             {},
             {2},
@@ -135,6 +137,18 @@ public class PieceConfiguration {
                 .collect(Collectors.toList());
     }
 
+    public static boolean isFiftyMoveRuleFailure(PieceConfiguration pieceConfiguration) {
+        return pieceConfiguration.getHalfMoveClock() > NO_CAPTURE_OR_PAWN_MOVE_LIMIT;
+    }
+
+    public static GameEndType deriveGameEndType(PieceConfiguration finalConfiguration) {
+        if (finalConfiguration.isCheck() || finalConfiguration.getHalfMoveClock() == NO_CAPTURE_OR_PAWN_MOVE_LIMIT) {
+            return GameEndType.values()[1 - finalConfiguration.getTurnSide()];
+        } else {
+            return GameEndType.STALEMATE;
+        }
+    }
+
     private void clearNonPieceFlags() {
         Arrays.stream(Position.POSITIONS).forEach(pos -> positionBitFlags[pos] = BitUtil.clearBits(positionBitFlags[pos], ~(63 | ALL_PIECE_AND_COLOUR_FLAGS_COMBINED)));
     }
@@ -144,6 +158,10 @@ public class PieceConfiguration {
             positionBitFlags = stampCheckNonBlockerFlags(stampThreatFlags(stampOccupationFlags(positionBitFlags)));
         }
         return Piece.getPossibleMoves(pieceBitFlag, positionBitFlags, this);
+    }
+
+    public int[] getPositionBitFlags() {
+        return positionBitFlags;
     }
 
     private int[] stampOccupationFlags(int[] positions) {
@@ -277,6 +295,10 @@ public class PieceConfiguration {
         positionBitFlags[position] = newPieceBitFlag | pieceTypeFlag;
     }
 
+    public int getAuxiliaryData() {
+        return auxiliaryData;
+    }
+
     public int getTurnSide() {
         return auxiliaryData & 1;
     }
@@ -365,10 +387,6 @@ public class PieceConfiguration {
         }
         return Piece.getAlgebraicNotation(
                 Piece.getPosition(previousBitFlag), Piece.getPosition(currentBitFlag), capturing, promotionTo);
-    }
-
-    int getAuxiliaryData() {
-        return auxiliaryData;
     }
 
     void setAuxiliaryData(int auxiliaryData) {
