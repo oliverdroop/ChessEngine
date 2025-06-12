@@ -9,7 +9,7 @@ public class HeuristicPositionEvaluator implements IPositionEvaluator{
 
     private static final Random RANDOM = new Random();
 
-    private static final int BIT_FLAG_COUNT = 23;
+    private static final int BIT_FLAG_COUNT = 8;
 
     private static final int AUXILIARY_DATA_PART_COUNT = 8;
 
@@ -34,7 +34,7 @@ public class HeuristicPositionEvaluator implements IPositionEvaluator{
         double bestScore = -Double.MAX_VALUE;
         for(PieceConfiguration onwardConfiguration : onwardConfigurations) {
             // Calculate the onward-onward configurations just to set the bit flags
-            onwardConfiguration.getPossiblePieceConfigurations();
+//            onwardConfiguration.getPossiblePieceConfigurations();
             // Get all the inputs
             final int[] inputs = getInputs(onwardConfiguration);
             final double score = calculateScore(inputs);
@@ -54,7 +54,7 @@ public class HeuristicPositionEvaluator implements IPositionEvaluator{
             final int positionBitFlag = positionBitFlags[position];
             for(int bitFlagIndex = 0; bitFlagIndex < BIT_FLAG_COUNT; bitFlagIndex++) {
                 final int inputIndex = (position * BIT_FLAG_COUNT) + bitFlagIndex;
-                inputs[inputIndex] = positionBitFlag >> (6 + bitFlagIndex);
+                inputs[inputIndex] = positionBitFlag >> (8 + bitFlagIndex);
             }
         }
         // Get the auxiliary data inputs
@@ -81,7 +81,7 @@ public class HeuristicPositionEvaluator implements IPositionEvaluator{
             for(int inputIndex2 = 0; inputIndex2 < inputs.length; inputIndex2++) {
                 if (inputIndex != inputIndex2) {
                     final int weightingIndex = (inputIndex * INPUT_COUNT) + inputIndex2;
-                    score += input * weightings[weightingIndex];
+                    score += input * weightings[weightingIndex] * inputs[inputIndex2];
                 }
             }
         }

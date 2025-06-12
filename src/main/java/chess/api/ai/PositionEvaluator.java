@@ -1,13 +1,11 @@
 package chess.api.ai;
 
-import chess.api.GameEndType;
 import chess.api.PieceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
-import static chess.api.PieceConfiguration.NO_CAPTURE_OR_PAWN_MOVE_LIMIT;
 import static chess.api.PieceConfiguration.isFiftyMoveRuleFailure;
 
 public class PositionEvaluator {
