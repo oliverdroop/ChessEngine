@@ -1,29 +1,20 @@
 package chess.api.storage.ephemeral;
 
-import java.util.Set;
+import java.util.Map;
 
 public class TrieNode {
-    private Short moveTo;
-    private Set<TrieNode> onwardNodes;
 
-    public TrieNode(Short moveTo, Set<TrieNode> onwardNodes) {
-        this.moveTo = moveTo;
+    private Map<Short, TrieNode> onwardNodes;
+
+    public TrieNode(Map<Short, TrieNode> onwardNodes) {
         this.onwardNodes = onwardNodes;
     }
 
-    public Short getMoveTo() {
-        return moveTo;
-    }
-
-    public void setMoveTo(Short moveTo) {
-        this.moveTo = moveTo;
-    }
-
-    public Set<TrieNode> getOnwardNodes() {
+    public Map<Short, TrieNode> getOnwardNodes() {
         return onwardNodes;
     }
 
-    public void setOnwardNodes(Set<TrieNode> onwardNodes) {
+    public void setOnwardNodes(Map<Short, TrieNode> onwardNodes) {
         this.onwardNodes = onwardNodes;
     }
 }

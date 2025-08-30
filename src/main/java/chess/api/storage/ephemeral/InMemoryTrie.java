@@ -10,21 +10,16 @@ public class InMemoryTrie {
 
     private final TrieNode rootNode;
 
-
     public InMemoryTrie() {
-        this.rootNode = new TrieNode(null, null);
+        this.rootNode = new TrieNode(null);
     }
 
     public Optional<Set<Short>> getAvailableMoves(short[] movesSoFar) {
         Optional<TrieNode> optionalTrieNode = getNodeAtPath(movesSoFar);
         if (optionalTrieNode.isPresent()) {
-            final Set<TrieNode> onwardNodes = optionalTrieNode.get().getOnwardNodes();
+            final Map<Short, TrieNode> onwardNodes = optionalTrieNode.get().getOnwardNodes();
             if (onwardNodes != null) {
-                return Optional.of(
-                    onwardNodes
-                        .stream()
-                        .map(TrieNode::getMoveTo)
-                        .collect(Collectors.toCollection(HashSet::new)));
+                return Optional.of(onwardNodes.keySet());
             }
         }
         return Optional.empty();
@@ -33,10 +28,9 @@ public class InMemoryTrie {
     public void setAvailableMoves(short[] movesSoFar, Collection<String> algebraicNotations) {
         final Optional<TrieNode> node = getNodeAtPath(movesSoFar);
         if (node.isPresent()) {
-            final Set<TrieNode> onwardNodes = algebraicNotations.stream()
+            final Map<Short, TrieNode> onwardNodes = algebraicNotations.stream()
                 .map(MoveDescriber::getMoveFromAlgebraicNotation)
-                .map(onwardMove -> new TrieNode(onwardMove, null))
-                .collect(Collectors.toSet());
+                .collect(Collectors.toMap(move -> move, move -> new TrieNode(null)));
             node.get().setOnwardNodes(onwardNodes);
         }
     }
@@ -49,13 +43,11 @@ public class InMemoryTrie {
         TrieNode currentNode = rootNode;
         while(index < movesSoFar.length) {
             final short moveTo = movesSoFar[index];
-            final Optional<TrieNode> onwardNode = currentNode.getOnwardNodes()
-                .stream()
-                .filter(trieNode -> trieNode.getMoveTo() == moveTo)
-                .findFirst();
+            final Map<Short, TrieNode> onwardNodes = currentNode.getOnwardNodes();
+            final TrieNode onwardNode = onwardNodes.get(moveTo);
 
-            if (onwardNode.isPresent()) {
-                currentNode = onwardNode.get();
+            if (onwardNode != null) {
+                currentNode = onwardNode;
             } else {
                 return Optional.empty();
             }
