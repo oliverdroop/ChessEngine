@@ -128,7 +128,7 @@ public class PieceConfiguration {
         }
     }
 
-    public static PieceConfiguration fromPreviousConfiguration(PieceConfiguration previousConfiguration, short moveDescription) {
+    public static PieceConfiguration moveFromPreviousConfiguration(PieceConfiguration previousConfiguration, short moveDescription) {
         final PieceConfiguration newConfiguration = new PieceConfiguration(previousConfiguration, true);
         newConfiguration.addHistoricMove(previousConfiguration, moveDescription);
         final int fromPos = (moveDescription & 0b0000111111000000) >> 6;

@@ -45,7 +45,9 @@ public class PositionEvaluator {
         final List<PieceConfiguration> onwardPieceConfigurations;
         final Optional<Set<Short>> onwardMoves = IN_MEMORY_TRIE.getAvailableMoves(pieceConfiguration.getHistoricMoves());
         if (onwardMoves.isPresent()) {
-            onwardPieceConfigurations = onwardMoves.get().stream().map(moveDescription -> PieceConfiguration.fromPreviousConfiguration(pieceConfiguration, moveDescription)).toList();
+            onwardPieceConfigurations = onwardMoves.get().stream()
+                .map(moveDescription -> PieceConfiguration.moveFromPreviousConfiguration(pieceConfiguration, moveDescription))
+                .toList();
         } else {
             onwardPieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
             final List<String> onwardAlgebraicNotations = onwardPieceConfigurations
