@@ -17,6 +17,7 @@ public class PositionEvaluator {
     private static final InMemoryTrie IN_MEMORY_TRIE = new InMemoryTrie();
 
     public static PieceConfiguration getBestMoveRecursively(PieceConfiguration pieceConfiguration, int depth) {
+        IN_MEMORY_TRIE.prune(pieceConfiguration.getHistoricMoves());
         final Optional<ConfigurationScorePair> optionalBestEntry = getBestConfigurationScorePairRecursively(pieceConfiguration, depth);
         return optionalBestEntry.map(ConfigurationScorePair::pieceConfiguration).orElse(null);
     }

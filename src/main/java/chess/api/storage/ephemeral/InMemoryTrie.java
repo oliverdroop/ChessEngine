@@ -55,4 +55,15 @@ public class InMemoryTrie {
         }
         return Optional.of(currentNode);
     }
+
+    public void prune(short[] branchToPreserve) {
+        TrieNode currentNode = rootNode;
+        int index = 0;
+        while (index < branchToPreserve.length && currentNode != null) {
+            final short nextMove = branchToPreserve[index];
+            currentNode.getOnwardNodes().keySet().removeIf(move -> move != nextMove);
+            currentNode = currentNode.getOnwardNodes().get(nextMove);
+            index++;
+        }
+    }
 }
