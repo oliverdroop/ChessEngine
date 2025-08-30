@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import static chess.api.MoveDescriber.describeMove;
 import static chess.api.PieceConfiguration.*;
 import static chess.api.Position.isValidPosition;
 
@@ -132,6 +133,8 @@ public class Pawn extends Piece{
             for(int promotionPieceTypeFlag : PROMOTION_PIECE_TYPES.keySet()) {
                 PieceConfiguration promotedPawnConfiguration = getPromotedPawnConfiguration(newPieceConfiguration,
                         newPiecePosition, promotionPieceTypeFlag);
+                promotedPawnConfiguration.addHistoricMove(
+                    currentConfiguration, describeMove(pieceBitFlag & 63, newPiecePosition, promotionPieceTypeFlag));
                 pieceConfigurations.add(promotedPawnConfiguration);
             }
         }

@@ -1,5 +1,6 @@
 package chess.api.storage.ephemeral;
 
+import chess.api.MoveDescriber;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -18,7 +19,7 @@ public class InMemoryTrieTest {
     @ParameterizedTest
     @MethodSource("getAlgebraicNotationArguments")
     void getMoveFromAlgebraicNotation(String algebraicNotation, short expectedMoveShort){
-        assertThat(InMemoryTrie.getMoveFromAlgebraicNotation(algebraicNotation)).isEqualTo(expectedMoveShort);
+        assertThat(MoveDescriber.getMoveFromAlgebraicNotation(algebraicNotation)).isEqualTo(expectedMoveShort);
     }
 
     @Test

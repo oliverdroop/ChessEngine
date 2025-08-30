@@ -79,6 +79,9 @@ public class FENReader {
 		LOGGER.debug("Halfmove clock set successfully");
 		pieceConfiguration.setFullMoveNumber(Integer.parseInt(fields[5]));
 		LOGGER.debug("Fullmove number set successfully");
+        if (FENWriter.STARTING_POSITION.equals(fen)) {
+            pieceConfiguration.setHistoricMoves(new short[]{});
+        }
 		return pieceConfiguration;
 	}
 	

@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.function.Predicate;
 
+import static chess.api.MoveDescriber.describeMove;
 import static chess.api.PieceConfiguration.*;
 import static chess.api.Position.isValidPosition;
 
@@ -106,6 +107,7 @@ public abstract class Piece {
             int movedPieceBitFlag = (pieceBitFlag ^ getPosition(pieceBitFlag)) | newPiecePosition;
             newConfiguration.addPiece(movedPieceBitFlag);
             newConfiguration.removePiece(pieceBitFlag);
+            newConfiguration.addHistoricMove(currentConfiguration, describeMove(pieceBitFlag & 63, newPiecePosition, 0));
         } catch (Exception e) {
             LOGGER.error("Problem creating new piece configuration");
             return;

@@ -1,20 +1,18 @@
 package chess.api.storage.ephemeral;
 
-import chess.api.FENReader;
-import chess.api.FENWriter;
-import chess.api.PieceConfiguration;
-import chess.api.Position;
+import chess.api.*;
 
 import java.util.*;
 import java.util.regex.MatchResult;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static chess.api.MoveDescriber.describeMove;
+import static chess.api.MoveDescriber.getMoveFromAlgebraicNotation;
+import static chess.api.PieceConfiguration.*;
 import static java.lang.String.format;
 
 public class InMemoryTrie {
-
-    private static final Map<String, Integer> PROMOTION_BIT_FLAGS = Map.of("q", 8, "r", 4, "b", 2, "n", 1);
 
     private final TrieNode rootNode;
 
@@ -32,7 +30,25 @@ public class InMemoryTrie {
     }
 
     public Optional<Set<Short>> getAvailableMoves(short[] movesSoFar) {
+        Optional<TrieNode> optionalTrieNode = getNodeAtPath(movesSoFar);
+        if (optionalTrieNode.isPresent()) {
+            final Set<TrieNode> onwardNodes = optionalTrieNode.get().getOnwardNodes();
+            if (onwardNodes != null) {
+                return Optional.of(
+                    onwardNodes
+                        .stream()
+                        .map(TrieNode::getMoveTo)
+                        .collect(Collectors.toSet()));
+            }
+        }
+        return Optional.empty();
+    }
+
+    public Optional<Set<Short>> getAvailableMoves2(short[] movesSoFar) {
         int index = 0;
+        if (movesSoFar == null) {
+            return Optional.empty();
+        }
         TrieNode currentNode = rootNode;
         while(index < movesSoFar.length) {
             final short moveTo = movesSoFar[index];
@@ -50,7 +66,7 @@ public class InMemoryTrie {
                 onwardNode.get().setOnwardNodes(currentConfiguration.getPossiblePieceConfigurations()
                     .stream()
                     .map(onwardConfiguration -> onwardConfiguration.getAlgebraicNotation(currentConfiguration))
-                    .map(InMemoryTrie::getMoveFromAlgebraicNotation)
+                    .map(MoveDescriber::getMoveFromAlgebraicNotation)
                     .map(move -> new TrieNode(move, null))
                     .collect(Collectors.toSet()));
             }
@@ -60,26 +76,35 @@ public class InMemoryTrie {
         return Optional.of(currentNode.getOnwardNodes().stream().map(TrieNode::getMoveTo).collect(Collectors.toSet()));
     }
 
-    static short getMoveFromAlgebraicNotation(String algebraicNotation) {
-        final Pattern positionPattern = Pattern.compile("[a-h][1-8]");
-        final Pattern promotionPattern = Pattern.compile("[qrbn]$");
-        final int[] fromAndToPositions = positionPattern.matcher(algebraicNotation)
-            .results()
-            .mapToInt(matchResult -> Position.getPosition(matchResult.group()))
-            .toArray();
-
-        if (fromAndToPositions.length != 2) {
-            throw new IllegalArgumentException(
-                format("Unable to get move from algebraic notation %s", algebraicNotation));
+    public void setAvailableMoves(short[] movesSoFar, Collection<String> algebraicNotations) {
+        Optional<TrieNode> node = getNodeAtPath(movesSoFar);
+        if (node.isPresent()) {
+            final Set<TrieNode> onwardNodes = algebraicNotations.stream()
+                .map(MoveDescriber::getMoveFromAlgebraicNotation)
+                .map(onwardMove -> new TrieNode(onwardMove, null))
+                .collect(Collectors.toSet());
+            node.get().setOnwardNodes(onwardNodes);
         }
-        final String promotionString = promotionPattern.matcher(algebraicNotation)
-            .results()
-            .map(MatchResult::group)
-            .reduce(String::concat)
-            .orElse("");
-        final int promotionInt = PROMOTION_BIT_FLAGS.getOrDefault(promotionString, 0);
-        final int outputInt = (promotionInt << 12) | (fromAndToPositions[0] << 6) | (fromAndToPositions[1]);
-        return (short) outputInt;
+    }
+
+    public Optional<TrieNode> getNodeAtPath(short[] movesSoFar) {
+        int index = 0;
+        TrieNode currentNode = rootNode;
+        while(index < movesSoFar.length) {
+            final short moveTo = movesSoFar[index];
+            final Optional<TrieNode> onwardNode = currentNode.getOnwardNodes()
+                .stream()
+                .filter(trieNode -> trieNode.getMoveTo() == moveTo)
+                .findFirst();
+
+            if (onwardNode.isPresent()) {
+                currentNode = onwardNode.get();
+            } else {
+                return Optional.empty();
+            }
+            index++;
+        }
+        return Optional.of(currentNode);
     }
     
     private static PieceConfiguration getPieceConfigurationFromPath(short[] path) {

@@ -8,6 +8,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static chess.api.BitUtil.*;
+import static chess.api.pieces.King.CASTLE_POSITION_MAPPINGS;
 import static chess.api.pieces.Pawn.PROMOTION_PIECE_TYPES;
 
 public class PieceConfiguration {
@@ -113,6 +114,8 @@ public class PieceConfiguration {
 
     private int[] positionBitFlags = Position.POSITIONS.clone();
 
+    private short[] historicMoves;
+
     public PieceConfiguration() {}
 
     public PieceConfiguration(PieceConfiguration copiedConfiguration, boolean copyPieces) {
@@ -123,6 +126,71 @@ public class PieceConfiguration {
                     .forEach(pos -> positionBitFlags[pos] = BitUtil.applyBitFlag(positionBitFlags[pos],
                             copiedConfiguration.positionBitFlags[pos] & ALL_PIECE_AND_COLOUR_FLAGS_COMBINED));
         }
+    }
+
+    public static PieceConfiguration fromPreviousConfiguration(PieceConfiguration previousConfiguration, short moveDescription) {
+        final PieceConfiguration newConfiguration = new PieceConfiguration(previousConfiguration, true);
+        newConfiguration.addHistoricMove(previousConfiguration, moveDescription);
+        final int fromPos = (moveDescription & 0b0000111111000000) >> 6;
+        final int toPos = moveDescription & 0b0000000000111111;
+        final int promotionBitFlag = (moveDescription & 0b1111000000000000) >> 1;
+        final int oldPieceBitFlag = previousConfiguration.getPieceAtPosition(fromPos);
+        final boolean isAnyPieceTaken = (previousConfiguration.getPieceAtPosition(toPos) & ALL_PIECE_FLAGS_COMBINED) > 0;
+        final int newPieceBitFlag = promotionBitFlag == 0
+            ? (oldPieceBitFlag & ALL_PIECE_AND_COLOUR_FLAGS_COMBINED) | toPos
+            : (oldPieceBitFlag & COLOUR_FLAGS_COMBINED) | promotionBitFlag | toPos;
+        newConfiguration.removePiece(fromPos);
+        newConfiguration.removePiece(toPos);
+        newConfiguration.addPiece(newPieceBitFlag);
+        final int posDiff = toPos - fromPos;
+        if (hasBitFlag(oldPieceBitFlag, KING_OCCUPIED)) {
+            if (Math.abs(posDiff) == 2) {
+                // Castling
+                final int rookFromPos = CASTLE_POSITION_MAPPINGS.get(toPos);
+                final int rookToPos = posDiff > 0 ? rookFromPos - 1 : rookFromPos + 1;
+                final int oldRookBitFlag = previousConfiguration.getPieceAtPosition(fromPos);
+                final int newRookBitFlag = (oldRookBitFlag & ALL_PIECE_AND_COLOUR_FLAGS_COMBINED) | rookToPos;
+                newConfiguration.removePiece(rookFromPos);
+                newConfiguration.addPiece(newRookBitFlag);
+            }
+            // Remove castle positions for side because king has moved
+            if (hasBitFlag(oldPieceBitFlag, WHITE_OCCUPIED)) {
+                newConfiguration.removeCastlePosition(2);
+                newConfiguration.removeCastlePosition(6);
+            } else {
+                newConfiguration.removeCastlePosition(58);
+                newConfiguration.removeCastlePosition(62);
+            }
+        }
+        if (hasBitFlag(oldPieceBitFlag, ROOK_OCCUPIED) && CASTLE_POSITION_MAPPINGS.containsValue(fromPos)) {
+            // Remove castle position for rook because rook has moved
+            for(Map.Entry<Integer, Integer> entry : CASTLE_POSITION_MAPPINGS.entrySet()) {
+                if (entry.getValue() == fromPos) {
+                    newConfiguration.removeCastlePosition(entry.getKey());
+                }
+            }
+        }
+
+        if (isAnyPieceTaken || hasBitFlag(oldPieceBitFlag, PAWN_OCCUPIED)) {
+            // Reset the half move clock to zero
+            newConfiguration.setHalfMoveClock(0);
+        } else {
+            // Increment the half move clock
+            newConfiguration.setHalfMoveClock(previousConfiguration.getHalfMoveClock() + 1);
+        }
+
+        if (previousConfiguration.getTurnSide() == Side.BLACK.ordinal()) {
+            // Increment the full move number
+            newConfiguration.setFullMoveNumber(previousConfiguration.getFullMoveNumber() + 1);
+        }
+
+        if (hasBitFlag(oldPieceBitFlag, PAWN_OCCUPIED) && Math.abs(posDiff) == 16) {
+            // Set the en passant square
+            newConfiguration.setEnPassantSquare((fromPos + toPos) >> 1);
+        }
+        // Switch the turn side
+        newConfiguration.setTurnSide(previousConfiguration.getOpposingSide());
+        return newConfiguration;
     }
 
     public List<PieceConfiguration> getPossiblePieceConfigurations() {
@@ -365,6 +433,21 @@ public class PieceConfiguration {
         }
         return Piece.getAlgebraicNotation(
                 Piece.getPosition(previousBitFlag), Piece.getPosition(currentBitFlag), capturing, promotionTo);
+    }
+
+    public short[] getHistoricMoves() {
+        return historicMoves;
+    }
+
+    public void setHistoricMoves(short[] historicMoves) {
+        this.historicMoves = historicMoves;
+    }
+
+    public void addHistoricMove(PieceConfiguration previousConfiguration, short newMove) {
+        if (previousConfiguration != null && previousConfiguration.getHistoricMoves() != null) {
+            historicMoves = new short[previousConfiguration.getHistoricMoves().length + 1];
+            historicMoves[historicMoves.length - 1] = newMove;
+        }
     }
 
     int getAuxiliaryData() {

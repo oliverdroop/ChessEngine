@@ -2,6 +2,7 @@ package chess.api.ai;
 
 import chess.api.GameEndType;
 import chess.api.PieceConfiguration;
+import chess.api.storage.ephemeral.InMemoryTrie;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,6 +13,8 @@ public class PositionEvaluator {
     private static final Logger LOGGER = LoggerFactory.getLogger(PositionEvaluator.class);
 
     private static final int NO_CAPTURE_OR_PAWN_MOVE_LIMIT = 99;
+
+    private static final InMemoryTrie IN_MEMORY_TRIE = new InMemoryTrie();
 
     public static PieceConfiguration getBestMoveRecursively(PieceConfiguration pieceConfiguration, int depth) {
         final Optional<ConfigurationScorePair> optionalBestEntry = getBestConfigurationScorePairRecursively(pieceConfiguration, depth);
@@ -39,7 +42,18 @@ public class PositionEvaluator {
         final double currentDiff = pieceConfiguration.getValueDifferential();
 
         depth--;
-        final List<PieceConfiguration> onwardPieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
+        final List<PieceConfiguration> onwardPieceConfigurations;
+        final Optional<Set<Short>> onwardMoves = IN_MEMORY_TRIE.getAvailableMoves(pieceConfiguration.getHistoricMoves());
+        if (onwardMoves.isPresent()) {
+            onwardPieceConfigurations = onwardMoves.get().stream().map(moveDescription -> PieceConfiguration.fromPreviousConfiguration(pieceConfiguration, moveDescription)).toList();
+        } else {
+            onwardPieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
+            final List<String> onwardAlgebraicNotations = onwardPieceConfigurations
+                .stream()
+                .map(onwardPieceConfiguration -> onwardPieceConfiguration.getAlgebraicNotation(pieceConfiguration))
+                .toList();
+            IN_MEMORY_TRIE.setAvailableMoves(pieceConfiguration.getHistoricMoves(), onwardAlgebraicNotations);
+        }
         final int onwardConfigurationCount = onwardPieceConfigurations.size();
         final double[] onwardConfigurationScores = new double[onwardConfigurationCount];
         final boolean[] fiftyMoveRuleChecks = new boolean[onwardConfigurationCount];
