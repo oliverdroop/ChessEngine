@@ -133,7 +133,7 @@ public class PieceConfiguration {
         newConfiguration.addHistoricMove(previousConfiguration, moveDescription);
         final int fromPos = (moveDescription & 0b0000111111000000) >> 6;
         final int toPos = moveDescription & 0b0000000000111111;
-        final int promotionBitFlag = (moveDescription & 0b1111000000000000) >> 1;
+        final int promotionBitFlag = (moveDescription & 0b1111000000000000) >>> 1;
         final int oldPieceBitFlag = previousConfiguration.getPieceAtPosition(fromPos);
         final boolean isAnyPieceTaken = (previousConfiguration.getPieceAtPosition(toPos) & ALL_PIECE_FLAGS_COMBINED) > 0;
         final int newPieceBitFlag = promotionBitFlag == 0
@@ -187,6 +187,9 @@ public class PieceConfiguration {
         if (hasBitFlag(oldPieceBitFlag, PAWN_OCCUPIED) && Math.abs(posDiff) == 16) {
             // Set the en passant square
             newConfiguration.setEnPassantSquare((fromPos + toPos) >> 1);
+        } else {
+            // Clear the en passant square
+            newConfiguration.setEnPassantSquare(-1);
         }
         // Switch the turn side
         newConfiguration.setTurnSide(previousConfiguration.getOpposingSide());
@@ -446,6 +449,7 @@ public class PieceConfiguration {
     public void addHistoricMove(PieceConfiguration previousConfiguration, short newMove) {
         if (previousConfiguration != null && previousConfiguration.getHistoricMoves() != null) {
             historicMoves = new short[previousConfiguration.getHistoricMoves().length + 1];
+            System.arraycopy(previousConfiguration.getHistoricMoves(), 0, historicMoves, 0, previousConfiguration.getHistoricMoves().length);
             historicMoves[historicMoves.length - 1] = newMove;
         }
     }

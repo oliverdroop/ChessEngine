@@ -88,6 +88,9 @@ public class InMemoryTrie {
     }
 
     public Optional<TrieNode> getNodeAtPath(short[] movesSoFar) {
+        if (movesSoFar == null) {
+            return Optional.empty();
+        }
         int index = 0;
         TrieNode currentNode = rootNode;
         while(index < movesSoFar.length) {
