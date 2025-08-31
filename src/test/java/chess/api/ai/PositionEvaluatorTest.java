@@ -34,11 +34,14 @@ public class PositionEvaluatorTest {
     @Test
     void testPlayAIGame() {
         PieceConfiguration pieceConfiguration = FENReader.read(FENWriter.STARTING_POSITION);
+        PieceConfiguration previousConfiguration = null;
 
         while(pieceConfiguration != null) {
             LOGGER.info(pieceConfiguration.toString());
+            previousConfiguration = pieceConfiguration;
             pieceConfiguration = PositionEvaluator.getBestMoveRecursively(pieceConfiguration, 4);
         }
+        LOGGER.info(PositionEvaluator.deriveGameEndType(previousConfiguration).toString());
     }
 
     @Test
