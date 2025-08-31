@@ -114,7 +114,7 @@ public class PieceConfiguration {
 
     private int[] positionBitFlags = Position.POSITIONS.clone();
 
-    private int[] historicMoves;
+    private short[] historicMoves;
 
     public PieceConfiguration() {}
 
@@ -128,7 +128,7 @@ public class PieceConfiguration {
         }
     }
 
-    public static PieceConfiguration toNewConfigurationFromMove(PieceConfiguration previousConfiguration, int moveDescription) {
+    public static PieceConfiguration toNewConfigurationFromMove(PieceConfiguration previousConfiguration, short moveDescription) {
         final PieceConfiguration newConfiguration = new PieceConfiguration(previousConfiguration, true);
         newConfiguration.addHistoricMove(previousConfiguration, moveDescription);
         final int fromPos = (moveDescription & 0b0000111111000000) >> 6;
@@ -438,17 +438,17 @@ public class PieceConfiguration {
                 Piece.getPosition(previousBitFlag), Piece.getPosition(currentBitFlag), capturing, promotionTo);
     }
 
-    public int[] getHistoricMoves() {
+    public short[] getHistoricMoves() {
         return historicMoves;
     }
 
-    public void setHistoricMoves(int[] historicMoves) {
+    public void setHistoricMoves(short[] historicMoves) {
         this.historicMoves = historicMoves;
     }
 
-    public void addHistoricMove(PieceConfiguration previousConfiguration, int newMove) {
+    public void addHistoricMove(PieceConfiguration previousConfiguration, short newMove) {
         if (previousConfiguration != null && previousConfiguration.getHistoricMoves() != null) {
-            historicMoves = new int[previousConfiguration.getHistoricMoves().length + 1];
+            historicMoves = new short[previousConfiguration.getHistoricMoves().length + 1];
             System.arraycopy(previousConfiguration.getHistoricMoves(), 0, historicMoves, 0, previousConfiguration.getHistoricMoves().length);
             historicMoves[historicMoves.length - 1] = newMove;
         }

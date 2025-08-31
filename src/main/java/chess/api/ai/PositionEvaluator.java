@@ -55,21 +55,23 @@ public class PositionEvaluator {
 
         depth--;
         final List<PieceConfiguration> onwardPieceConfigurations;
-        final Optional<int[]> onwardMovesOptional = IN_MEMORY_TRIE.getAvailableMoves(pieceConfiguration.getHistoricMoves());
+        final Optional<short[]> onwardMovesOptional = IN_MEMORY_TRIE.getAvailableMoves(pieceConfiguration.getHistoricMoves());
         if (onwardMovesOptional.isPresent()) {
-            onwardPieceConfigurations = Arrays.stream(onwardMovesOptional.get())
-                .boxed()
-                .map(moveDescription -> toNewConfigurationFromMove(pieceConfiguration, moveDescription))
-                .toList();
+            final int onwardMoveCount = onwardMovesOptional.get().length;
+            onwardPieceConfigurations = new ArrayList<>(onwardMoveCount);
+            for(int index = 0; index < onwardMoveCount; index++) {
+                final short moveDescription = onwardMovesOptional.get()[index];
+                onwardPieceConfigurations.add(toNewConfigurationFromMove(pieceConfiguration, moveDescription));
+            }
         } else {
             onwardPieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
             final int moveCount = pieceConfiguration.getHistoricMoves().length;
-            final List<Integer> onwardMoveList = onwardPieceConfigurations
+            final List<Short> onwardMoveList = onwardPieceConfigurations
                 .stream()
                 .map(onwardPieceConfiguration -> onwardPieceConfiguration.getHistoricMoves()[moveCount])
                 .sorted()
                 .toList();
-            final int[] onwardMoveArray = new int[onwardMoveList.size()];
+            final short[] onwardMoveArray = new short[onwardMoveList.size()];
             for(int index = 0; index < onwardMoveArray.length; index++) {
                 onwardMoveArray[index] = onwardMoveList.get(index);
             }
