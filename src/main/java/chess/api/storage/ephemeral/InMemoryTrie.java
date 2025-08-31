@@ -10,12 +10,14 @@ public class InMemoryTrie {
 
     private final TrieNode rootNode;
 
+//    private final Map<short[], TrieNode> trieMap = new TreeMap<>(new ShortArrayComparator());
+
     public InMemoryTrie() {
         this.rootNode = new TrieNode(null);
     }
 
     public Optional<Set<Short>> getAvailableMoves(short[] movesSoFar) {
-        Optional<TrieNode> optionalTrieNode = getNodeAtPath(movesSoFar);
+        final Optional<TrieNode> optionalTrieNode = getNodeAtPath(movesSoFar);
         if (optionalTrieNode.isPresent()) {
             final Map<Short, TrieNode> onwardNodes = optionalTrieNode.get().getOnwardNodes();
             if (onwardNodes != null) {
@@ -28,8 +30,14 @@ public class InMemoryTrie {
     public void setAvailableMoves(short[] movesSoFar, Collection<Short> availableMoves) {
         final Optional<TrieNode> node = getNodeAtPath(movesSoFar);
         if (node.isPresent()) {
-            final Map<Short, TrieNode> onwardNodes = availableMoves.stream()
-                .collect(Collectors.toMap(move -> move, move -> new TrieNode(null)));
+            final TreeMap<Short, TrieNode> onwardNodes = availableMoves.stream()
+                .collect(
+                    Collectors.toMap(
+                        move -> move, // Key function
+                        move -> new TrieNode(null), // Value function
+                        (v1, v2) -> v1, // Merge function (required but not used)
+                        TreeMap::new // Map supplier
+                    ));
             node.get().setOnwardNodes(onwardNodes);
         }
     }
