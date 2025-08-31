@@ -80,7 +80,7 @@ public class FENReader {
 		pieceConfiguration.setFullMoveNumber(Integer.parseInt(fields[5]));
 		LOGGER.debug("Fullmove number set successfully");
         if (FENWriter.STARTING_POSITION.equals(fen)) {
-            pieceConfiguration.setHistoricMoves(new short[]{});
+            pieceConfiguration.setHistoricMoves(new int[]{});
         }
 		return pieceConfiguration;
 	}

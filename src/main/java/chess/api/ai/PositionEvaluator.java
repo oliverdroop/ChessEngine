@@ -7,7 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.stream.Collectors;
+
+import static chess.api.PieceConfiguration.toNewConfigurationFromMove;
 
 public class PositionEvaluator {
 
@@ -54,18 +55,25 @@ public class PositionEvaluator {
 
         depth--;
         final List<PieceConfiguration> onwardPieceConfigurations;
-        final Optional<Set<Short>> onwardMoves = IN_MEMORY_TRIE.getAvailableMoves(pieceConfiguration.getHistoricMoves());
-        if (onwardMoves.isPresent()) {
-            onwardPieceConfigurations = onwardMoves.get().stream()
-                .map(moveDescription -> PieceConfiguration.moveFromPreviousConfiguration(pieceConfiguration, moveDescription))
+        final Optional<int[]> onwardMovesOptional = IN_MEMORY_TRIE.getAvailableMoves(pieceConfiguration.getHistoricMoves());
+        if (onwardMovesOptional.isPresent()) {
+            onwardPieceConfigurations = Arrays.stream(onwardMovesOptional.get())
+                .boxed()
+                .map(moveDescription -> toNewConfigurationFromMove(pieceConfiguration, moveDescription))
                 .toList();
         } else {
             onwardPieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
             final int moveCount = pieceConfiguration.getHistoricMoves().length;
-            final Set<Short> onwardMoveArray = onwardPieceConfigurations
+            final List<Integer> onwardMoveList = onwardPieceConfigurations
                 .stream()
                 .map(onwardPieceConfiguration -> onwardPieceConfiguration.getHistoricMoves()[moveCount])
-                .collect(Collectors.toSet());
+                .sorted()
+                .toList();
+            final int[] onwardMoveArray = new int[onwardMoveList.size()];
+            for(int index = 0; index < onwardMoveArray.length; index++) {
+                onwardMoveArray[index] = onwardMoveList.get(index);
+            }
+
             IN_MEMORY_TRIE.setAvailableMoves(pieceConfiguration.getHistoricMoves(), onwardMoveArray);
         }
         final int onwardConfigurationCount = onwardPieceConfigurations.size();
