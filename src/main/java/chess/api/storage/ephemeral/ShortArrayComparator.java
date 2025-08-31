@@ -2,7 +2,7 @@ package chess.api.storage.ephemeral;
 
 import java.util.Comparator;
 
-public class IntArrayComparator implements Comparator<short[]> {
+public class ShortArrayComparator implements Comparator<short[]> {
 
     @Override
     public int compare(short[] t1, short[] t2) {

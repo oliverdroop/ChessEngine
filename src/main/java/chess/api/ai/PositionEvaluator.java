@@ -22,7 +22,7 @@ public class PositionEvaluator {
 
     public static PieceConfiguration getBestMoveRecursively(PieceConfiguration pieceConfiguration, int depth) {
         countSincePrune += 1;
-        if (countSincePrune >= 16) {
+        if (countSincePrune >= 16 && pieceConfiguration.getHistoricMoves() != null) {
             long t1 = System.currentTimeMillis();
             IN_MEMORY_TRIE.prune(pieceConfiguration.getHistoricMoves());
             long t2 = System.currentTimeMillis();
@@ -65,18 +65,20 @@ public class PositionEvaluator {
             }
         } else {
             onwardPieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
-            final int moveCount = pieceConfiguration.getHistoricMoves().length;
-            final List<Short> onwardMoveList = onwardPieceConfigurations
-                .stream()
-                .map(onwardPieceConfiguration -> onwardPieceConfiguration.getHistoricMoves()[moveCount])
-                .sorted()
-                .toList();
-            final short[] onwardMoveArray = new short[onwardMoveList.size()];
-            for(int index = 0; index < onwardMoveArray.length; index++) {
-                onwardMoveArray[index] = onwardMoveList.get(index);
-            }
+            if (pieceConfiguration.getHistoricMoves() != null) {
+                final int moveCount = pieceConfiguration.getHistoricMoves().length;
+                final List<Short> onwardMoveList = onwardPieceConfigurations
+                    .stream()
+                    .map(onwardPieceConfiguration -> onwardPieceConfiguration.getHistoricMoves()[moveCount])
+                    .sorted()
+                    .toList();
+                final short[] onwardMoveArray = new short[onwardMoveList.size()];
+                for (int index = 0; index < onwardMoveArray.length; index++) {
+                    onwardMoveArray[index] = onwardMoveList.get(index);
+                }
 
-            IN_MEMORY_TRIE.setAvailableMoves(pieceConfiguration.getHistoricMoves(), onwardMoveArray);
+                IN_MEMORY_TRIE.setAvailableMoves(pieceConfiguration.getHistoricMoves(), onwardMoveArray);
+            }
         }
         final int onwardConfigurationCount = onwardPieceConfigurations.size();
         final double[] onwardConfigurationScores = new double[onwardConfigurationCount];
