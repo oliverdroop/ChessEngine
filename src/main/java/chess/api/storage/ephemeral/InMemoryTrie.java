@@ -25,11 +25,10 @@ public class InMemoryTrie {
         return Optional.empty();
     }
 
-    public void setAvailableMoves(short[] movesSoFar, Collection<String> algebraicNotations) {
+    public void setAvailableMoves(short[] movesSoFar, Collection<Short> availableMoves) {
         final Optional<TrieNode> node = getNodeAtPath(movesSoFar);
         if (node.isPresent()) {
-            final Map<Short, TrieNode> onwardNodes = algebraicNotations.stream()
-                .map(MoveDescriber::getMoveFromAlgebraicNotation)
+            final Map<Short, TrieNode> onwardNodes = availableMoves.stream()
                 .collect(Collectors.toMap(move -> move, move -> new TrieNode(null)));
             node.get().setOnwardNodes(onwardNodes);
         }

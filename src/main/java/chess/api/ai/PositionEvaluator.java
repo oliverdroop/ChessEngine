@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class PositionEvaluator {
 
@@ -16,8 +17,17 @@ public class PositionEvaluator {
 
     private static final InMemoryTrie IN_MEMORY_TRIE = new InMemoryTrie();
 
+    private static int countSincePrune = 0;
+
     public static PieceConfiguration getBestMoveRecursively(PieceConfiguration pieceConfiguration, int depth) {
-        IN_MEMORY_TRIE.prune(pieceConfiguration.getHistoricMoves());
+        countSincePrune += 1;
+        if (countSincePrune >= 16) {
+            long t1 = System.currentTimeMillis();
+            IN_MEMORY_TRIE.prune(pieceConfiguration.getHistoricMoves());
+            long t2 = System.currentTimeMillis();
+            LOGGER.info("Pruning trie took {} ms", t2 - t1);
+            countSincePrune = 0;
+        }
         final Optional<ConfigurationScorePair> optionalBestEntry = getBestConfigurationScorePairRecursively(pieceConfiguration, depth);
         return optionalBestEntry.map(ConfigurationScorePair::pieceConfiguration).orElse(null);
     }
@@ -51,11 +61,12 @@ public class PositionEvaluator {
                 .toList();
         } else {
             onwardPieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
-            final List<String> onwardAlgebraicNotations = onwardPieceConfigurations
+            final int moveCount = pieceConfiguration.getHistoricMoves().length;
+            final Set<Short> onwardMoveArray = onwardPieceConfigurations
                 .stream()
-                .map(onwardPieceConfiguration -> onwardPieceConfiguration.getAlgebraicNotation(pieceConfiguration))
-                .toList();
-            IN_MEMORY_TRIE.setAvailableMoves(pieceConfiguration.getHistoricMoves(), onwardAlgebraicNotations);
+                .map(onwardPieceConfiguration -> onwardPieceConfiguration.getHistoricMoves()[moveCount])
+                .collect(Collectors.toSet());
+            IN_MEMORY_TRIE.setAvailableMoves(pieceConfiguration.getHistoricMoves(), onwardMoveArray);
         }
         final int onwardConfigurationCount = onwardPieceConfigurations.size();
         final double[] onwardConfigurationScores = new double[onwardConfigurationCount];
