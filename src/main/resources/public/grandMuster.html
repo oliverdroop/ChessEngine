@@ -14,6 +14,9 @@
             left: calc(50% - 400px);
             top: calc(50vh - 400px);
         }
+        div.moveHistoryDiv{
+            color: rgb(0,0,0);
+        }
         canvas{
             background-color: rgb(80,80,80);
             width: 800px;
@@ -28,6 +31,7 @@
 <input type="range" name="AI Depth" min="1" max="6" value="4" class="slider" id="difficultySlider" />
 <input type="button" value="Play as Black" onclick="switchSide()" id="switchSideButton" />
 <input type="text" value="" onchange="inputFenDirectly()" id="fenInputTextBox" hidden/>
+<div class="moveHistoryDiv" id="moveHistoryDiv"></div>
 </body>
 <script>
     var canv = document.getElementById("canv");
@@ -62,6 +66,7 @@
     var pieceSelected = null;
     var enPassantSquare = null;
     var availableMoves = [];
+    var moveHistory = [];
     var turnTeam = 0;
     var playerTeam = 0;
     var halfmoveClock = 0;
@@ -98,7 +103,7 @@
                 move(pieceSelected, square);
                 pieceSelected = null;
                 availableMoves = [];
-                transmitBoardState();
+                requestAIMove();
             }
         } else if (pieceSelected != null && availableMoves.map(move => move.square).includes(square)) {
             //empty square has been clicked on
@@ -106,7 +111,7 @@
             move(pieceSelected, square);
             pieceSelected = null;
             availableMoves = [];
-            transmitBoardState();
+            requestAIMove();
         }
     }
 
@@ -158,10 +163,19 @@
 
         // Find out if this is a pawn promotion
         var availableMovesToThisSquare = availableMoves.filter(move => move.square.x == square.x && move.square.y == square.y);
+        var promotionCharacter = "";
         if (availableMovesToThisSquare.length == 4) {
             // Promotion move
-            piece.type = promptForPromotionType();
+            var newPieceType = promptForPromotionType();
+            promotionCharacter = newPieceType == "knight" ? "n" : newPieceType.substring(0, 1);
+            piece.type = newPieceType;
         }
+
+        // Get the algebraic notation of the move
+        var algebraicNotation = getCoordinateString(piece.x, piece.y + 1) + (takenPieceIndex >= 0 ? "x" : "") + getCoordinateString(square.x, square.y + 1) + promotionCharacter;
+        moveHistory.push(algebraicNotation);
+        updateMoveHistory();
+
         // Move the player's piece to the square
         piece.x = square.x;
         piece.y = square.y;
@@ -264,7 +278,7 @@
         }
     }
 
-    function transmitBoardState(){
+    function requestAIMove(){
     	//Clear previous move
     	movedFrom = null;
     	movedTo = null;
@@ -274,7 +288,8 @@
         xhr.setRequestHeader("Content-Type", "application/json");
         var body = {
             fen: getBoardState(),
-            depth: document.getElementById("difficultySlider").value
+            depth: document.getElementById("difficultySlider").value,
+            moveHistory
         }
         xhr.send(JSON.stringify(body));
         xhr.onreadystatechange = processAIMoveResponse;
@@ -296,6 +311,8 @@
                     var movementSquares = response.algebraicNotation.match(regex);
                     movedFrom = parseCoordinateString(movementSquares[0]).square;
                     movedTo = parseCoordinateString(movementSquares[1]).square;
+                    moveHistory.push(response.algebraicNotation);
+                    updateMoveHistory();
                 }
             } else if (response.error !== null) {
                 alert(response.error);
@@ -306,6 +323,22 @@
                 setTimeout(function() {alert(response.gameResult);}, 1000);
             }
         }
+    }
+
+    function updateMoveHistory() {
+        const moveHistoryDiv = document.getElementById('moveHistoryDiv');
+        var moveHistoryString = "";
+        for(var moveIndex = 0; moveIndex < moveHistory.length; moveIndex++) {
+            if (moveIndex % 2 == 0) {
+                moveHistoryString += Math.floor(moveIndex / 2) + 1 + ": ";
+                moveHistoryString += moveHistory[moveIndex];
+                moveHistoryString += ", ";
+            } else {
+                moveHistoryString += moveHistory[moveIndex];
+                moveHistoryString += "<br>";
+            }
+        }
+        moveHistoryDiv.innerHTML = moveHistoryString;
     }
 
     function getCoordinateString(x, y) {
@@ -716,7 +749,7 @@
         console.log('Switching side');
         document.getElementById('switchSideButton').style.visibility = 'hidden';
         playerTeam = 1;
-        transmitBoardState();
+        requestAIMove();
     }
 
     function loadImage(isrc){
