@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.concurrent.*;
 import java.util.function.Supplier;
 
+import static chess.api.ai.PositionEvaluator.IN_MEMORY_TRIE;
 import static chess.api.ai.PositionEvaluator.getBestScoreDifferentialRecursively;
 
 public class ConcurrentPositionEvaluator {
@@ -22,6 +23,7 @@ public class ConcurrentPositionEvaluator {
     private static final ExecutorService executorService = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
 
     public static PieceConfiguration getBestMoveRecursively(PieceConfiguration pieceConfiguration, int depth) {
+        IN_MEMORY_TRIE.prune(pieceConfiguration.getHistoricMoves());
         final Optional<ConfigurationScorePair> optionalBestEntry;
         LOGGER.debug("Thread pool size is {}", THREAD_POOL_SIZE);
         if (depth >= CONCURRENCY_DEPTH_THRESHOLD && THREAD_POOL_SIZE > 1) {

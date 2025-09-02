@@ -1,11 +1,14 @@
 package chess.api.ai.openings;
 
 import chess.api.FENReader;
+import chess.api.MoveDescriber;
 import chess.api.PieceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+
+import static chess.api.MoveDescriber.getMoveFromAlgebraicNotation;
 
 public class OpeningBook {
 
@@ -55,7 +58,12 @@ public class OpeningBook {
                 final Opening chosenOpening = possibleOpenings.get(RANDOM.nextInt(possibleOpenings.size()));
                 LOGGER.info("Choosing {}", chosenOpening.getClass().getSimpleName());
                 final int fenIndex = chosenOpening.fens.indexOf(inputFEN);
-                return FENReader.read(chosenOpening.fens.get(fenIndex + 1));
+                final PieceConfiguration outputConfiguration = FENReader.read(chosenOpening.fens.get(fenIndex + 1));
+                outputConfiguration.addHistoricMove(
+                    inputConfiguration,
+                    getMoveFromAlgebraicNotation(outputConfiguration.getAlgebraicNotation(inputConfiguration))
+                );
+                return outputConfiguration;
             }
             LOGGER.info("No openings available for this configuration");
         }

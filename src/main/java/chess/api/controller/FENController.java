@@ -35,17 +35,17 @@ public class FENController {
             final ObjectMapper objectMapper = new ObjectMapper();
             LOGGER.debug("FEN: {}", aiMoveRequestDto.getFen());
             LOGGER.debug("Depth: {}", aiMoveRequestDto.getDepth());
-            final PieceConfiguration inputConfiguration = FENReader.read(aiMoveRequestDto.getFen());
+            final PieceConfiguration inputConfiguration = getInputConfiguration(aiMoveRequestDto);
 
             PieceConfiguration outputConfiguration = getOpeningResponse(inputConfiguration);
             if (outputConfiguration == null) {
                 outputConfiguration = getBestMoveRecursively(inputConfiguration, aiMoveRequestDto.getDepth());
             } else {
-                Thread.sleep(500); // Wait a bit to simulate some thinking time
+                Thread.sleep(250); // Wait a bit to simulate some thinking time
             }
 
             if (outputConfiguration != null) {
-                String outputFEN = FENWriter.write(outputConfiguration);
+                final String outputFEN = FENWriter.write(outputConfiguration);
                 if (FENReader.read(outputFEN).getPossiblePieceConfigurations().isEmpty()) {
                     response.setGameResult(deriveGameEndType(outputConfiguration).toString());
                 }
@@ -88,5 +88,19 @@ public class FENController {
             LOGGER.error(errorMessage, e);
             return ResponseEntity.internalServerError().body(Collections.singletonList(errorMessage));
         }
+    }
+
+    private PieceConfiguration getInputConfiguration(AiMoveRequestDto aiMoveRequestDto) {
+        final PieceConfiguration inputConfiguration = FENReader.read(aiMoveRequestDto.getFen());
+        final List<String> moveHistory = aiMoveRequestDto.getMoveHistory();
+        if (moveHistory != null) {
+            final List<Short> historicMoveList = moveHistory.stream().map(MoveDescriber::getMoveFromAlgebraicNotation).toList();
+            short[] historicMoves = new short[historicMoveList.size()];
+            for(int index = 0; index < historicMoves.length; index++) {
+                historicMoves[index] = historicMoveList.get(index);
+            }
+            inputConfiguration.setHistoricMoves(historicMoves);
+        }
+        return inputConfiguration;
     }
 }

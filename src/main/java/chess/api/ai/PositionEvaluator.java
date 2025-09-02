@@ -16,19 +16,10 @@ public class PositionEvaluator {
 
     private static final int NO_CAPTURE_OR_PAWN_MOVE_LIMIT = 99;
 
-    private static final InMemoryTrie IN_MEMORY_TRIE = new InMemoryTrie();
-
-    private static int countSincePrune = 0;
+    static final InMemoryTrie IN_MEMORY_TRIE = new InMemoryTrie();
 
     public static PieceConfiguration getBestMoveRecursively(PieceConfiguration pieceConfiguration, int depth) {
-        countSincePrune += 1;
-        if (countSincePrune >= 16 && pieceConfiguration.getHistoricMoves() != null) {
-            long t1 = System.currentTimeMillis();
-            IN_MEMORY_TRIE.prune(pieceConfiguration.getHistoricMoves());
-            long t2 = System.currentTimeMillis();
-            LOGGER.info("Pruning trie took {} ms", t2 - t1);
-            countSincePrune = 0;
-        }
+        IN_MEMORY_TRIE.prune(pieceConfiguration.getHistoricMoves());
         final Optional<ConfigurationScorePair> optionalBestEntry = getBestConfigurationScorePairRecursively(pieceConfiguration, depth);
         return optionalBestEntry.map(ConfigurationScorePair::pieceConfiguration).orElse(null);
     }
@@ -54,32 +45,7 @@ public class PositionEvaluator {
         final double currentDiff = pieceConfiguration.getValueDifferential();
 
         depth--;
-        final List<PieceConfiguration> onwardPieceConfigurations;
-        final Optional<short[]> onwardMovesOptional = IN_MEMORY_TRIE.getAvailableMoves(pieceConfiguration.getHistoricMoves());
-        if (onwardMovesOptional.isPresent()) {
-            final int onwardMoveCount = onwardMovesOptional.get().length;
-            onwardPieceConfigurations = new ArrayList<>(onwardMoveCount);
-            for(int index = 0; index < onwardMoveCount; index++) {
-                final short moveDescription = onwardMovesOptional.get()[index];
-                onwardPieceConfigurations.add(toNewConfigurationFromMove(pieceConfiguration, moveDescription));
-            }
-        } else {
-            onwardPieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
-            if (pieceConfiguration.getHistoricMoves() != null) {
-                final int moveCount = pieceConfiguration.getHistoricMoves().length;
-                final List<Short> onwardMoveList = onwardPieceConfigurations
-                    .stream()
-                    .map(onwardPieceConfiguration -> onwardPieceConfiguration.getHistoricMoves()[moveCount])
-                    .sorted()
-                    .toList();
-                final short[] onwardMoveArray = new short[onwardMoveList.size()];
-                for (int index = 0; index < onwardMoveArray.length; index++) {
-                    onwardMoveArray[index] = onwardMoveList.get(index);
-                }
-
-                IN_MEMORY_TRIE.setAvailableMoves(pieceConfiguration.getHistoricMoves(), onwardMoveArray);
-            }
-        }
+        final List<PieceConfiguration> onwardPieceConfigurations = getOnwardPieceConfigurations(pieceConfiguration);
         final int onwardConfigurationCount = onwardPieceConfigurations.size();
         final double[] onwardConfigurationScores = new double[onwardConfigurationCount];
         final boolean[] fiftyMoveRuleChecks = new boolean[onwardConfigurationCount];
@@ -113,6 +79,36 @@ public class PositionEvaluator {
             return Optional.of(new ConfigurationScorePair(bestOnwardConfiguration, -bestOnwardConfigurationScore));
         }
         return Optional.empty();
+    }
+
+    private static List<PieceConfiguration> getOnwardPieceConfigurations(PieceConfiguration pieceConfiguration) {
+        final List<PieceConfiguration> onwardPieceConfigurations;
+        final Optional<short[]> onwardMovesOptional = IN_MEMORY_TRIE.getAvailableMoves(pieceConfiguration.getHistoricMoves());
+        if (onwardMovesOptional.isPresent()) {
+            final int onwardMoveCount = onwardMovesOptional.get().length;
+            onwardPieceConfigurations = new ArrayList<>(onwardMoveCount);
+            for(int index = 0; index < onwardMoveCount; index++) {
+                final short moveDescription = onwardMovesOptional.get()[index];
+                onwardPieceConfigurations.add(toNewConfigurationFromMove(pieceConfiguration, moveDescription));
+            }
+        } else {
+            onwardPieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
+            if (pieceConfiguration.getHistoricMoves() != null) {
+                final int moveCount = pieceConfiguration.getHistoricMoves().length;
+                final List<Short> onwardMoveList = onwardPieceConfigurations
+                    .stream()
+                    .map(onwardPieceConfiguration -> onwardPieceConfiguration.getHistoricMoves()[moveCount])
+                    .sorted()
+                    .toList();
+                final short[] onwardMoveArray = new short[onwardMoveList.size()];
+                for (int index = 0; index < onwardMoveArray.length; index++) {
+                    onwardMoveArray[index] = onwardMoveList.get(index);
+                }
+
+                IN_MEMORY_TRIE.setAvailableMoves(pieceConfiguration.getHistoricMoves(), onwardMoveArray);
+            }
+        }
+        return onwardPieceConfigurations;
     }
 
     public static GameEndType deriveGameEndType(PieceConfiguration finalConfiguration) {
