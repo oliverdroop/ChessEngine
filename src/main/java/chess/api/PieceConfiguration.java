@@ -147,8 +147,8 @@ public class PieceConfiguration {
             if (Math.abs(posDiff) == 2) {
                 // Castling
                 final int rookFromPos = CASTLE_POSITION_MAPPINGS.get(toPos);
-                final int rookToPos = posDiff > 0 ? rookFromPos - 1 : rookFromPos + 1;
-                final int oldRookBitFlag = previousConfiguration.getPieceAtPosition(fromPos);
+                final int rookToPos = posDiff > 0 ? fromPos + 1 : fromPos - 1;
+                final int oldRookBitFlag = previousConfiguration.getPieceAtPosition(rookFromPos);
                 final int newRookBitFlag = (oldRookBitFlag & ALL_PIECE_AND_COLOUR_FLAGS_COMBINED) | rookToPos;
                 newConfiguration.removePiece(rookFromPos);
                 newConfiguration.addPiece(newRookBitFlag);
