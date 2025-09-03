@@ -28,11 +28,11 @@ public class InMemoryTrie {
         trieMap.put(movesSoFar, availableMoves);
     }
 
-    public void prune(short[] branchToPreserve) {
+    public synchronized void prune(short[] branchToPreserve) {
         long t1 = System.currentTimeMillis();
         trieMap.keySet().removeIf(
             moveHistory -> {
-                if (moveHistory.length < branchToPreserve.length) {
+                if (moveHistory.length > 8 && moveHistory.length < branchToPreserve.length) {
                     return true;
                 }
                 int comparison = SHORT_ARRAY_COMPARATOR.compare(moveHistory, branchToPreserve);
