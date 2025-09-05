@@ -11,28 +11,40 @@ public class InMemoryTrie {
 
     private static final ShortArrayComparator SHORT_ARRAY_COMPARATOR = new ShortArrayComparator();
 
-    private final Map<short[], short[]> trieMap = new TreeMap<>(SHORT_ARRAY_COMPARATOR);
+    private static final int MAXIMUM_SEARCH_DEPTH = 5;
+
+    private final Map<short[], double[]> trieMap = new TreeMap<>(SHORT_ARRAY_COMPARATOR);
 
     public InMemoryTrie() {
         trieMap.put(new short[]{}, null);
     }
 
-    public Optional<short[]> getAvailableMoves(short[] movesSoFar) {
+    public Optional<double[]> getScoreDifferential(short[] movesSoFar) {
         if (movesSoFar == null) {
             return Optional.empty();
         }
         return Optional.ofNullable(trieMap.get(movesSoFar));
     }
 
-    public void setAvailableMoves(short[] movesSoFar, short[] availableMoves) {
-        trieMap.put(movesSoFar, availableMoves);
+    public void setScoreDifferential(short[] movesSoFar, int depth, double scoreDifferential) {
+        if (movesSoFar == null) {
+            return;
+        }
+        final Optional<double[]> optionalScoreDifferentialsByDepth = getScoreDifferential(movesSoFar);
+        final double[] scoreDifferentialsByDepth = optionalScoreDifferentialsByDepth
+            .orElseGet(() -> new double[MAXIMUM_SEARCH_DEPTH]);
+        scoreDifferentialsByDepth[depth] = scoreDifferential;
+        trieMap.put(movesSoFar, scoreDifferentialsByDepth);
     }
 
     public synchronized void prune(short[] branchToPreserve) {
+        if (branchToPreserve == null) {
+            return;
+        }
         long t1 = System.currentTimeMillis();
         trieMap.keySet().removeIf(
             moveHistory -> {
-                if (moveHistory.length > 8 && moveHistory.length < branchToPreserve.length) {
+                if (moveHistory.length > 5 && moveHistory.length < branchToPreserve.length) {
                     return true;
                 }
                 int comparison = SHORT_ARRAY_COMPARATOR.compare(moveHistory, branchToPreserve);

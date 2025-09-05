@@ -27,6 +27,7 @@ public class PositionEvaluator {
     static double getBestScoreDifferentialRecursively(PieceConfiguration pieceConfiguration, int depth) {
         // The entry object below consists of a PieceConfiguration and a Double representing the score
         final Optional<ConfigurationScorePair> optionalBestEntry = getBestConfigurationScorePairRecursively(pieceConfiguration, depth);
+        final double scoreDifferential;
         if (optionalBestEntry.isPresent()) {
             return optionalBestEntry.get().score();
         } else if (pieceConfiguration.isCheck()) {
@@ -45,29 +46,38 @@ public class PositionEvaluator {
         final double currentDiff = pieceConfiguration.getValueDifferential();
 
         depth--;
-        final List<PieceConfiguration> onwardPieceConfigurations = getOnwardPieceConfigurations(pieceConfiguration);
+        final List<PieceConfiguration> onwardPieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
         final int onwardConfigurationCount = onwardPieceConfigurations.size();
         final double[] onwardConfigurationScores = new double[onwardConfigurationCount];
         final boolean[] fiftyMoveRuleChecks = new boolean[onwardConfigurationCount];
+        final double threatValue = pieceConfiguration.getLesserScore();
         for (int i = 0; i < onwardConfigurationCount; i++) {
             PieceConfiguration onwardPieceConfiguration = onwardPieceConfigurations.get(i);
 
             fiftyMoveRuleChecks[i] = isFiftyMoveRuleFailure(onwardPieceConfiguration);
 
-            double nextDiff = onwardPieceConfiguration.getValueDifferential();
-            double comparison = currentDiff - nextDiff;
-            if (depth > 0) {
-                comparison += getBestScoreDifferentialRecursively(onwardPieceConfiguration, depth) * 0.99; // This modifier adjusts for uncertainty at depth
-                // Below is where the position can be evaluated for more than just the value differential (because the position bit flags have been calculated)
+            final short[] onwardConfigurationHistoricMoves = onwardPieceConfiguration.getHistoricMoves();
+            final Optional<double[]> scoreDifferentialsByDepth = IN_MEMORY_TRIE.getScoreDifferential(onwardConfigurationHistoricMoves);
+            double comparison;
+            if (scoreDifferentialsByDepth.isEmpty()) {
+                double nextDiff = onwardPieceConfiguration.getValueDifferential();
+                comparison = currentDiff - nextDiff;
+                if (depth > 0) {
+                    comparison += getBestScoreDifferentialRecursively(onwardPieceConfiguration, depth) * 0.99; // This modifier adjusts for uncertainty at depth
+                    // Below is where the position can be evaluated for more than just the value differential (because the position bit flags have been calculated)
+                }
+                comparison += threatValue;
+//                IN_MEMORY_TRIE.setScoreDifferential(onwardConfigurationHistoricMoves, depth, comparison);
+            } else {
+                comparison = scoreDifferentialsByDepth.get()[depth];
             }
             onwardConfigurationScores[i] = comparison;
         }
 
-        final double threatValue = pieceConfiguration.getLesserScore();
         int bestOnwardConfigurationIndex = -1;
         double bestOnwardConfigurationScore = -Double.MAX_VALUE;
         for(int i = 0; i < onwardConfigurationCount; i++) {
-            double onwardConfigurationScore = onwardConfigurationScores[i] + threatValue;
+            double onwardConfigurationScore = onwardConfigurationScores[i];
             if (onwardConfigurationScore > bestOnwardConfigurationScore && !fiftyMoveRuleChecks[i]) {
                 bestOnwardConfigurationScore = onwardConfigurationScore;
                 bestOnwardConfigurationIndex = i;
@@ -76,39 +86,11 @@ public class PositionEvaluator {
 
         if (bestOnwardConfigurationIndex >= 0) {
             final PieceConfiguration bestOnwardConfiguration = onwardPieceConfigurations.get(bestOnwardConfigurationIndex);
+            final short[] onwardConfigurationHistoricMoves = bestOnwardConfiguration.getHistoricMoves();
+            IN_MEMORY_TRIE.setScoreDifferential(onwardConfigurationHistoricMoves, depth, -bestOnwardConfigurationScore);
             return Optional.of(new ConfigurationScorePair(bestOnwardConfiguration, -bestOnwardConfigurationScore));
         }
         return Optional.empty();
-    }
-
-    private static List<PieceConfiguration> getOnwardPieceConfigurations(PieceConfiguration pieceConfiguration) {
-        final List<PieceConfiguration> onwardPieceConfigurations;
-        final Optional<short[]> onwardMovesOptional = IN_MEMORY_TRIE.getAvailableMoves(pieceConfiguration.getHistoricMoves());
-        if (onwardMovesOptional.isPresent()) {
-            final int onwardMoveCount = onwardMovesOptional.get().length;
-            onwardPieceConfigurations = new ArrayList<>(onwardMoveCount);
-            for(int index = 0; index < onwardMoveCount; index++) {
-                final short moveDescription = onwardMovesOptional.get()[index];
-                onwardPieceConfigurations.add(toNewConfigurationFromMove(pieceConfiguration, moveDescription));
-            }
-        } else {
-            onwardPieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
-            if (pieceConfiguration.getHistoricMoves() != null) {
-                final int moveCount = pieceConfiguration.getHistoricMoves().length;
-                final List<Short> onwardMoveList = onwardPieceConfigurations
-                    .stream()
-                    .map(onwardPieceConfiguration -> onwardPieceConfiguration.getHistoricMoves()[moveCount])
-                    .sorted()
-                    .toList();
-                final short[] onwardMoveArray = new short[onwardMoveList.size()];
-                for (int index = 0; index < onwardMoveArray.length; index++) {
-                    onwardMoveArray[index] = onwardMoveList.get(index);
-                }
-
-                IN_MEMORY_TRIE.setAvailableMoves(pieceConfiguration.getHistoricMoves(), onwardMoveArray);
-            }
-        }
-        return onwardPieceConfigurations;
     }
 
     public static GameEndType deriveGameEndType(PieceConfiguration finalConfiguration) {
