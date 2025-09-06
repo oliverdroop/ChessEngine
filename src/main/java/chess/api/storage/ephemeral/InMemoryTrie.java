@@ -11,12 +11,10 @@ public class InMemoryTrie {
 
     private static final ShortArrayComparator SHORT_ARRAY_COMPARATOR = new ShortArrayComparator();
 
-    private static final int MAXIMUM_SEARCH_DEPTH = 5;
-
-    private final Map<short[], double[]> trieMap = new TreeMap<>(SHORT_ARRAY_COMPARATOR);
+    private final Map<short[], double[]> trieMap = new HashMap<>();
 
     public InMemoryTrie() {
-        trieMap.put(new short[]{}, null);
+        trieMap.put(new short[]{}, new double[2]);
     }
 
     public Optional<double[]> getScoreDifferential(short[] movesSoFar) {
