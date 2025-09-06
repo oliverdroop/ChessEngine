@@ -26,15 +26,15 @@ public class InMemoryTrie {
         return Optional.ofNullable(trieMap.get(movesSoFar));
     }
 
-    public void setScoreDifferential(short[] movesSoFar, int depth, double scoreDifferential) {
+    public void setScoreDifferential(short[] movesSoFar, int turnSide, double scoreDifferential) {
         if (movesSoFar == null) {
             return;
         }
         final Optional<double[]> optionalScoreDifferentialsByDepth = getScoreDifferential(movesSoFar);
-        final double[] scoreDifferentialsByDepth = optionalScoreDifferentialsByDepth
-            .orElseGet(() -> new double[MAXIMUM_SEARCH_DEPTH]);
-        scoreDifferentialsByDepth[depth] = scoreDifferential;
-        trieMap.put(movesSoFar, scoreDifferentialsByDepth);
+        final double[] scoreDifferentialsByTurnSide = optionalScoreDifferentialsByDepth
+            .orElseGet(() -> new double[2]);
+        scoreDifferentialsByTurnSide[turnSide] = scoreDifferential;
+        trieMap.put(movesSoFar, scoreDifferentialsByTurnSide);
     }
 
     public synchronized void prune(short[] branchToPreserve) {

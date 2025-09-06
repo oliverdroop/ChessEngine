@@ -8,8 +8,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
-import static chess.api.PieceConfiguration.toNewConfigurationFromMove;
-
 public class PositionEvaluator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PositionEvaluator.class);
@@ -28,14 +26,22 @@ public class PositionEvaluator {
         // The entry object below consists of a PieceConfiguration and a Double representing the score
         final Optional<ConfigurationScorePair> optionalBestEntry = getBestConfigurationScorePairRecursively(pieceConfiguration, depth);
         final double scoreDifferential;
+        final int turnSide = pieceConfiguration.getTurnSide();
+        final short[] currentConfigurationHistoricMoves = pieceConfiguration.getHistoricMoves();
         if (optionalBestEntry.isPresent()) {
-            return optionalBestEntry.get().score();
+            scoreDifferential = optionalBestEntry.get().score();
+            final short[] onwardConfigurationHistoricMoves = optionalBestEntry.get().pieceConfiguration().getHistoricMoves();
+            IN_MEMORY_TRIE.setScoreDifferential(onwardConfigurationHistoricMoves, turnSide, scoreDifferential);
         } else if (pieceConfiguration.isCheck()) {
             // Checkmate
-            return Float.MAX_VALUE;
+            scoreDifferential = Float.MAX_VALUE;
+            IN_MEMORY_TRIE.setScoreDifferential(currentConfigurationHistoricMoves, turnSide, scoreDifferential);
+        } else {
+            // Stalemate
+            scoreDifferential = -Float.MAX_VALUE;
+            IN_MEMORY_TRIE.setScoreDifferential(currentConfigurationHistoricMoves, turnSide, scoreDifferential);
         }
-        // Stalemate
-        return -Float.MAX_VALUE;
+        return scoreDifferential;
     }
 
     static boolean isFiftyMoveRuleFailure(PieceConfiguration pieceConfiguration) {
@@ -50,34 +56,33 @@ public class PositionEvaluator {
         final int onwardConfigurationCount = onwardPieceConfigurations.size();
         final double[] onwardConfigurationScores = new double[onwardConfigurationCount];
         final boolean[] fiftyMoveRuleChecks = new boolean[onwardConfigurationCount];
-        final double threatValue = pieceConfiguration.getLesserScore();
         for (int i = 0; i < onwardConfigurationCount; i++) {
             PieceConfiguration onwardPieceConfiguration = onwardPieceConfigurations.get(i);
 
             fiftyMoveRuleChecks[i] = isFiftyMoveRuleFailure(onwardPieceConfiguration);
 
+            final int onwardConfigurationTurnSide = onwardPieceConfiguration.getTurnSide();
             final short[] onwardConfigurationHistoricMoves = onwardPieceConfiguration.getHistoricMoves();
-            final Optional<double[]> scoreDifferentialsByDepth = IN_MEMORY_TRIE.getScoreDifferential(onwardConfigurationHistoricMoves);
+            final Optional<double[]> scoreDifferentialsByTurnSide = IN_MEMORY_TRIE.getScoreDifferential(onwardConfigurationHistoricMoves);
             double comparison;
-            if (scoreDifferentialsByDepth.isEmpty()) {
+            if (scoreDifferentialsByTurnSide.isEmpty() || scoreDifferentialsByTurnSide.get()[onwardConfigurationTurnSide] == 0.0) {
                 double nextDiff = onwardPieceConfiguration.getValueDifferential();
                 comparison = currentDiff - nextDiff;
                 if (depth > 0) {
                     comparison += getBestScoreDifferentialRecursively(onwardPieceConfiguration, depth) * 0.99; // This modifier adjusts for uncertainty at depth
                     // Below is where the position can be evaluated for more than just the value differential (because the position bit flags have been calculated)
                 }
-                comparison += threatValue;
-//                IN_MEMORY_TRIE.setScoreDifferential(onwardConfigurationHistoricMoves, depth, comparison);
             } else {
-                comparison = scoreDifferentialsByDepth.get()[depth];
+                comparison = scoreDifferentialsByTurnSide.get()[onwardConfigurationTurnSide];
             }
             onwardConfigurationScores[i] = comparison;
         }
 
+        final double threatValue = pieceConfiguration.getLesserScore();
         int bestOnwardConfigurationIndex = -1;
         double bestOnwardConfigurationScore = -Double.MAX_VALUE;
         for(int i = 0; i < onwardConfigurationCount; i++) {
-            double onwardConfigurationScore = onwardConfigurationScores[i];
+            double onwardConfigurationScore = onwardConfigurationScores[i] + threatValue;
             if (onwardConfigurationScore > bestOnwardConfigurationScore && !fiftyMoveRuleChecks[i]) {
                 bestOnwardConfigurationScore = onwardConfigurationScore;
                 bestOnwardConfigurationIndex = i;
@@ -86,8 +91,6 @@ public class PositionEvaluator {
 
         if (bestOnwardConfigurationIndex >= 0) {
             final PieceConfiguration bestOnwardConfiguration = onwardPieceConfigurations.get(bestOnwardConfigurationIndex);
-            final short[] onwardConfigurationHistoricMoves = bestOnwardConfiguration.getHistoricMoves();
-            IN_MEMORY_TRIE.setScoreDifferential(onwardConfigurationHistoricMoves, depth, -bestOnwardConfigurationScore);
             return Optional.of(new ConfigurationScorePair(bestOnwardConfiguration, -bestOnwardConfigurationScore));
         }
         return Optional.empty();
