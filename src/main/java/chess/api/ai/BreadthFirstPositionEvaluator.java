@@ -17,9 +17,8 @@ public class BreadthFirstPositionEvaluator {
         int currentDepth = 0;
 
         while(currentDepth < depth) {
-            final Map<short[], double[]> trieMap = new HashMap<>(inMemoryTrie.getTrieMap());
-            for(Map.Entry<short[], double[]> entry : trieMap.entrySet()) {
-                final short[] historicMoves = entry.getKey();
+            final Map<short[], double[]> trieMap = new TreeMap<>(inMemoryTrie.getTrieMap());
+            for(short[] historicMoves : trieMap.keySet()) {
                 if (historicMoves.length != currentDepth) {
                     continue;
                 }
@@ -70,11 +69,7 @@ public class BreadthFirstPositionEvaluator {
         double bestScore = -Double.MAX_VALUE;
         final int turnSide = depth % 2 == 0 ? pieceConfiguration.getTurnSide() : pieceConfiguration.getOpposingSide();
         final int opposingSide = 1- turnSide;
-        for(Map.Entry<short[], double[]> entry : inMemoryTrie.getTrieMap().entrySet()) {
-            final short[] historicMoves = entry.getKey();
-//            if (historicMoves.length < depth) {
-//                continue;
-//            }
+        for(short[] historicMoves : inMemoryTrie.getTrieMap().keySet()) {
             if (historicMoves.length == 0) {
                 continue;
             }

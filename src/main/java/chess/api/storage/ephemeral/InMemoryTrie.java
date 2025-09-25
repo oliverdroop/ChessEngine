@@ -11,14 +11,13 @@ public class InMemoryTrie {
 
     private static final ShortArrayComparator SHORT_ARRAY_COMPARATOR = new ShortArrayComparator();
 
-    private final Map<short[], double[]> trieMap = new TreeMap<>(SHORT_ARRAY_COMPARATOR);
-//    private final Map<short[], double[]> trieMap = new HashMap<>();
+    private final SortedMap<short[], double[]> trieMap = new TreeMap<>(SHORT_ARRAY_COMPARATOR);
 
     public InMemoryTrie() {
         trieMap.put(new short[]{}, new double[2]);
     }
 
-    public Map<short[], double[]> getTrieMap() {
+    public SortedMap<short[], double[]> getTrieMap() {
         return trieMap;
     }
 

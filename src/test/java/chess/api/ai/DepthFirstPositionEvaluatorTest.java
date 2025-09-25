@@ -39,7 +39,11 @@ public class DepthFirstPositionEvaluatorTest {
         while(pieceConfiguration != null) {
             LOGGER.info(pieceConfiguration.toString());
             previousConfiguration = pieceConfiguration;
-            pieceConfiguration = DepthFirstPositionEvaluator.getBestMoveRecursively(pieceConfiguration, 4);
+            if (pieceConfiguration.getTurnSide() == 0) {
+                pieceConfiguration = DepthFirstPositionEvaluator.getBestMoveRecursively(pieceConfiguration, 4);
+            } else {
+                pieceConfiguration = BreadthFirstPositionEvaluator.getBestMoveRecursively(pieceConfiguration, 4);
+            }
         }
         LOGGER.info(DepthFirstPositionEvaluator.deriveGameEndType(previousConfiguration).toString());
     }
