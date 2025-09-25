@@ -14,7 +14,7 @@ public class BreadthFirstPositionEvaluator {
         final InMemoryTrie inMemoryTrie = new InMemoryTrie();
         final short[] initialHistoricMoves = new short[]{};
         pieceConfiguration.setHistoricMoves(initialHistoricMoves);
-        inMemoryTrie.setScoreDifferential(initialHistoricMoves, pieceConfiguration.getTurnSide(),0.0);
+        inMemoryTrie.setScoreDifferential(initialHistoricMoves, 0.0);
         PieceConfiguration currentConfiguration;
         int currentDepth = 0;
 
@@ -35,10 +35,10 @@ public class BreadthFirstPositionEvaluator {
                     } else {
                         mateValue = -Float.MAX_VALUE;
                     }
-                    inMemoryTrie.setScoreDifferential(currentConfiguration.getHistoricMoves(), currentConfiguration.getTurnSide(), mateValue);
+                    inMemoryTrie.setScoreDifferential(currentConfiguration.getHistoricMoves(), mateValue);
                     continue;
                 } else if (currentConfiguration.getHalfMoveClock() > NO_CAPTURE_OR_PAWN_MOVE_LIMIT) {
-                    inMemoryTrie.setScoreDifferential(currentConfiguration.getHistoricMoves(), currentConfiguration.getTurnSide(), -Float.MAX_VALUE);
+                    inMemoryTrie.setScoreDifferential(currentConfiguration.getHistoricMoves(), -Float.MAX_VALUE);
                     continue;
                 }
                 final int currentValueDifferential = currentConfiguration.getValueDifferential();
@@ -46,17 +46,15 @@ public class BreadthFirstPositionEvaluator {
                 Arrays.sort(onwardConfigurationScores);
 
                 Arrays.stream(onwardConfigurationScores).forEach(configurationScorePair -> {
-                    final PieceConfiguration onwardConfiguration = configurationScorePair.pieceConfiguration();
                     inMemoryTrie.setScoreDifferential(
-                        configurationScorePair.pieceConfiguration().getHistoricMoves(),
-                        onwardConfiguration.getTurnSide(), configurationScorePair.score()
+                        configurationScorePair.pieceConfiguration().getHistoricMoves(), configurationScorePair.score()
                     );
                 });
             }
             currentDepth++;
         }
 
-        final short bestMove = getBestMove(pieceConfiguration, depth, inMemoryTrie);
+        final short bestMove = getBestStoredMove(inMemoryTrie);
         if (bestMove != -1) {
             final PieceConfiguration bestConfiguration = PieceConfiguration.toNewConfigurationFromMove(pieceConfiguration, bestMove);
             if (bestConfiguration.getHalfMoveClock() <= NO_CAPTURE_OR_PAWN_MOVE_LIMIT) {
@@ -66,11 +64,9 @@ public class BreadthFirstPositionEvaluator {
         return null;
     }
 
-    private static short getBestMove(PieceConfiguration pieceConfiguration, int depth, InMemoryTrie inMemoryTrie) {
+    private static short getBestStoredMove(InMemoryTrie inMemoryTrie) {
         short bestMove = -1;
         double bestScore = -Double.MAX_VALUE;
-        final int turnSide = depth % 2 == 0 ? pieceConfiguration.getTurnSide() : pieceConfiguration.getOpposingSide();
-        final int opposingSide = 1 - turnSide;
         for(short[] historicMoves : inMemoryTrie.getTrieMap().keySet()) {
             if (historicMoves.length == 0) {
                 continue;
@@ -80,9 +76,8 @@ public class BreadthFirstPositionEvaluator {
             for(int i = 1; i <= historicMoves.length; i++) {
                 final short[] historicMovesSubArray = Arrays.copyOfRange(historicMoves, 0, i);
                 final boolean sameSide = i % 2 == 0;
-                final int ancestralTurnSide = sameSide ? turnSide : opposingSide;
                 final int ancestralSign = sameSide ? -1 : 1;
-                final double ancestralValue = inMemoryTrie.getTrieMap().get(historicMovesSubArray)[ancestralTurnSide] * ancestralSign;
+                final double ancestralValue = inMemoryTrie.getTrieMap().get(historicMovesSubArray)[0] * ancestralSign;
                 value += ancestralValue * Math.pow(0.99, i);
             }
 

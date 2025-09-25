@@ -26,14 +26,14 @@ public class InMemoryTrie {
         return Optional.ofNullable(trieMap.get(movesSoFar));
     }
 
-    public void setScoreDifferential(short[] movesSoFar, int turnSide, double scoreDifferential) {
+    public void setScoreDifferential(short[] movesSoFar, double scoreDifferential) {
         if (movesSoFar == null) {
             return;
         }
         final Optional<double[]> optionalScoreDifferentialsByDepth = getScoreDifferential(movesSoFar);
-        final double[] scoreDifferentialsByTurnSide = optionalScoreDifferentialsByDepth
-            .orElseGet(() -> new double[2]);
-        scoreDifferentialsByTurnSide[turnSide] = scoreDifferential;
-        trieMap.put(movesSoFar, scoreDifferentialsByTurnSide);
+        final double[] scoreDifferentialAsArray = optionalScoreDifferentialsByDepth
+            .orElseGet(() -> new double[1]);
+        scoreDifferentialAsArray[0] = scoreDifferential;
+        trieMap.put(movesSoFar, scoreDifferentialAsArray);
     }
 }
