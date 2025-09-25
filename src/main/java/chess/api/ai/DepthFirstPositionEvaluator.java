@@ -2,22 +2,18 @@ package chess.api.ai;
 
 import chess.api.GameEndType;
 import chess.api.PieceConfiguration;
-import chess.api.storage.ephemeral.InMemoryTrie;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
-import static chess.api.PieceConfiguration.NO_CAPTURE_OR_PAWN_MOVE_LIMIT;
-
 public class DepthFirstPositionEvaluator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DepthFirstPositionEvaluator.class);
 
-    static final InMemoryTrie IN_MEMORY_TRIE = new InMemoryTrie();
+    private static final int NO_CAPTURE_OR_PAWN_MOVE_LIMIT = 99;
 
     public static PieceConfiguration getBestMoveRecursively(PieceConfiguration pieceConfiguration, int depth) {
-        IN_MEMORY_TRIE.prune(pieceConfiguration.getHistoricMoves());
         final Optional<ConfigurationScorePair> optionalBestEntry = getBestConfigurationScorePairRecursively(pieceConfiguration, depth);
         return optionalBestEntry.map(ConfigurationScorePair::pieceConfiguration).orElse(null);
     }
@@ -25,23 +21,14 @@ public class DepthFirstPositionEvaluator {
     static double getBestScoreDifferentialRecursively(PieceConfiguration pieceConfiguration, int depth) {
         // The entry object below consists of a PieceConfiguration and a Double representing the score
         final Optional<ConfigurationScorePair> optionalBestEntry = getBestConfigurationScorePairRecursively(pieceConfiguration, depth);
-        final double scoreDifferential;
-        final int turnSide = pieceConfiguration.getTurnSide();
-        final short[] currentConfigurationHistoricMoves = pieceConfiguration.getHistoricMoves();
         if (optionalBestEntry.isPresent()) {
-            scoreDifferential = optionalBestEntry.get().score();
-            final short[] onwardConfigurationHistoricMoves = optionalBestEntry.get().pieceConfiguration().getHistoricMoves();
-            IN_MEMORY_TRIE.setScoreDifferential(onwardConfigurationHistoricMoves, turnSide, scoreDifferential);
+            return optionalBestEntry.get().score();
         } else if (pieceConfiguration.isCheck()) {
             // Checkmate
-            scoreDifferential = Float.MAX_VALUE;
-            IN_MEMORY_TRIE.setScoreDifferential(currentConfigurationHistoricMoves, turnSide, scoreDifferential);
-        } else {
-            // Stalemate
-            scoreDifferential = -Float.MAX_VALUE;
-            IN_MEMORY_TRIE.setScoreDifferential(currentConfigurationHistoricMoves, turnSide, scoreDifferential);
+            return Float.MAX_VALUE;
         }
-        return scoreDifferential;
+        // Stalemate
+        return -Float.MAX_VALUE;
     }
 
     static boolean isFiftyMoveRuleFailure(PieceConfiguration pieceConfiguration) {
@@ -61,19 +48,11 @@ public class DepthFirstPositionEvaluator {
 
             fiftyMoveRuleChecks[i] = isFiftyMoveRuleFailure(onwardPieceConfiguration);
 
-            final int onwardConfigurationTurnSide = onwardPieceConfiguration.getTurnSide();
-            final short[] onwardConfigurationHistoricMoves = onwardPieceConfiguration.getHistoricMoves();
-            final Optional<double[]> scoreDifferentialsByTurnSide = IN_MEMORY_TRIE.getScoreDifferential(onwardConfigurationHistoricMoves);
-            double comparison;
-            if (scoreDifferentialsByTurnSide.isEmpty() || scoreDifferentialsByTurnSide.get()[onwardConfigurationTurnSide] == 0.0) {
-                double nextDiff = onwardPieceConfiguration.getValueDifferential();
-                comparison = currentDiff - nextDiff;
-                if (depth > 0) {
-                    comparison += getBestScoreDifferentialRecursively(onwardPieceConfiguration, depth) * 0.99; // This modifier adjusts for uncertainty at depth
-                    // Below is where the position can be evaluated for more than just the value differential (because the position bit flags have been calculated)
-                }
-            } else {
-                comparison = scoreDifferentialsByTurnSide.get()[onwardConfigurationTurnSide];
+            double nextDiff = onwardPieceConfiguration.getValueDifferential();
+            double comparison = currentDiff - nextDiff;
+            if (depth > 0) {
+                comparison += getBestScoreDifferentialRecursively(onwardPieceConfiguration, depth) * 0.99; // This modifier adjusts for uncertainty at depth
+                // Below is where the position can be evaluated for more than just the value differential (because the position bit flags have been calculated)
             }
             onwardConfigurationScores[i] = comparison;
         }

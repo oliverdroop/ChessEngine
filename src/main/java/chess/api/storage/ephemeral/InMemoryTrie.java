@@ -9,13 +9,11 @@ public class InMemoryTrie {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(InMemoryTrie.class);
 
-    private static final ShortArrayComparator SHORT_ARRAY_COMPARATOR = new ShortArrayComparator();
+    private static final Comparator<short[]> SHORT_ARRAY_COMPARATOR = new LengthFirstShortArrayComparator();
 
     private final SortedMap<short[], double[]> trieMap = new TreeMap<>(SHORT_ARRAY_COMPARATOR);
 
-    public InMemoryTrie() {
-        trieMap.put(new short[]{}, new double[2]);
-    }
+    public InMemoryTrie() {}
 
     public SortedMap<short[], double[]> getTrieMap() {
         return trieMap;
@@ -37,22 +35,5 @@ public class InMemoryTrie {
             .orElseGet(() -> new double[2]);
         scoreDifferentialsByTurnSide[turnSide] = scoreDifferential;
         trieMap.put(movesSoFar, scoreDifferentialsByTurnSide);
-    }
-
-    public synchronized void prune(short[] branchToPreserve) {
-        if (branchToPreserve == null) {
-            return;
-        }
-        long t1 = System.currentTimeMillis();
-        trieMap.keySet().removeIf(
-            moveHistory -> {
-                if (moveHistory.length > 5 && moveHistory.length < branchToPreserve.length) {
-                    return true;
-                }
-                int comparison = SHORT_ARRAY_COMPARATOR.compare(moveHistory, branchToPreserve);
-                return Math.abs(comparison) == 2;
-            });
-        long t2 = System.currentTimeMillis();
-        LOGGER.debug("Pruning trie took {} ms", t2 - t1);
     }
 }

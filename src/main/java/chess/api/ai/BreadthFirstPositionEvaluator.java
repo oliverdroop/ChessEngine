@@ -12,13 +12,15 @@ public class BreadthFirstPositionEvaluator {
     public static PieceConfiguration getBestMoveRecursively(PieceConfiguration pieceConfiguration, int depth) {
         depth -= 1;
         final InMemoryTrie inMemoryTrie = new InMemoryTrie();
-        pieceConfiguration.setHistoricMoves(new short[]{});
+        final short[] initialHistoricMoves = new short[]{};
+        pieceConfiguration.setHistoricMoves(initialHistoricMoves);
+        inMemoryTrie.setScoreDifferential(initialHistoricMoves, pieceConfiguration.getTurnSide(),0.0);
         PieceConfiguration currentConfiguration;
         int currentDepth = 0;
 
         while(currentDepth < depth) {
-            final Map<short[], double[]> trieMap = new TreeMap<>(inMemoryTrie.getTrieMap());
-            for(short[] historicMoves : trieMap.keySet()) {
+            final Map<short[], double[]> trieMapCopy = new TreeMap<>(inMemoryTrie.getTrieMap());
+            for(short[] historicMoves : trieMapCopy.keySet()) {
                 if (historicMoves.length != currentDepth) {
                     continue;
                 }
@@ -68,7 +70,7 @@ public class BreadthFirstPositionEvaluator {
         short bestMove = -1;
         double bestScore = -Double.MAX_VALUE;
         final int turnSide = depth % 2 == 0 ? pieceConfiguration.getTurnSide() : pieceConfiguration.getOpposingSide();
-        final int opposingSide = 1- turnSide;
+        final int opposingSide = 1 - turnSide;
         for(short[] historicMoves : inMemoryTrie.getTrieMap().keySet()) {
             if (historicMoves.length == 0) {
                 continue;
