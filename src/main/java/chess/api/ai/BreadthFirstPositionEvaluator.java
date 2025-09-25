@@ -10,6 +10,17 @@ import static chess.api.PieceConfiguration.NO_CAPTURE_OR_PAWN_MOVE_LIMIT;
 
 public class BreadthFirstPositionEvaluator {
 
+    private static final double UNCERTAINTY_FACTOR = 0.99;
+
+    private static final double[] UNCERTAINTY_ADJUSTMENTS = new double[] {
+        Math.pow(UNCERTAINTY_FACTOR, 1),
+        Math.pow(UNCERTAINTY_FACTOR, 2),
+        Math.pow(UNCERTAINTY_FACTOR, 3),
+        Math.pow(UNCERTAINTY_FACTOR, 4),
+        Math.pow(UNCERTAINTY_FACTOR, 5),
+        Math.pow(UNCERTAINTY_FACTOR, 6),
+    };
+
     public static PieceConfiguration getBestMoveRecursively(PieceConfiguration pieceConfiguration, int depth) {
         depth -= 1;
         final InMemoryTrie inMemoryTrie = new InMemoryTrie();
@@ -46,11 +57,11 @@ public class BreadthFirstPositionEvaluator {
                 final ConfigurationScorePair[] onwardConfigurationScores = getOnwardConfigurationScores(currentValueDifferential, onwardConfigurations);
                 Arrays.sort(onwardConfigurationScores);
 
-                Arrays.stream(onwardConfigurationScores).forEach(configurationScorePair -> {
-                    inMemoryTrie.setScoreDifferential(
+                Arrays.stream(onwardConfigurationScores).forEach(
+                    configurationScorePair -> inMemoryTrie.setScoreDifferential(
                         configurationScorePair.pieceConfiguration().getHistoricMoves(), configurationScorePair.score()
-                    );
-                });
+                    )
+                );
             }
             currentDepth++;
         }
@@ -79,7 +90,7 @@ public class BreadthFirstPositionEvaluator {
                 final boolean sameSide = i % 2 == 0;
                 final int ancestralSign = sameSide ? -1 : 1;
                 final double ancestralValue = inMemoryTrie.getTrieMap().get(historicMovesSubArray) * ancestralSign;
-                value += ancestralValue * Math.pow(0.99, i);
+                value += ancestralValue * UNCERTAINTY_ADJUSTMENTS[i];
             }
 
             if (value > bestScore) {
