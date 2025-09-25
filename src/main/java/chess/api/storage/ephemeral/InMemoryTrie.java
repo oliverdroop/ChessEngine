@@ -11,15 +11,15 @@ public class InMemoryTrie {
 
     private static final Comparator<short[]> SHORT_ARRAY_COMPARATOR = new LengthFirstShortArrayComparator();
 
-    private final SortedMap<short[], double[]> trieMap = new TreeMap<>(SHORT_ARRAY_COMPARATOR);
+    private final SortedMap<short[], Double> trieMap = new TreeMap<>(SHORT_ARRAY_COMPARATOR);
 
     public InMemoryTrie() {}
 
-    public SortedMap<short[], double[]> getTrieMap() {
+    public SortedMap<short[], Double> getTrieMap() {
         return trieMap;
     }
 
-    public Optional<double[]> getScoreDifferential(short[] movesSoFar) {
+    public Optional<Double> getScoreDifferential(short[] movesSoFar) {
         if (movesSoFar == null) {
             return Optional.empty();
         }
@@ -30,10 +30,6 @@ public class InMemoryTrie {
         if (movesSoFar == null) {
             return;
         }
-        final Optional<double[]> optionalScoreDifferentialsByDepth = getScoreDifferential(movesSoFar);
-        final double[] scoreDifferentialAsArray = optionalScoreDifferentialsByDepth
-            .orElseGet(() -> new double[1]);
-        scoreDifferentialAsArray[0] = scoreDifferential;
-        trieMap.put(movesSoFar, scoreDifferentialAsArray);
+        trieMap.put(movesSoFar, scoreDifferential);
     }
 }

@@ -4,6 +4,7 @@ import chess.api.PieceConfiguration;
 import chess.api.storage.ephemeral.InMemoryTrie;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static chess.api.PieceConfiguration.NO_CAPTURE_OR_PAWN_MOVE_LIMIT;
 
@@ -19,7 +20,7 @@ public class BreadthFirstPositionEvaluator {
         int currentDepth = 0;
 
         while(currentDepth < depth) {
-            final Map<short[], double[]> trieMapCopy = new TreeMap<>(inMemoryTrie.getTrieMap());
+            final Map<short[], Double> trieMapCopy = new TreeMap<>(inMemoryTrie.getTrieMap());
             for(short[] historicMoves : trieMapCopy.keySet()) {
                 if (historicMoves.length != currentDepth) {
                     continue;
@@ -77,7 +78,7 @@ public class BreadthFirstPositionEvaluator {
                 final short[] historicMovesSubArray = Arrays.copyOfRange(historicMoves, 0, i);
                 final boolean sameSide = i % 2 == 0;
                 final int ancestralSign = sameSide ? -1 : 1;
-                final double ancestralValue = inMemoryTrie.getTrieMap().get(historicMovesSubArray)[0] * ancestralSign;
+                final double ancestralValue = inMemoryTrie.getTrieMap().get(historicMovesSubArray) * ancestralSign;
                 value += ancestralValue * Math.pow(0.99, i);
             }
 
