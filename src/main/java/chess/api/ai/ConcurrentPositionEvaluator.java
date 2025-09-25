@@ -9,8 +9,8 @@ import java.util.Optional;
 import java.util.concurrent.*;
 import java.util.function.Supplier;
 
-import static chess.api.ai.PositionEvaluator.IN_MEMORY_TRIE;
-import static chess.api.ai.PositionEvaluator.getBestScoreDifferentialRecursively;
+import static chess.api.ai.DepthFirstPositionEvaluator.IN_MEMORY_TRIE;
+import static chess.api.ai.DepthFirstPositionEvaluator.getBestScoreDifferentialRecursively;
 
 public class ConcurrentPositionEvaluator {
 
@@ -31,7 +31,7 @@ public class ConcurrentPositionEvaluator {
             optionalBestEntry = getBestConfigurationScorePairConcurrently(pieceConfiguration, depth);
         } else {
             // Use a single-threaded method
-            optionalBestEntry = PositionEvaluator.getBestConfigurationScorePairRecursively(pieceConfiguration, depth);
+            optionalBestEntry = DepthFirstPositionEvaluator.getBestConfigurationScorePairRecursively(pieceConfiguration, depth);
         }
         return optionalBestEntry.map(ConfigurationScorePair::pieceConfiguration).orElse(null);
     }
@@ -48,7 +48,7 @@ public class ConcurrentPositionEvaluator {
         for (int i = 0; i < onwardConfigurationCount; i++) {
             PieceConfiguration onwardPieceConfiguration = onwardPieceConfigurations.get(i);
 
-            fiftyMoveRuleChecks[i] = PositionEvaluator.isFiftyMoveRuleFailure(onwardPieceConfiguration);
+            fiftyMoveRuleChecks[i] = DepthFirstPositionEvaluator.isFiftyMoveRuleFailure(onwardPieceConfiguration);
 
             CompletableFuture<Double> comparisonFuture = CompletableFuture.supplyAsync(
                     getCallableComparison(onwardPieceConfiguration, currentDiff, depth), executorService);

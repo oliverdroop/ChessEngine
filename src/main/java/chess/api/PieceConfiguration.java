@@ -78,6 +78,8 @@ public class PieceConfiguration {
 
     private static final int COLOUR_FLAGS_COMBINED = WHITE_OCCUPIED | BLACK_OCCUPIED;
 
+    public static final int NO_CAPTURE_OR_PAWN_MOVE_LIMIT = 99;
+
     private static final int[] ALL_DIRECTIONAL_FLAGS = {
             DIRECTION_N,
             DIRECTION_NE,
@@ -126,6 +128,14 @@ public class PieceConfiguration {
                     .forEach(pos -> positionBitFlags[pos] = BitUtil.applyBitFlag(positionBitFlags[pos],
                             copiedConfiguration.positionBitFlags[pos] & ALL_PIECE_AND_COLOUR_FLAGS_COMBINED));
         }
+    }
+
+    public static PieceConfiguration toNewConfigurationFromMoves(PieceConfiguration originalConfiguration, short[] historicMoves) {
+        PieceConfiguration currentConfiguration = originalConfiguration;
+        for (short historicMove : historicMoves) {
+            currentConfiguration = toNewConfigurationFromMove(currentConfiguration, historicMove);
+        }
+        return currentConfiguration;
     }
 
     public static PieceConfiguration toNewConfigurationFromMove(PieceConfiguration previousConfiguration, short moveDescription) {
@@ -196,9 +206,13 @@ public class PieceConfiguration {
         return newConfiguration;
     }
 
-    public List<PieceConfiguration> getPossiblePieceConfigurations() {
+    public void setHigherBitFlags() {
         clearNonPieceFlags(); // Necessary for nested evaluations
         positionBitFlags = stampCheckNonBlockerFlags(stampThreatFlags(stampOccupationFlags(positionBitFlags)));
+    }
+
+    public List<PieceConfiguration> getPossiblePieceConfigurations() {
+        setHigherBitFlags();
         return Arrays.stream(getPieceBitFlags())
                 .boxed()
                 .filter(p -> BitUtil.hasBitFlag(p, PLAYER_OCCUPIED))
@@ -212,7 +226,7 @@ public class PieceConfiguration {
 
     public List<PieceConfiguration> getPossiblePieceConfigurationsForPiece(int pieceBitFlag) {
         if (Arrays.stream(positionBitFlags).noneMatch(pbf -> pbf > 65535)) {
-            positionBitFlags = stampCheckNonBlockerFlags(stampThreatFlags(stampOccupationFlags(positionBitFlags)));
+            setHigherBitFlags();
         }
         return Piece.getPossibleMoves(pieceBitFlag, positionBitFlags, this);
     }

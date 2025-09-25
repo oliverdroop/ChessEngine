@@ -13,22 +13,22 @@ import java.util.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Ignore
-public class PositionEvaluatorTest {
+public class DepthFirstPositionEvaluatorTest {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(PositionEvaluatorTest.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DepthFirstPositionEvaluatorTest.class);
 
     @Test
     void testGetBestMoveRecursively() {
         PieceConfiguration pieceConfiguration = FENReader.read(FENWriter.STARTING_POSITION);
 
-        LOGGER.info(PositionEvaluator.getBestMoveRecursively(pieceConfiguration, 2).toString());
+        LOGGER.info(DepthFirstPositionEvaluator.getBestMoveRecursively(pieceConfiguration, 2).toString());
     }
 
     @Test
     void testGetBestMoveRecursively_choosesCentre() {
         PieceConfiguration pieceConfiguration = FENReader.read("rnbqkbnr/pppppppp/8/8/P7/8/1PPPPPPP/RNBQKBNR b KQkq - 0 1");
 
-        LOGGER.info(PositionEvaluator.getBestMoveRecursively(pieceConfiguration, 4).toString());
+        LOGGER.info(DepthFirstPositionEvaluator.getBestMoveRecursively(pieceConfiguration, 4).toString());
     }
 
     @Test
@@ -39,9 +39,9 @@ public class PositionEvaluatorTest {
         while(pieceConfiguration != null) {
             LOGGER.info(pieceConfiguration.toString());
             previousConfiguration = pieceConfiguration;
-            pieceConfiguration = PositionEvaluator.getBestMoveRecursively(pieceConfiguration, 4);
+            pieceConfiguration = DepthFirstPositionEvaluator.getBestMoveRecursively(pieceConfiguration, 4);
         }
-        LOGGER.info(PositionEvaluator.deriveGameEndType(previousConfiguration).toString());
+        LOGGER.info(DepthFirstPositionEvaluator.deriveGameEndType(previousConfiguration).toString());
     }
 
     @Test

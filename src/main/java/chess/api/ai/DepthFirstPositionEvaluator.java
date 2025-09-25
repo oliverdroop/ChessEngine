@@ -8,11 +8,11 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
-public class PositionEvaluator {
+import static chess.api.PieceConfiguration.NO_CAPTURE_OR_PAWN_MOVE_LIMIT;
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(PositionEvaluator.class);
+public class DepthFirstPositionEvaluator {
 
-    private static final int NO_CAPTURE_OR_PAWN_MOVE_LIMIT = 99;
+    private static final Logger LOGGER = LoggerFactory.getLogger(DepthFirstPositionEvaluator.class);
 
     static final InMemoryTrie IN_MEMORY_TRIE = new InMemoryTrie();
 
