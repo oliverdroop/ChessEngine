@@ -4,7 +4,6 @@ import chess.api.PieceConfiguration;
 import chess.api.storage.ephemeral.InMemoryTrie;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static chess.api.PieceConfiguration.NO_CAPTURE_OR_PAWN_MOVE_LIMIT;
 
@@ -28,6 +27,7 @@ public class BreadthFirstPositionEvaluator {
         pieceConfiguration.setHistoricMoves(initialHistoricMoves);
         inMemoryTrie.setScoreDifferential(initialHistoricMoves, 0.0);
         PieceConfiguration currentConfiguration;
+        PieceConfiguration parentConfiguration = null;
         int currentDepth = 0;
 
         while(currentDepth < depth) {
@@ -36,25 +36,27 @@ public class BreadthFirstPositionEvaluator {
                 if (historicMoves.length != currentDepth) {
                     continue;
                 }
-                currentConfiguration = PieceConfiguration.toNewConfigurationFromMoves(pieceConfiguration, historicMoves);
+                final int historicMovesLastIndex = historicMoves.length - 1;
+                if (historicMovesLastIndex >= 0) {
+                    final short[] historicMovesExceptFinal = Arrays.copyOfRange(historicMoves, 0, historicMovesLastIndex);
+                    if (parentConfiguration == null || !Arrays.equals(parentConfiguration.getHistoricMoves(), historicMovesExceptFinal)) {
+                        parentConfiguration = PieceConfiguration.toNewConfigurationFromMoves(pieceConfiguration, historicMovesExceptFinal);
+                    }
+                    currentConfiguration = PieceConfiguration.toNewConfigurationFromMove(parentConfiguration, historicMoves[historicMovesLastIndex]);
+                } else {
+                    currentConfiguration = pieceConfiguration;
+                }
 
                 final List<PieceConfiguration> onwardConfigurations = currentConfiguration.getPossiblePieceConfigurations();
-                final int onwardConfigurationCount = onwardConfigurations.size();
-                if (onwardConfigurationCount == 0) {
-                    final double mateValue;
-                    if (currentConfiguration.isCheck()) {
-                        mateValue = Float.MAX_VALUE;
-                    } else {
-                        mateValue = -Float.MAX_VALUE;
-                    }
-                    inMemoryTrie.setScoreDifferential(currentConfiguration.getHistoricMoves(), mateValue);
-                    continue;
-                } else if (currentConfiguration.getHalfMoveClock() > NO_CAPTURE_OR_PAWN_MOVE_LIMIT) {
-                    inMemoryTrie.setScoreDifferential(currentConfiguration.getHistoricMoves(), -Float.MAX_VALUE);
+                final Double gameEndValue = getEndgameValue(onwardConfigurations.size(), currentConfiguration);
+                if (gameEndValue != null) {
+                    inMemoryTrie.setScoreDifferential(currentConfiguration.getHistoricMoves(), gameEndValue);
                     continue;
                 }
                 final int currentValueDifferential = currentConfiguration.getValueDifferential();
-                final ConfigurationScorePair[] onwardConfigurationScores = getOnwardConfigurationScores(currentValueDifferential, onwardConfigurations);
+//                final double currentThreatValue = currentConfiguration.getLesserScore() * (1 - ((currentDepth % 2) * 2));
+                final double currentThreatValue = currentConfiguration.getLesserScore();
+                final ConfigurationScorePair[] onwardConfigurationScores = getOnwardConfigurationScores(currentValueDifferential, currentThreatValue, onwardConfigurations);
                 Arrays.sort(onwardConfigurationScores);
 
                 Arrays.stream(onwardConfigurationScores).forEach(
@@ -76,6 +78,21 @@ public class BreadthFirstPositionEvaluator {
         return null;
     }
 
+    private static Double getEndgameValue(int onwardConfigurationCount, PieceConfiguration currentConfiguration) {
+        if (onwardConfigurationCount == 0) {
+            final double mateValue;
+            if (currentConfiguration.isCheck()) {
+                mateValue = Float.MAX_VALUE;
+            } else {
+                mateValue = -Float.MAX_VALUE;
+            }
+            return mateValue;
+        } else if (currentConfiguration.getHalfMoveClock() > NO_CAPTURE_OR_PAWN_MOVE_LIMIT) {
+            return (double) -Float.MAX_VALUE;
+        }
+        return null;
+    }
+
     private static short getBestStoredMove(InMemoryTrie inMemoryTrie) {
         short bestMove = -1;
         double bestScore = -Double.MAX_VALUE;
@@ -87,8 +104,7 @@ public class BreadthFirstPositionEvaluator {
             double value = 0;
             for(int i = 1; i <= historicMoves.length; i++) {
                 final short[] historicMovesSubArray = Arrays.copyOfRange(historicMoves, 0, i);
-                final boolean sameSide = i % 2 == 0;
-                final int ancestralSign = sameSide ? -1 : 1;
+                final int ancestralSign = -1 + ((i % 2) * 2);
                 final double ancestralValue = inMemoryTrie.getTrieMap().get(historicMovesSubArray) * ancestralSign;
                 value += ancestralValue * UNCERTAINTY_ADJUSTMENTS[i];
             }
@@ -102,16 +118,15 @@ public class BreadthFirstPositionEvaluator {
     }
 
     private static ConfigurationScorePair[] getOnwardConfigurationScores(
-            int currentValueDifferential, List<PieceConfiguration> onwardConfigurations) {
+            int currentValueDifferential, double currentThreatValue, List<PieceConfiguration> onwardConfigurations) {
         final ConfigurationScorePair[] onwardConfigurationScorePairs = new ConfigurationScorePair[onwardConfigurations.size()];
         for (int i = 0; i < onwardConfigurationScorePairs.length; i++) {
             final PieceConfiguration onwardConfiguration = onwardConfigurations.get(i);
             // Set all the bit flags in the onward configuration
             onwardConfiguration.setHigherBitFlags();
-            final int onwardValueDifferential = currentValueDifferential - onwardConfiguration.getValueDifferential();
-//            final double onwardLesserScore = onwardConfiguration.getLesserScore();
-//            final double onwardFullScore = onwardValueDifferential + onwardLesserScore;
-            final double onwardFullScore = onwardValueDifferential;
+            final double valueComparison = currentValueDifferential - onwardConfiguration.getValueDifferential();
+//            final double onwardFullScore = valueComparison + currentThreatValue;
+            final double onwardFullScore = valueComparison;
             onwardConfigurationScorePairs[i] = new ConfigurationScorePair(onwardConfiguration, onwardFullScore);
         }
         return onwardConfigurationScorePairs;

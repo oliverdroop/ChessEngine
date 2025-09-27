@@ -164,13 +164,10 @@ public class PieceConfiguration {
                 newConfiguration.addPiece(newRookBitFlag);
             }
             // Remove castle positions for side because king has moved
-            if (hasBitFlag(oldPieceBitFlag, WHITE_OCCUPIED)) {
-                newConfiguration.removeCastlePosition(2);
-                newConfiguration.removeCastlePosition(6);
-            } else {
-                newConfiguration.removeCastlePosition(58);
-                newConfiguration.removeCastlePosition(62);
-            }
+            final int leftCastlePosition = 2 + (56 * (oldPieceBitFlag & WHITE_OCCUPIED));
+            final int rightCastlePosition = leftCastlePosition + 4;
+            newConfiguration.removeCastlePosition(leftCastlePosition);
+            newConfiguration.removeCastlePosition(rightCastlePosition);
         }
         if (hasBitFlag(oldPieceBitFlag, ROOK_OCCUPIED) && CASTLE_POSITION_MAPPINGS.containsValue(fromPos)) {
             // Remove castle position for rook because rook has moved
@@ -181,6 +178,14 @@ public class PieceConfiguration {
             }
         }
 
+        if (hasBitFlag(oldPieceBitFlag, PAWN_OCCUPIED) && Math.abs(posDiff) == 16) {
+            // Set the en passant square
+            newConfiguration.setEnPassantSquare((fromPos + toPos) >> 1);
+        } else {
+            // Clear the en passant square
+            newConfiguration.setEnPassantSquare(-1);
+        }
+
         if (isAnyPieceTaken || hasBitFlag(oldPieceBitFlag, PAWN_OCCUPIED)) {
             // Reset the half move clock to zero
             newConfiguration.setHalfMoveClock(0);
@@ -189,18 +194,8 @@ public class PieceConfiguration {
             newConfiguration.setHalfMoveClock(previousConfiguration.getHalfMoveClock() + 1);
         }
 
-        if (previousConfiguration.getTurnSide() == Side.BLACK.ordinal()) {
-            // Increment the full move number
-            newConfiguration.setFullMoveNumber(previousConfiguration.getFullMoveNumber() + 1);
-        }
-
-        if (hasBitFlag(oldPieceBitFlag, PAWN_OCCUPIED) && Math.abs(posDiff) == 16) {
-            // Set the en passant square
-            newConfiguration.setEnPassantSquare((fromPos + toPos) >> 1);
-        } else {
-            // Clear the en passant square
-            newConfiguration.setEnPassantSquare(-1);
-        }
+        // Increment the full move number
+        newConfiguration.setFullMoveNumber(previousConfiguration.getFullMoveNumber() + previousConfiguration.getTurnSide());
         // Switch the turn side
         newConfiguration.setTurnSide(previousConfiguration.getOpposingSide());
         return newConfiguration;
