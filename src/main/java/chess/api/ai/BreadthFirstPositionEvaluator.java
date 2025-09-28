@@ -101,13 +101,7 @@ public class BreadthFirstPositionEvaluator {
                 continue;
             }
 
-            double value = 0;
-            for(int i = 1; i <= historicMoves.length; i++) {
-                final short[] historicMovesSubArray = Arrays.copyOfRange(historicMoves, 0, i);
-                final int ancestralSign = -1 + ((i % 2) * 2);
-                final double ancestralValue = inMemoryTrie.getTrieMap().get(historicMovesSubArray) * ancestralSign;
-                value += ancestralValue * UNCERTAINTY_ADJUSTMENTS[i];
-            }
+            final double value = getCumulativeValue(historicMoves, inMemoryTrie);
 
             if (value > bestScore) {
                 bestMove = historicMoves[0];
@@ -115,6 +109,17 @@ public class BreadthFirstPositionEvaluator {
             }
         }
         return bestMove;
+    }
+
+    private static double getCumulativeValue(short[] historicMoves, InMemoryTrie inMemoryTrie) {
+        double value = 0;
+        for(int i = 1; i <= historicMoves.length; i++) {
+            final short[] historicMovesSubArray = Arrays.copyOfRange(historicMoves, 0, i);
+            final int ancestralSign = -1 + ((i % 2) * 2);
+            final double ancestralValue = inMemoryTrie.getTrieMap().get(historicMovesSubArray) * ancestralSign;
+            value += ancestralValue * UNCERTAINTY_ADJUSTMENTS[i];
+        }
+        return value;
     }
 
     private static ConfigurationScorePair[] getOnwardConfigurationScores(
