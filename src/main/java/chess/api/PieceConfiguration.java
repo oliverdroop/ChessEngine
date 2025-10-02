@@ -148,7 +148,8 @@ public class PieceConfiguration {
         final int newPieceBitFlag = promotionBitFlag == 0
             ? (oldPieceBitFlag & ALL_PIECE_AND_COLOUR_FLAGS_COMBINED) | toPos
             : (oldPieceBitFlag & COLOUR_FLAGS_COMBINED) | promotionBitFlag | toPos;
-        final boolean isAnyPieceTaken = (previousConfiguration.getPieceAtPosition(toPos) & ALL_PIECE_FLAGS_COMBINED) > 0
+        final int directlyTakenPieceBitFlag = previousConfiguration.getPieceAtPosition(toPos) & ALL_PIECE_FLAGS_COMBINED;
+        final boolean isAnyPieceTaken = directlyTakenPieceBitFlag > 0
             || (previousConfiguration.getEnPassantSquare() == toPos && (newPieceBitFlag & PAWN_OCCUPIED) != 0);
         newConfiguration.removePiece(fromPos);
         newConfiguration.removePiece(toPos);
@@ -165,7 +166,7 @@ public class PieceConfiguration {
                 newConfiguration.addPiece(newRookBitFlag);
             }
             // Remove castle positions for side because king has moved
-            final int leftCastlePosition = 2 + (56 * (oldPieceBitFlag & BLACK_OCCUPIED));
+            final int leftCastlePosition = 2 + (56 * ((oldPieceBitFlag & BLACK_OCCUPIED) >> 9));
             final int rightCastlePosition = leftCastlePosition + 4;
             newConfiguration.removeCastlePosition(leftCastlePosition);
             newConfiguration.removeCastlePosition(rightCastlePosition);
@@ -174,6 +175,14 @@ public class PieceConfiguration {
             // Remove castle position for rook because rook has moved
             for(Map.Entry<Integer, Integer> entry : CASTLE_POSITION_MAPPINGS.entrySet()) {
                 if (entry.getValue() == fromPos) {
+                    newConfiguration.removeCastlePosition(entry.getKey());
+                }
+            }
+        }
+        if (hasBitFlag(directlyTakenPieceBitFlag, ROOK_OCCUPIED)) {
+            // Remove castle position for rook because rook has been taken
+            for(Map.Entry<Integer, Integer> entry : CASTLE_POSITION_MAPPINGS.entrySet()) {
+                if (entry.getValue() == toPos) {
                     newConfiguration.removeCastlePosition(entry.getKey());
                 }
             }
