@@ -145,10 +145,11 @@ public class PieceConfiguration {
         final int toPos = moveDescription & 0b0000000000111111;
         final int promotionBitFlag = (moveDescription & 0b1111000000000000) >>> 1;
         final int oldPieceBitFlag = previousConfiguration.getPieceAtPosition(fromPos);
-        final boolean isAnyPieceTaken = (previousConfiguration.getPieceAtPosition(toPos) & ALL_PIECE_FLAGS_COMBINED) > 0;
         final int newPieceBitFlag = promotionBitFlag == 0
             ? (oldPieceBitFlag & ALL_PIECE_AND_COLOUR_FLAGS_COMBINED) | toPos
             : (oldPieceBitFlag & COLOUR_FLAGS_COMBINED) | promotionBitFlag | toPos;
+        final boolean isAnyPieceTaken = (previousConfiguration.getPieceAtPosition(toPos) & ALL_PIECE_FLAGS_COMBINED) > 0
+            || (previousConfiguration.getEnPassantSquare() == toPos && (newPieceBitFlag & PAWN_OCCUPIED) != 0);
         newConfiguration.removePiece(fromPos);
         newConfiguration.removePiece(toPos);
         newConfiguration.addPiece(newPieceBitFlag);
@@ -164,7 +165,7 @@ public class PieceConfiguration {
                 newConfiguration.addPiece(newRookBitFlag);
             }
             // Remove castle positions for side because king has moved
-            final int leftCastlePosition = 2 + (56 * (oldPieceBitFlag & WHITE_OCCUPIED));
+            final int leftCastlePosition = 2 + (56 * (oldPieceBitFlag & BLACK_OCCUPIED));
             final int rightCastlePosition = leftCastlePosition + 4;
             newConfiguration.removeCastlePosition(leftCastlePosition);
             newConfiguration.removeCastlePosition(rightCastlePosition);
