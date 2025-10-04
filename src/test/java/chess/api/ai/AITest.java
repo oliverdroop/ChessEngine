@@ -215,7 +215,7 @@ public class AITest {
 
     @Test
     @Disabled
-    void testPlayAIGame() {
+    void testBothEvaluatorsSameOutput() {
         PieceConfiguration pieceConfiguration = FENReader.read(FENWriter.STARTING_POSITION);
         PieceConfiguration previousConfiguration = null;
         final int depth = 4;

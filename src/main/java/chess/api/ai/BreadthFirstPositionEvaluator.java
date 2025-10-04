@@ -9,17 +9,6 @@ import static chess.api.PieceConfiguration.NO_CAPTURE_OR_PAWN_MOVE_LIMIT;
 
 public class BreadthFirstPositionEvaluator {
 
-    private static final double UNCERTAINTY_FACTOR = 0.99;
-
-    private static final double[] UNCERTAINTY_ADJUSTMENTS = new double[] {
-        Math.pow(UNCERTAINTY_FACTOR, 1),
-        Math.pow(UNCERTAINTY_FACTOR, 2),
-        Math.pow(UNCERTAINTY_FACTOR, 3),
-        Math.pow(UNCERTAINTY_FACTOR, 4),
-        Math.pow(UNCERTAINTY_FACTOR, 5),
-        Math.pow(UNCERTAINTY_FACTOR, 6),
-    };
-
     public static PieceConfiguration getBestMoveRecursively(PieceConfiguration pieceConfiguration, int depth) {
         final InMemoryTrie inMemoryTrie = new InMemoryTrie();
         final short[] initialHistoricMoves = new short[]{};

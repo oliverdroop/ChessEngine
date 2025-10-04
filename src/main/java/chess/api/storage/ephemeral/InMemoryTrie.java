@@ -4,6 +4,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.function.BinaryOperator;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class InMemoryTrie {
@@ -12,7 +14,11 @@ public class InMemoryTrie {
 
     private static final Comparator<short[]> SHORT_ARRAY_COMPARATOR = new SawtoothShortArrayComparator();
 
-    private final TreeMap<short[], Double> trieMap = new TreeMap<>(SHORT_ARRAY_COMPARATOR);
+    private static final BinaryOperator<Double> MERGE_FUNCTION = (d1, d2) -> d2;
+
+    private static final Supplier<TreeMap<short[], Double>> TREE_MAP_SUPPLIER = () -> new TreeMap<>(SHORT_ARRAY_COMPARATOR);
+
+    private final TreeMap<short[], Double> trieMap = TREE_MAP_SUPPLIER.get();
 
     public InMemoryTrie() {}
 
@@ -25,15 +31,11 @@ public class InMemoryTrie {
     }
 
     public TreeMap<short[], Double> getChildren(short[] moveHistory) {
-        final TreeMap<short[], Double> treeMap = new TreeMap<>(SHORT_ARRAY_COMPARATOR);
-        treeMap.putAll(
-            getDescendants(moveHistory)
-                .entrySet()
-                .stream()
-                .filter(entry -> entry.getKey().length == moveHistory.length + 1)
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))
-        );
-        return treeMap;
+        return getDescendants(moveHistory)
+            .entrySet()
+            .stream()
+            .filter(entry -> entry.getKey().length == moveHistory.length + 1)
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, MERGE_FUNCTION, TREE_MAP_SUPPLIER));
     }
 
     public void setScore(short[] moveHistory, double score) {
@@ -46,7 +48,7 @@ public class InMemoryTrie {
     private NavigableMap<short[], Double> getDescendants(short[] moveHistory) {
         final Double value = trieMap.get(moveHistory);
         if (value == null) {
-            return null;
+            return Collections.emptyNavigableMap();
         }
         short[] higherKey = trieMap.higherKey(moveHistory);
         while(higherKey != null
