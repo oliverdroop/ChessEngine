@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 
 import static chess.api.ai.openings.OpeningBook.getOpeningResponse;
 import static chess.api.ai.DepthFirstPositionEvaluator.deriveGameEndType;
-import static chess.api.ai.BreadthFirstPositionEvaluator.getBestMoveRecursively;
+import static chess.api.ai.ConcurrentPositionEvaluator.getBestMoveRecursively;
 
 @RestController
 public class FENController {
