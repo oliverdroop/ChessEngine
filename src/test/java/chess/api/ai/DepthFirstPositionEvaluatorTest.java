@@ -3,16 +3,14 @@ package chess.api.ai;
 import chess.api.FENReader;
 import chess.api.FENWriter;
 import chess.api.PieceConfiguration;
-import org.junit.Ignore;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-@Ignore
+@Disabled
 public class DepthFirstPositionEvaluatorTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DepthFirstPositionEvaluatorTest.class);
