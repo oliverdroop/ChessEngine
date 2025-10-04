@@ -67,6 +67,7 @@ public class BreadthFirstPositionEvaluator {
         if (bestMove != -1) {
             final PieceConfiguration bestConfiguration = PieceConfiguration.toNewConfigurationFromMove(pieceConfiguration, bestMove);
             if (bestConfiguration.getHalfMoveClock() <= NO_CAPTURE_OR_PAWN_MOVE_LIMIT) {
+                bestConfiguration.setHigherBitFlags();
                 return bestConfiguration;
             }
         }

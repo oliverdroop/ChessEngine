@@ -2,11 +2,16 @@ package chess.api.ai;
 
 import chess.api.FENReader;
 import chess.api.FENWriter;
+import chess.api.GameEndType;
 import chess.api.PieceConfiguration;
 import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
@@ -14,6 +19,8 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class AITest {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AITest.class);
 
 	private static final int DEPTH = 4;
 
@@ -195,6 +202,40 @@ public class AITest {
 						"r1bqk1nr/pppp1ppp/2n1p3/8/1b1PP3/2PB2P1/PP3P1P/RNBQK1NR w KQkq - 8 6",
 						"r1b1k1nr/pppp1ppp/2n1p3/8/3PP2q/2bB2P1/PP3P1P/RNBQK1NR w KQkq - 0 6");
 	}
+
+    @ParameterizedTest
+    @MethodSource("providePositionEvaluatorArguments")
+    void deriveGameEndType(BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction) {
+        setupTest("r3q1nN/ppp4p/8/kb5R/1N1Q4/6P1/PP1BB3/R3K3 b Q - 6 20");
+        newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH);
+        assertThat(newPieceConfiguration.isCheck()).isTrue();
+        assertThat(DepthFirstPositionEvaluator.deriveGameEndType(newPieceConfiguration))
+            .isEqualTo(GameEndType.BLACK_VICTORY);
+    }
+
+    @Test
+    @Disabled
+    void testPlayAIGame() {
+        PieceConfiguration pieceConfiguration = FENReader.read(FENWriter.STARTING_POSITION);
+        PieceConfiguration previousConfiguration = null;
+        final int depth = 4;
+
+        while(pieceConfiguration != null) {
+            LOGGER.info(pieceConfiguration.toString());
+            previousConfiguration = pieceConfiguration;
+            final PieceConfiguration depthFirstEvaluatorConfiguration = DepthFirstPositionEvaluator
+                .getBestMoveRecursively(pieceConfiguration, depth);
+            final PieceConfiguration breadthFirstEvaluatorConfiguration = BreadthFirstPositionEvaluator
+                .getBestMoveRecursively(pieceConfiguration, depth);
+            final String depthFirstFen = depthFirstEvaluatorConfiguration.toString();
+            final String breadthFirstFen = breadthFirstEvaluatorConfiguration.toString();
+            assertThat(breadthFirstFen)
+                .as("Depth first and breadth first evaluators output different moves for same input")
+                .isEqualTo(depthFirstFen);
+            pieceConfiguration = depthFirstEvaluatorConfiguration;
+        }
+        LOGGER.info(DepthFirstPositionEvaluator.deriveGameEndType(previousConfiguration).toString());
+    }
 
     private static Stream<Arguments> providePositionEvaluatorArguments() {
         return Stream.of(
