@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class AITest {
 
-	private static final int DEPTH = 5;
+	private static final int DEPTH = 4;
 
 	private PieceConfiguration pieceConfiguration;
 
@@ -77,7 +77,7 @@ public class AITest {
 		setupTest("K7/8/8/2r5/2r5/8/8/7k b - - 0 1");
 		newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH);
 		assertThat(FENWriter.write(newPieceConfiguration))
-				.as("White rook should progress towards forcing checkmate")
+				.as("Black rook should progress towards forcing checkmate")
 				.isIn("K7/8/8/1r6/2r5/8/8/7k w - - 1 2",
 						"K7/8/8/2r5/1r6/8/8/7k w - - 1 2",
 						"K7/8/8/2r5/r7/8/8/7k w - - 1 2",
