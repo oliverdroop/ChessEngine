@@ -151,10 +151,15 @@ public class PieceConfiguration {
         final int directlyTakenPieceBitFlag = previousConfiguration.getPieceAtPosition(toPos) & ALL_PIECE_FLAGS_COMBINED;
         final boolean isAnyPieceTaken = directlyTakenPieceBitFlag > 0
             || (previousConfiguration.getEnPassantSquare() == toPos && (newPieceBitFlag & PAWN_OCCUPIED) != 0);
+        final int posDiff = toPos - fromPos;
         newConfiguration.removePiece(fromPos);
         newConfiguration.removePiece(toPos);
         newConfiguration.addPiece(newPieceBitFlag);
-        final int posDiff = toPos - fromPos;
+        if (isAnyPieceTaken && directlyTakenPieceBitFlag == 0) {
+            // Remove pawn taken by en passant
+            final int takenPiecePosition = toPos - (8 - (previousConfiguration.getTurnSide() * 16));
+            newConfiguration.removePiece(takenPiecePosition);
+        }
         if (hasBitFlag(oldPieceBitFlag, KING_OCCUPIED)) {
             if (Math.abs(posDiff) == 2) {
                 // Castling

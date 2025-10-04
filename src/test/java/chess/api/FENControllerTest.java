@@ -82,6 +82,17 @@ public class FENControllerTest {
         assertThat(resolvedException.getMessage()).contains("Move history does not result in FEN");
     }
 
+    @Test
+    void testGetAiMove_withEnPassant() throws Exception {
+        String fen = "rn4nr/p1k1bp2/1pp1p2P/3pP3/3P1B2/2P3NP/PQ5P/1N2KB1R b K - 0 15";
+        List<String> moveHistory = List.of("e2e4","c7c6","f2f4","d8b6","c2c3","d7d5","e4e5","g7g5","f4xg5","c8h3","g2xh3","e7e6","d2d4","e8d7","g1e2","d7c7","c1f4","b6xb2","b1d2","b2xa1","d1xa1","f8a3","d2b1","a3e7","a1b2","b7b6","e2g3","h7h5","g5xh6");
+        mockMvc.perform(
+                post("/chess")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(OBJECT_MAPPER.writeValueAsString(buildRequest(fen, moveHistory))))
+            .andExpect(status().isOk());
+    }
+
     private AiMoveRequestDto buildRequest(String fen) {
         final AiMoveRequestDto request = new AiMoveRequestDto();
         request.setFen(fen);
