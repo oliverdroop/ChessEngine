@@ -30,19 +30,19 @@ public class InMemoryTrie {
         return trieMap.get(moveHistory);
     }
 
+    public void setScore(short[] moveHistory, double score) {
+        if (moveHistory == null) {
+            return;
+        }
+        trieMap.put(moveHistory, score);
+    }
+
     public TreeMap<short[], Double> getChildren(short[] moveHistory) {
         return getDescendants(moveHistory)
             .entrySet()
             .stream()
             .filter(entry -> entry.getKey().length == moveHistory.length + 1)
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, MERGE_FUNCTION, TREE_MAP_SUPPLIER));
-    }
-
-    public void setScore(short[] moveHistory, double score) {
-        if (moveHistory == null) {
-            return;
-        }
-        trieMap.put(moveHistory, score);
     }
 
     private NavigableMap<short[], Double> getDescendants(short[] moveHistory) {

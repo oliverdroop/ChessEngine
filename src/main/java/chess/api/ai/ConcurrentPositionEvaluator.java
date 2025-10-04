@@ -38,7 +38,7 @@ public class ConcurrentPositionEvaluator {
         final double currentDiff = pieceConfiguration.getValueDifferential();
 
         depth--;
-        final List<PieceConfiguration> onwardPieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
+        final List<PieceConfiguration> onwardPieceConfigurations = pieceConfiguration.getOnwardConfigurations();
         final int onwardConfigurationCount = onwardPieceConfigurations.size();
         final CompletableFuture<Double>[] onwardConfigurationScoreFutures = new CompletableFuture[onwardConfigurationCount];
         final boolean[] fiftyMoveRuleChecks = new boolean[onwardConfigurationCount];

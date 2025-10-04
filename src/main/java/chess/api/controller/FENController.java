@@ -46,7 +46,7 @@ public class FENController {
 
             if (outputConfiguration != null) {
                 final String outputFEN = FENWriter.write(outputConfiguration);
-                if (FENReader.read(outputFEN).getPossiblePieceConfigurations().isEmpty()) {
+                if (FENReader.read(outputFEN).getOnwardConfigurations().isEmpty()) {
                     response.setGameResult(deriveGameEndType(outputConfiguration).toString());
                 }
                 response.setFen(outputFEN);
@@ -77,7 +77,7 @@ public class FENController {
                     Side.values()[Piece.getSide(pieceBitFlag)], Piece.getPieceType(pieceBitFlag),
                     Position.getCoordinateString(Position.getPosition(pieceBitFlag)));
 
-            final List<String> algebraicNotations = inputConfiguration.getPossiblePieceConfigurationsForPiece(pieceBitFlag)
+            final List<String> algebraicNotations = inputConfiguration.getOnwardConfigurationsForPiece(pieceBitFlag)
                     .stream()
                     .map(pc -> pc.getAlgebraicNotation(inputConfiguration))
                     .collect(Collectors.toList());

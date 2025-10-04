@@ -54,12 +54,12 @@ public class DepthFirstPositionEvaluatorTest {
         PieceConfiguration mateConfiguration = null;
         while (mateConfiguration == null) {
             PieceConfiguration pc = FENReader.read(FENWriter.STARTING_POSITION);
-            List<PieceConfiguration> ccs = pc.getPossiblePieceConfigurations();
+            List<PieceConfiguration> ccs = pc.getOnwardConfigurations();
             while (!ccs.isEmpty() && pc.getHalfMoveClock() < 50) {
 //            LOGGER.info(FENWriter.write(pc));
                 int i = rnd.nextInt(ccs.size());
                 pc = ccs.get(i);
-                ccs = pc.getPossiblePieceConfigurations();
+                ccs = pc.getOnwardConfigurations();
             }
             LOGGER.info(FENWriter.write(pc));
             if (ccs.isEmpty()) {

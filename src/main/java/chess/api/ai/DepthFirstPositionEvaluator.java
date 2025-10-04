@@ -39,7 +39,7 @@ public class DepthFirstPositionEvaluator {
         final double currentDiff = pieceConfiguration.getValueDifferential();
 
         depth--;
-        final List<PieceConfiguration> onwardPieceConfigurations = pieceConfiguration.getPossiblePieceConfigurations();
+        final List<PieceConfiguration> onwardPieceConfigurations = pieceConfiguration.getOnwardConfigurations();
         final int onwardConfigurationCount = onwardPieceConfigurations.size();
         final double[] onwardConfigurationScores = new double[onwardConfigurationCount];
         final boolean[] fiftyMoveRuleChecks = new boolean[onwardConfigurationCount];

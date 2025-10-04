@@ -161,7 +161,7 @@ public class PieceConfigurationTest {
     void testGetAlgebraicNotation_fromStartingPosition() {
         final PieceConfiguration pieceConfiguration1 = FENReader.read(FENWriter.STARTING_POSITION);
         final int pieceBitFlag = pieceConfiguration1.getPieceAtPosition(12);
-        final List<String> algebraicNotations = pieceConfiguration1.getPossiblePieceConfigurationsForPiece(pieceBitFlag)
+        final List<String> algebraicNotations = pieceConfiguration1.getOnwardConfigurationsForPiece(pieceBitFlag)
             .stream()
             .map(pieceConfiguration -> pieceConfiguration.getAlgebraicNotation(pieceConfiguration1))
             .toList();

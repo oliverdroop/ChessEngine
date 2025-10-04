@@ -216,12 +216,12 @@ public class PieceConfiguration {
         positionBitFlags = stampCheckNonBlockerFlags(stampThreatFlags(stampOccupationFlags(positionBitFlags)));
     }
 
-    public List<PieceConfiguration> getPossiblePieceConfigurations() {
+    public List<PieceConfiguration> getOnwardConfigurations() {
         setHigherBitFlags();
         return Arrays.stream(getPieceBitFlags())
                 .boxed()
                 .filter(p -> BitUtil.hasBitFlag(p, PLAYER_OCCUPIED))
-                .flatMap(p -> getPossiblePieceConfigurationsForPiece(p).stream())
+                .flatMap(p -> getOnwardConfigurationsForPiece(p).stream())
                 .collect(Collectors.toList());
     }
 
@@ -229,7 +229,7 @@ public class PieceConfiguration {
         Arrays.stream(Position.POSITIONS).forEach(pos -> positionBitFlags[pos] = BitUtil.clearBits(positionBitFlags[pos], ~(63 | ALL_PIECE_AND_COLOUR_FLAGS_COMBINED)));
     }
 
-    public List<PieceConfiguration> getPossiblePieceConfigurationsForPiece(int pieceBitFlag) {
+    public List<PieceConfiguration> getOnwardConfigurationsForPiece(int pieceBitFlag) {
         if (Arrays.stream(positionBitFlags).noneMatch(pbf -> pbf > 65535)) {
             setHigherBitFlags();
         }
