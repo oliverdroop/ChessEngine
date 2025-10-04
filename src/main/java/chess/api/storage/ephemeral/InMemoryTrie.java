@@ -22,7 +22,7 @@ public class InMemoryTrie {
 
     public InMemoryTrie() {}
 
-    public SortedMap<short[], Double> getTrieMap() {
+    public TreeMap<short[], Double> getTrieMap() {
         return trieMap;
     }
 

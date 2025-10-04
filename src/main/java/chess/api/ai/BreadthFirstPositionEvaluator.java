@@ -88,10 +88,10 @@ public class BreadthFirstPositionEvaluator {
         return getBestMoveScorePair(inMemoryTrie, childMap);
     }
 
-    private static MoveScorePair getBestMoveScorePair(InMemoryTrie inMemoryTrie, TreeMap<short[], Double> scoreMap) {
+    private static MoveScorePair getBestMoveScorePair(InMemoryTrie inMemoryTrie, TreeMap<short[], Double> siblingMap) {
         short bestMove = -1;
         double bestScore = -Double.MAX_VALUE;
-        for(short[] historicMoves : scoreMap.keySet()) {
+        for(short[] historicMoves : siblingMap.keySet()) {
             final double value = -getCumulativeValue(historicMoves, inMemoryTrie);
             if (value > bestScore) {
                 bestMove = historicMoves[historicMoves.length - 1];
