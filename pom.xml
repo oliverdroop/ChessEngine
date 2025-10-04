@@ -2,16 +2,16 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>oliverdroop</groupId>
 	<artifactId>ChessEngine</artifactId>
-	<version>1.0.4</version>
+	<version>1.1.0</version>
 	<!-- Inherit defaults from Spring Boot -->
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.0</version>
+		<version>3.5.6</version>
 	</parent>
 
 	<properties>
-		<spring.boot.version>3.5.0</spring.boot.version>
+		<spring.boot.version>3.5.6</spring.boot.version>
 		<maven.surefire.plugin.version>3.5.3</maven.surefire.plugin.version>
 		<log4j.version>2.24.3</log4j.version>
 	</properties>
