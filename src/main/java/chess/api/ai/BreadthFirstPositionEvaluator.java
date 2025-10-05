@@ -3,9 +3,12 @@ package chess.api.ai;
 import chess.api.PieceConfiguration;
 import chess.api.storage.ephemeral.InMemoryTrie;
 
+import java.math.BigInteger;
 import java.util.*;
 
 import static chess.api.PieceConfiguration.*;
+import static chess.api.storage.ephemeral.MoveHistoryConverter.fromMoves;
+import static chess.api.storage.ephemeral.MoveHistoryConverter.toMoves;
 import static java.util.Arrays.copyOfRange;
 
 public class BreadthFirstPositionEvaluator {
@@ -14,15 +17,29 @@ public class BreadthFirstPositionEvaluator {
         final InMemoryTrie inMemoryTrie = new InMemoryTrie();
         final short[] initialHistoricMoves = new short[]{};
         pieceConfiguration.setHistoricMoves(initialHistoricMoves);
-        inMemoryTrie.setScore(initialHistoricMoves, 0.0);
+        inMemoryTrie.setScore(fromMoves(initialHistoricMoves), 0.0);
         PieceConfiguration currentConfiguration;
         PieceConfiguration parentConfiguration = null;
         int currentDepth = 0;
 
         while(currentDepth < depth) {
-            final Map<short[], Double> trieMapCopy = new TreeMap<>(inMemoryTrie.getTrieMap());
-            for(short[] historicMoves : trieMapCopy.keySet()) {
-                if (historicMoves.length != currentDepth) {
+            final Map<BigInteger, Double> trieMapCopy = new TreeMap<>(inMemoryTrie.getTrieMap());
+            for(BigInteger historicMovesKey : trieMapCopy.keySet()) {
+                final short[] historicMoves = toMoves(historicMovesKey);
+                boolean skipKey = historicMoves.length < currentDepth;
+                if (!skipKey) {
+                    int countZero = 0;
+                    for (int i = historicMoves.length - 1; i >= 0; i--) {
+                        if (historicMoves[i] == 0) {
+                            countZero++;
+                        }
+                        if (countZero > 1) {
+                            skipKey = true;
+                            break;
+                        }
+                    }
+                }
+                if (skipKey) {
                     continue;
                 }
                 final int historicMovesLastIndex = historicMoves.length - 1;
@@ -35,20 +52,22 @@ public class BreadthFirstPositionEvaluator {
                 } else {
                     currentConfiguration = pieceConfiguration;
                 }
+//                currentConfiguration = toNewConfigurationFromMoves(pieceConfiguration, Arrays.copyOfRange(historicMoves, 0, currentDepth));
 
                 final List<PieceConfiguration> onwardConfigurations = currentConfiguration.getOnwardConfigurations();
                 final Double gameEndValue = getEndgameValue(onwardConfigurations.size(), currentConfiguration);
                 if (gameEndValue != null) {
-                    inMemoryTrie.setScore(currentConfiguration.getHistoricMoves(), gameEndValue);
+                    inMemoryTrie.setScore(fromMoves(currentConfiguration.getHistoricMoves()), gameEndValue);
                     continue;
                 }
                 onwardConfigurations.forEach(
                     onwardConfiguration -> storeConfigurationScore(onwardConfiguration, inMemoryTrie));
             }
             currentDepth++;
+//            inMemoryTrie.shiftKeysLeft();
         }
 
-        final short bestMove = getBestOnwardMoveScorePair(inMemoryTrie, new short[]{}).move();
+        final short bestMove = getBestOnwardMoveScorePair(inMemoryTrie, BigInteger.ZERO).move();
         if (bestMove != -1) {
             final PieceConfiguration bestConfiguration = toNewConfigurationFromMove(pieceConfiguration, bestMove);
             if (bestConfiguration.getHalfMoveClock() <= NO_CAPTURE_OR_PAWN_MOVE_LIMIT) {
@@ -80,30 +99,31 @@ public class BreadthFirstPositionEvaluator {
         final int valueComparison = onwardConfiguration.getValueDifferential();
         final double onwardThreatValue = onwardConfiguration.getLesserScore();
         final double onwardFullScore = valueComparison + onwardThreatValue;
-        inMemoryTrie.setScore(onwardConfiguration.getHistoricMoves(), onwardFullScore);
+        final BigInteger key = fromMoves(onwardConfiguration.getHistoricMoves());
+        inMemoryTrie.setScore(key, onwardFullScore);
     }
 
-    private static MoveScorePair getBestOnwardMoveScorePair(InMemoryTrie inMemoryTrie, short[] startingNode) {
-        final TreeMap<short[], Double> childMap = inMemoryTrie.getChildren(startingNode);
+    private static MoveScorePair getBestOnwardMoveScorePair(InMemoryTrie inMemoryTrie, BigInteger startingNode) {
+        final TreeMap<BigInteger, Double> childMap = inMemoryTrie.getChildren(startingNode);
         return getBestMoveScorePair(inMemoryTrie, childMap);
     }
 
-    private static MoveScorePair getBestMoveScorePair(InMemoryTrie inMemoryTrie, TreeMap<short[], Double> siblingMap) {
+    private static MoveScorePair getBestMoveScorePair(InMemoryTrie inMemoryTrie, TreeMap<BigInteger, Double> siblingMap) {
         short bestMove = -1;
         double bestScore = -Double.MAX_VALUE;
-        for(short[] historicMoves : siblingMap.keySet()) {
-            final double value = -getCumulativeValue(historicMoves, inMemoryTrie);
+        for(BigInteger historicMovesKey : siblingMap.keySet()) {
+            final double value = -getCumulativeValue(historicMovesKey, inMemoryTrie);
             if (value > bestScore) {
-                bestMove = historicMoves[historicMoves.length - 1];
+                bestMove = historicMovesKey.shortValue();
                 bestScore = value;
             }
         }
         return new MoveScorePair(bestMove, bestScore);
     }
 
-    private static double getCumulativeValue(short[] historicMoves, InMemoryTrie inMemoryTrie) {
+    private static double getCumulativeValue(BigInteger historicMoves, InMemoryTrie inMemoryTrie) {
         final double value = inMemoryTrie.getScore(historicMoves);
-        final TreeMap<short[], Double> children = inMemoryTrie.getChildren(historicMoves);
+        final TreeMap<BigInteger, Double> children = inMemoryTrie.getChildren(historicMoves);
         if (children.isEmpty()) {
             return -value;
         }
