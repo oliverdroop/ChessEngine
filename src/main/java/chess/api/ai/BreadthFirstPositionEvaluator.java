@@ -48,7 +48,7 @@ public class BreadthFirstPositionEvaluator {
             currentDepth++;
         }
 
-        final short bestMove = getBestOnwardMoveScorePair(inMemoryTrie, new short[]{}).move();
+        final short bestMove = getBestOnwardMoveScorePair(inMemoryTrie, initialHistoricMoves).move();
         if (bestMove != -1) {
             final PieceConfiguration bestConfiguration = toNewConfigurationFromMove(pieceConfiguration, bestMove);
             if (bestConfiguration.getHalfMoveClock() <= NO_CAPTURE_OR_PAWN_MOVE_LIMIT) {
@@ -92,7 +92,7 @@ public class BreadthFirstPositionEvaluator {
         short bestMove = -1;
         double bestScore = -Double.MAX_VALUE;
         for(short[] historicMoves : siblingMap.keySet()) {
-            final double value = -getCumulativeValue(historicMoves, inMemoryTrie);
+            final double value = getCumulativeValue(historicMoves, inMemoryTrie);
             if (value > bestScore) {
                 bestMove = historicMoves[historicMoves.length - 1];
                 bestScore = value;
@@ -105,12 +105,12 @@ public class BreadthFirstPositionEvaluator {
         final double value = inMemoryTrie.getScore(historicMoves);
         final TreeMap<short[], Double> children = inMemoryTrie.getChildren(historicMoves);
         if (children.isEmpty()) {
-            return -value;
+            return value;
         }
         final MoveScorePair bestChildMove = getBestMoveScorePair(inMemoryTrie, children);
         if (bestChildMove.move() != -1) {
-            return (bestChildMove.score() * 0.99) + value;
+            return -(bestChildMove.score() * 0.99) - value;
         }
-        return -value;
+        return value;
     }
 }
