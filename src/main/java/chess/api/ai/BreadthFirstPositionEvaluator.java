@@ -20,6 +20,7 @@ public class BreadthFirstPositionEvaluator {
         int currentDepth = 0;
 
         while(currentDepth < depth) {
+            final boolean isMaximumDepth = currentDepth >= depth - 1;
             final Map<short[], Double> trieMapCopy = new TreeMap<>(inMemoryTrie.getTrieMap());
             for(short[] historicMoves : trieMapCopy.keySet()) {
                 if (historicMoves.length != currentDepth) {
@@ -42,8 +43,7 @@ public class BreadthFirstPositionEvaluator {
                     inMemoryTrie.setScore(currentConfiguration.getHistoricMoves(), gameEndValue);
                     continue;
                 }
-                onwardConfigurations.forEach(
-                    onwardConfiguration -> storeConfigurationScore(onwardConfiguration, inMemoryTrie));
+                storeConfigurationScores(onwardConfigurations, inMemoryTrie, isMaximumDepth);
             }
             currentDepth++;
         }
@@ -74,13 +74,34 @@ public class BreadthFirstPositionEvaluator {
         return null;
     }
 
-    private static void storeConfigurationScore(PieceConfiguration onwardConfiguration, InMemoryTrie inMemoryTrie) {
+    private static void storeConfigurationScores(List<PieceConfiguration> onwardConfigurations, InMemoryTrie inMemoryTrie, boolean isMaximumDepth) {
+        PieceConfiguration bestOnwardConfiguration = null;
+        double bestOnwardScore = -Double.MAX_VALUE;
+        for(PieceConfiguration onwardConfiguration : onwardConfigurations) {
+            final double onwardScore = getConfigurationScore(onwardConfiguration);
+            if (!isMaximumDepth) {
+                // Store all the onward scores because we are not yet at the maximum depth
+                final short[] key = onwardConfiguration.getHistoricMoves();
+                inMemoryTrie.setScore(key, onwardScore);
+            } else if (onwardScore > bestOnwardScore) {
+                // Calculate which score to store because we are at the maximum depth
+                bestOnwardScore = onwardScore;
+                bestOnwardConfiguration = onwardConfiguration;
+            }
+        }
+        if (isMaximumDepth) {
+            // Only store the best score because we are at the maximum depth
+            final short[] key = bestOnwardConfiguration.getHistoricMoves();
+            inMemoryTrie.setScore(key, bestOnwardScore);
+        }
+    }
+
+    private static double getConfigurationScore(PieceConfiguration onwardConfiguration) {
         // Set all the bit flags in the onward configuration
         onwardConfiguration.setHigherBitFlags();
         final int valueComparison = onwardConfiguration.getValueDifferential();
         final double onwardThreatValue = onwardConfiguration.getLesserScore();
-        final double onwardFullScore = valueComparison + onwardThreatValue;
-        inMemoryTrie.setScore(onwardConfiguration.getHistoricMoves(), onwardFullScore);
+        return valueComparison + onwardThreatValue;
     }
 
     private static MoveScorePair getBestOnwardMoveScorePair(InMemoryTrie inMemoryTrie, short[] startingNode) {
