@@ -25,20 +25,20 @@ public class BreadthFirstPositionEvaluator {
             final Map<BigInteger, Double> trieMapCopy = new TreeMap<>(inMemoryTrie.getTrieMap());
             for(BigInteger historicMovesKey : trieMapCopy.keySet()) {
                 final short[] historicMoves = toMoves(historicMovesKey);
-                if (historicMoves.length < currentDepth || inMemoryTrie.countTrailingEmptyShorts(historicMovesKey) > 1) {
+                final int trailingEmptyShorts = inMemoryTrie.countTrailingEmptyShorts(historicMovesKey);
+                if (historicMoves.length < currentDepth || trailingEmptyShorts > 1) {
                     continue;
                 }
-//                final int historicMovesLastIndex = historicMoves.length - 1;
-//                if (historicMovesLastIndex >= 0) {
-//                    final short[] historicMovesExceptFinal = copyOfRange(historicMoves, 0, historicMovesLastIndex);
-//                    if (parentConfiguration == null || !Arrays.equals(parentConfiguration.getHistoricMoves(), historicMovesExceptFinal)) {
-//                        parentConfiguration = toNewConfigurationFromMoves(pieceConfiguration, historicMovesExceptFinal);
-//                    }
-//                    currentConfiguration = toNewConfigurationFromMove(parentConfiguration, historicMoves[historicMovesLastIndex]);
-//                } else {
-//                    currentConfiguration = pieceConfiguration;
-//                }
-                currentConfiguration = toNewConfigurationFromMoves(pieceConfiguration, Arrays.copyOfRange(historicMoves, 0, currentDepth));
+                final int historicMovesLastIndex = historicMoves.length - 1 - trailingEmptyShorts;
+                if (historicMovesLastIndex >= 0) {
+                    final short[] historicMovesExceptFinal = copyOfRange(historicMoves, 0, historicMovesLastIndex);
+                    if (parentConfiguration == null || !Arrays.equals(parentConfiguration.getHistoricMoves(), historicMovesExceptFinal)) {
+                        parentConfiguration = toNewConfigurationFromMoves(pieceConfiguration, historicMovesExceptFinal);
+                    }
+                    currentConfiguration = toNewConfigurationFromMove(parentConfiguration, historicMoves[historicMovesLastIndex]);
+                } else {
+                    currentConfiguration = pieceConfiguration;
+                }
 
                 final List<PieceConfiguration> onwardConfigurations = currentConfiguration.getOnwardConfigurations();
                 final Double gameEndValue = getEndgameValue(onwardConfigurations.size(), currentConfiguration);
@@ -50,7 +50,9 @@ public class BreadthFirstPositionEvaluator {
                     onwardConfiguration -> storeConfigurationScore(onwardConfiguration, inMemoryTrie));
             }
             currentDepth++;
-            inMemoryTrie.shiftKeysLeft();
+            if (currentDepth < depth) {
+                inMemoryTrie.shiftKeysLeft();
+            }
         }
 
         final short bestMove = getBestOnwardMoveScorePair(inMemoryTrie, BigInteger.ZERO).move();
