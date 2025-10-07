@@ -7,8 +7,7 @@ import java.math.BigInteger;
 import java.util.*;
 
 import static chess.api.PieceConfiguration.*;
-import static chess.api.storage.ephemeral.MoveHistoryConverter.fromMoves;
-import static chess.api.storage.ephemeral.MoveHistoryConverter.toMoves;
+import static chess.api.storage.ephemeral.MoveHistoryConverter.*;
 import static java.util.Arrays.copyOfRange;
 
 public class BreadthFirstPositionEvaluator {
@@ -26,45 +25,32 @@ public class BreadthFirstPositionEvaluator {
             final Map<BigInteger, Double> trieMapCopy = new TreeMap<>(inMemoryTrie.getTrieMap());
             for(BigInteger historicMovesKey : trieMapCopy.keySet()) {
                 final short[] historicMoves = toMoves(historicMovesKey);
-                boolean skipKey = historicMoves.length < currentDepth;
-                if (!skipKey) {
-                    int countZero = 0;
-                    for (int i = historicMoves.length - 1; i >= 0; i--) {
-                        if (historicMoves[i] == 0) {
-                            countZero++;
-                        }
-                        if (countZero > 1) {
-                            skipKey = true;
-                            break;
-                        }
-                    }
-                }
-                if (skipKey) {
+                if (historicMoves.length < currentDepth || inMemoryTrie.countTrailingEmptyShorts(historicMovesKey) > 1) {
                     continue;
                 }
-                final int historicMovesLastIndex = historicMoves.length - 1;
-                if (historicMovesLastIndex >= 0) {
-                    final short[] historicMovesExceptFinal = copyOfRange(historicMoves, 0, historicMovesLastIndex);
-                    if (parentConfiguration == null || !Arrays.equals(parentConfiguration.getHistoricMoves(), historicMovesExceptFinal)) {
-                        parentConfiguration = toNewConfigurationFromMoves(pieceConfiguration, historicMovesExceptFinal);
-                    }
-                    currentConfiguration = toNewConfigurationFromMove(parentConfiguration, historicMoves[historicMovesLastIndex]);
-                } else {
-                    currentConfiguration = pieceConfiguration;
-                }
-//                currentConfiguration = toNewConfigurationFromMoves(pieceConfiguration, Arrays.copyOfRange(historicMoves, 0, currentDepth));
+//                final int historicMovesLastIndex = historicMoves.length - 1;
+//                if (historicMovesLastIndex >= 0) {
+//                    final short[] historicMovesExceptFinal = copyOfRange(historicMoves, 0, historicMovesLastIndex);
+//                    if (parentConfiguration == null || !Arrays.equals(parentConfiguration.getHistoricMoves(), historicMovesExceptFinal)) {
+//                        parentConfiguration = toNewConfigurationFromMoves(pieceConfiguration, historicMovesExceptFinal);
+//                    }
+//                    currentConfiguration = toNewConfigurationFromMove(parentConfiguration, historicMoves[historicMovesLastIndex]);
+//                } else {
+//                    currentConfiguration = pieceConfiguration;
+//                }
+                currentConfiguration = toNewConfigurationFromMoves(pieceConfiguration, Arrays.copyOfRange(historicMoves, 0, currentDepth));
 
                 final List<PieceConfiguration> onwardConfigurations = currentConfiguration.getOnwardConfigurations();
                 final Double gameEndValue = getEndgameValue(onwardConfigurations.size(), currentConfiguration);
                 if (gameEndValue != null) {
-                    inMemoryTrie.setScore(fromMoves(currentConfiguration.getHistoricMoves()), gameEndValue);
+                    inMemoryTrie.setScore(fromMoves(currentConfiguration.getHistoricMoves()).shiftLeft(16), gameEndValue);
                     continue;
                 }
                 onwardConfigurations.forEach(
                     onwardConfiguration -> storeConfigurationScore(onwardConfiguration, inMemoryTrie));
             }
             currentDepth++;
-//            inMemoryTrie.shiftKeysLeft();
+            inMemoryTrie.shiftKeysLeft();
         }
 
         final short bestMove = getBestOnwardMoveScorePair(inMemoryTrie, BigInteger.ZERO).move();
@@ -112,9 +98,10 @@ public class BreadthFirstPositionEvaluator {
         short bestMove = -1;
         double bestScore = -Double.MAX_VALUE;
         for(BigInteger historicMovesKey : siblingMap.keySet()) {
-            final double value = -getCumulativeValue(historicMovesKey, inMemoryTrie);
+            final double value = getCumulativeValue(historicMovesKey, inMemoryTrie);
             if (value > bestScore) {
-                bestMove = historicMovesKey.shortValue();
+                final int trailingEmptyShorts = inMemoryTrie.countTrailingEmptyShorts(historicMovesKey);
+                bestMove = historicMovesKey.shiftRight(16 * trailingEmptyShorts).shortValue();
                 bestScore = value;
             }
         }
@@ -125,12 +112,12 @@ public class BreadthFirstPositionEvaluator {
         final double value = inMemoryTrie.getScore(historicMoves);
         final TreeMap<BigInteger, Double> children = inMemoryTrie.getChildren(historicMoves);
         if (children.isEmpty()) {
-            return -value;
+            return value;
         }
         final MoveScorePair bestChildMove = getBestMoveScorePair(inMemoryTrie, children);
         if (bestChildMove.move() != -1) {
-            return (bestChildMove.score() * 0.99) + value;
+            return -(bestChildMove.score() * 0.99) - value;
         }
-        return -value;
+        return value;
     }
 }

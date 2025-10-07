@@ -9,8 +9,7 @@ import java.util.function.BinaryOperator;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import static chess.api.storage.ephemeral.MoveHistoryConverter.getLengthInShorts;
-import static chess.api.storage.ephemeral.MoveHistoryConverter.toMoves;
+import static chess.api.storage.ephemeral.MoveHistoryConverter.*;
 
 public class InMemoryTrie {
 
@@ -22,7 +21,7 @@ public class InMemoryTrie {
 
     private static final BinaryOperator<Double> MERGE_FUNCTION = (d1, d2) -> d2;
 
-    private static final Supplier<TreeMap<BigInteger, Double>> TREE_MAP_SUPPLIER = () -> new TreeMap<>(BIG_INTEGER_COMPARATOR);
+    private static final Supplier<TreeMap<BigInteger, Double>> TREE_MAP_SUPPLIER = TreeMap::new;
 
     private final TreeMap<BigInteger, Double> trieMap = TREE_MAP_SUPPLIER.get();
 
@@ -45,11 +44,11 @@ public class InMemoryTrie {
         trieMap.put(moveHistory, score);
     }
 
-    public TreeMap<BigInteger, Double> getChildren(BigInteger moveHistory) {
-        return getDescendants(moveHistory)
+    public TreeMap<BigInteger, Double> getChildren(BigInteger moveHistoryKey) {
+        return getDescendants(moveHistoryKey)
             .entrySet()
             .stream()
-            .filter(entry -> getLengthInShorts(entry.getKey()) == getLengthInShorts(moveHistory) + 1)
+            .filter(entry -> countTrailingEmptyShorts(moveHistoryKey) - countTrailingEmptyShorts(entry.getKey()) == 1)
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, MERGE_FUNCTION, TREE_MAP_SUPPLIER));
     }
 
@@ -65,15 +64,28 @@ public class InMemoryTrie {
         leftShift += 16;
     }
 
+    public int countTrailingEmptyShorts(BigInteger value) {
+        if (BigInteger.ZERO.equals(value)) {
+            return (leftShift / 16) + 1;
+        }
+        final int lengthInShorts = getLengthInShorts(value);
+        int trailingEmptyShorts = 0;
+        final BigInteger mask = BigInteger.valueOf(0b1111111111111111);
+        while(trailingEmptyShorts < lengthInShorts
+            && value.and(mask.shiftLeft(trailingEmptyShorts * 16)).equals(BigInteger.ZERO)) {
+            trailingEmptyShorts++;
+        }
+        return trailingEmptyShorts;
+    }
+
     private NavigableMap<BigInteger, Double> getDescendants(BigInteger moveHistoryKey) {
         final Double value = trieMap.get(moveHistoryKey);
         if (value == null) {
             return Collections.emptyNavigableMap();
         }
+        final int trailingEmptyShorts = countTrailingEmptyShorts(moveHistoryKey);
         BigInteger higherKey = trieMap.higherKey(moveHistoryKey);
-        while(higherKey != null
-            && getLengthInShorts(higherKey) >= getLengthInShorts(moveHistoryKey)
-            && Arrays.equals(toMoves(moveHistoryKey), Arrays.copyOfRange(toMoves(higherKey), 0, getLengthInShorts(moveHistoryKey)))) {
+        while(higherKey != null && countTrailingEmptyShorts(higherKey) < trailingEmptyShorts) {
             higherKey = trieMap.higherKey(higherKey);
         }
         if (higherKey == null) {
