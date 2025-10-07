@@ -44,14 +44,6 @@ public class InMemoryTrie {
         trieMap.put(moveHistory, score);
     }
 
-    public TreeMap<BigInteger, Double> getChildren(BigInteger moveHistoryKey) {
-        return getDescendants(moveHistoryKey)
-            .entrySet()
-            .stream()
-            .filter(entry -> countTrailingEmptyShorts(moveHistoryKey) - countTrailingEmptyShorts(entry.getKey()) == 1)
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, MERGE_FUNCTION, TREE_MAP_SUPPLIER));
-    }
-
     public void shiftKeysLeft() {
         final TreeMap<BigInteger, Double> trieMapCopy = new TreeMap<>(trieMap);
         for(Map.Entry<BigInteger, Double> entry : trieMapCopy.entrySet()) {
@@ -68,14 +60,16 @@ public class InMemoryTrie {
         if (BigInteger.ZERO.equals(value)) {
             return (leftShift / 16) + 1;
         }
-        final int lengthInShorts = getLengthInShorts(value);
-        int trailingEmptyShorts = 0;
-        final BigInteger mask = BigInteger.valueOf(0b1111111111111111);
-        while(trailingEmptyShorts < lengthInShorts
-            && value.and(mask.shiftLeft(trailingEmptyShorts * 16)).equals(BigInteger.ZERO)) {
-            trailingEmptyShorts++;
-        }
-        return trailingEmptyShorts;
+        return value.getLowestSetBit() / 16;
+    }
+
+    public TreeMap<BigInteger, Double> getChildren(BigInteger moveHistoryKey) {
+        final int trailingEmptyShorts = countTrailingEmptyShorts(moveHistoryKey);
+        return getDescendants(moveHistoryKey)
+            .entrySet()
+            .stream()
+            .filter(entry -> trailingEmptyShorts - countTrailingEmptyShorts(entry.getKey()) == 1)
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, MERGE_FUNCTION, TREE_MAP_SUPPLIER));
     }
 
     private NavigableMap<BigInteger, Double> getDescendants(BigInteger moveHistoryKey) {

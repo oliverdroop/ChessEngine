@@ -33,8 +33,4 @@ public class MoveHistoryConverter {
         }
         return moves;
     }
-
-    public static int getLengthInShorts(BigInteger value) {
-        return (int) Math.ceil(value.bitLength() / (double) 16);
-    }
 }
