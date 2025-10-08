@@ -5,9 +5,12 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.io.*;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 
+import static chess.api.ai.util.StreamUtil.readObjectsFromStream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class PieceConfigurationTest {
@@ -161,8 +164,7 @@ public class PieceConfigurationTest {
     void testGetAlgebraicNotation_fromStartingPosition() {
         final PieceConfiguration pieceConfiguration1 = FENReader.read(FENWriter.STARTING_POSITION);
         final int pieceBitFlag = pieceConfiguration1.getPieceAtPosition(12);
-        final List<String> algebraicNotations = pieceConfiguration1.getOnwardConfigurationsForPiece(pieceBitFlag)
-            .stream()
+        final List<String> algebraicNotations = Arrays.stream(readObjectsFromStream(pieceConfiguration1.getOnwardConfigurationsForPiece(pieceBitFlag), PieceConfiguration::fromInputStream, 260))
             .map(pieceConfiguration -> pieceConfiguration.getAlgebraicNotation(pieceConfiguration1))
             .toList();
 
@@ -194,6 +196,16 @@ public class PieceConfigurationTest {
         assertThat(pieceConfiguration.getValueDifferential())
                 .as("The opposing side values should be totalled correctly")
                 .isEqualTo(-39);
+    }
+
+    @Test
+    void testConversionToStream() {
+        PieceConfiguration pieceConfiguration = FENReader.read(FENWriter.STARTING_POSITION);
+
+        ByteArrayOutputStream outputStream = PieceConfiguration.toOutputStream(pieceConfiguration);
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
+
+        assertThat(PieceConfiguration.fromInputStream(inputStream).toString()).isEqualTo(pieceConfiguration.toString());
     }
 
     private static Stream<Arguments> getEnPassantSquareValues() {

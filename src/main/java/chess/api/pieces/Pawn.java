@@ -1,17 +1,18 @@
 package chess.api.pieces;
 
-import chess.api.BitUtil;
+import chess.api.ai.util.BitUtil;
 import chess.api.PieceConfiguration;
 import chess.api.Position;
+import chess.api.ai.util.PoppedObjectStreamModification;
 import org.apache.logging.log4j.util.Strings;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.io.ByteArrayOutputStream;
 import java.util.Map;
 
 import static chess.api.MoveDescriber.describeMove;
 import static chess.api.PieceConfiguration.*;
 import static chess.api.Position.isValidPosition;
+import static chess.api.ai.util.StreamUtil.popObjectFromStream;
 
 public class Pawn extends Piece{
 
@@ -25,8 +26,8 @@ public class Pawn extends Piece{
         return getSide(pieceBitFlag) == 0 ? WHITE_DIRECTIONAL_LIMITS : BLACK_DIRECTIONAL_LIMITS;
     }
 
-    public static List<PieceConfiguration> getPossibleMoves(int pieceBitFlag, int[] positionBitFlags, PieceConfiguration currentConfiguration) {
-        List<PieceConfiguration> pieceConfigurations = new ArrayList<>();
+    public static ByteArrayOutputStream getPossibleMoves(int pieceBitFlag, int[] positionBitFlags, PieceConfiguration currentConfiguration) {
+        ByteArrayOutputStream pieceConfigurations = new ByteArrayOutputStream();
         for(int[] directionalLimit : getMovableDirectionalLimits(pieceBitFlag, positionBitFlags)) {
             int directionX = directionalLimit[0];
             int directionY = directionalLimit[1];
@@ -118,26 +119,32 @@ public class Pawn extends Piece{
         return movableDirectionalLimits;
     }
 
-    protected static void addNewPieceConfigurations(int pieceBitFlag, List<PieceConfiguration> pieceConfigurations,
+    protected static ByteArrayOutputStream addNewPieceConfigurations(int pieceBitFlag, ByteArrayOutputStream pieceConfigurations,
             PieceConfiguration currentConfiguration, int newPiecePosition, int takenPieceBitFlag) {
         Piece.addNewPieceConfigurations(pieceBitFlag, pieceConfigurations, currentConfiguration, newPiecePosition, takenPieceBitFlag);
         int translation = newPiecePosition - getPosition(pieceBitFlag);
-        PieceConfiguration newPieceConfiguration = pieceConfigurations.get(pieceConfigurations.size() - 1);
+        final PoppedObjectStreamModification<PieceConfiguration> streamModification = popObjectFromStream(
+            pieceConfigurations, PieceConfiguration::fromInputStream, 260);
+
+        PieceConfiguration newPieceConfiguration = streamModification.poppedObject();
         int newY = Position.getY(newPiecePosition);
         if (Math.abs(translation) == 16) {
             // Set the en passant square
             newPieceConfiguration.setEnPassantSquare(getPosition(pieceBitFlag) + (translation / 2));
+            streamModification.stream().writeBytes(PieceConfiguration.toOutputStream(newPieceConfiguration).toByteArray());
+            return streamModification.stream();
         } else if (newY == 7 | newY == 0) {
             // Promote pawn
-            pieceConfigurations.remove(pieceConfigurations.size() - 1);
             for(int promotionPieceTypeFlag : PROMOTION_PIECE_TYPES.keySet()) {
                 PieceConfiguration promotedPawnConfiguration = getPromotedPawnConfiguration(newPieceConfiguration,
                         newPiecePosition, promotionPieceTypeFlag);
                 promotedPawnConfiguration.addHistoricMove(
                     currentConfiguration, describeMove(pieceBitFlag & 63, newPiecePosition, promotionPieceTypeFlag));
-                pieceConfigurations.add(promotedPawnConfiguration);
+                streamModification.stream().writeBytes(PieceConfiguration.toOutputStream(promotedPawnConfiguration).toByteArray());
             }
+            return streamModification.stream();
         }
+        return pieceConfigurations;
     }
 
     private static PieceConfiguration getPromotedPawnConfiguration(PieceConfiguration unpromotedPawnConfiguration,

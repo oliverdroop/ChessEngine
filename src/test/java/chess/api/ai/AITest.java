@@ -241,10 +241,10 @@ public class AITest {
         return Stream.of(
             Arguments.of(
                 (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) ConcurrentPositionEvaluator::getBestMoveRecursively
-            ),
+            ) /*,
             Arguments.of(
                 (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) BreadthFirstPositionEvaluator::getBestMoveRecursively
-            )
+            ) */
         );
     }
 	

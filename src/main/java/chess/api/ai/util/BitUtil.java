@@ -1,4 +1,4 @@
-package chess.api;
+package chess.api.ai.util;
 
 public class BitUtil {
     public static int applyBitFlag(int number, int bitFlag) {

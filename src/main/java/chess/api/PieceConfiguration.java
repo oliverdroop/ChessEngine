@@ -1,13 +1,15 @@
 package chess.api;
 
+import chess.api.ai.util.BitUtil;
 import chess.api.pieces.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.*;
 import java.util.*;
-import java.util.stream.Collectors;
 
-import static chess.api.BitUtil.*;
+import static chess.api.ai.util.BitUtil.*;
+import static chess.api.ai.util.StreamUtil.*;
 import static chess.api.pieces.King.CASTLE_POSITION_MAPPINGS;
 import static chess.api.pieces.Pawn.PROMOTION_PIECE_TYPES;
 
@@ -221,20 +223,22 @@ public class PieceConfiguration {
         positionBitFlags = stampCheckNonBlockerFlags(stampThreatFlags(stampOccupationFlags(positionBitFlags)));
     }
 
-    public List<PieceConfiguration> getOnwardConfigurations() {
+    public PieceConfiguration[] getOnwardConfigurations() {
         setHigherBitFlags();
-        return Arrays.stream(getPieceBitFlags())
-                .boxed()
-                .filter(p -> BitUtil.hasBitFlag(p, PLAYER_OCCUPIED))
-                .flatMap(p -> getOnwardConfigurationsForPiece(p).stream())
-                .collect(Collectors.toList());
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        Arrays.stream(getPieceBitFlags())
+            .boxed()
+            .filter(p -> BitUtil.hasBitFlag(p, PLAYER_OCCUPIED))
+            .forEach(p -> outputStream.writeBytes(getOnwardConfigurationsForPiece(p).toByteArray()));
+
+        return readObjectsFromStream(outputStream, PieceConfiguration::fromInputStream, 260);
     }
 
     private void clearNonPieceFlags() {
         Arrays.stream(Position.POSITIONS).forEach(pos -> positionBitFlags[pos] = BitUtil.clearBits(positionBitFlags[pos], ~(63 | ALL_PIECE_AND_COLOUR_FLAGS_COMBINED)));
     }
 
-    public List<PieceConfiguration> getOnwardConfigurationsForPiece(int pieceBitFlag) {
+    public ByteArrayOutputStream getOnwardConfigurationsForPiece(int pieceBitFlag) {
         if (Arrays.stream(positionBitFlags).noneMatch(pbf -> pbf > 65535)) {
             setHigherBitFlags();
         }
@@ -462,22 +466,6 @@ public class PieceConfiguration {
                 Piece.getPosition(previousBitFlag), Piece.getPosition(currentBitFlag), capturing, promotionTo);
     }
 
-    public short[] getHistoricMoves() {
-        return historicMoves;
-    }
-
-    public void setHistoricMoves(short[] historicMoves) {
-        this.historicMoves = historicMoves;
-    }
-
-    public void addHistoricMove(PieceConfiguration previousConfiguration, short newMove) {
-        if (previousConfiguration != null && previousConfiguration.getHistoricMoves() != null) {
-            historicMoves = new short[previousConfiguration.getHistoricMoves().length + 1];
-            System.arraycopy(previousConfiguration.getHistoricMoves(), 0, historicMoves, 0, previousConfiguration.getHistoricMoves().length);
-            historicMoves[historicMoves.length - 1] = newMove;
-        }
-    }
-
     int getAuxiliaryData() {
         return auxiliaryData;
     }
@@ -503,5 +491,45 @@ public class PieceConfiguration {
             }
         }
         return lesserScore;
+    }
+
+    public static ByteArrayOutputStream toOutputStream(PieceConfiguration pieceConfiguration) {
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        for(int positionBitFlag : pieceConfiguration.positionBitFlags) {
+            writeIntToOutputStream(positionBitFlag, outputStream);
+        }
+        writeIntToOutputStream(pieceConfiguration.auxiliaryData, outputStream);
+        return outputStream;
+    }
+
+    public static PieceConfiguration fromInputStream(ByteArrayInputStream inputStream) {
+        final PieceConfiguration pieceConfiguration = new PieceConfiguration();
+        final int[] positionBitFlags = new int[64];
+        try {
+            for (int i = 0; i < 64; i++) {
+                positionBitFlags[i] = readIntFromInputStream(inputStream);
+            }
+            pieceConfiguration.positionBitFlags = positionBitFlags;
+            pieceConfiguration.auxiliaryData = readIntFromInputStream(inputStream);
+        } catch (IOException e) {
+            throw new RuntimeException("Reading PieceConfiguration from ByteArrayInputStream failed", e);
+        }
+        return pieceConfiguration;
+    }
+
+    public short[] getHistoricMoves() {
+        return historicMoves;
+    }
+
+    public void setHistoricMoves(short[] historicMoves) {
+        this.historicMoves = historicMoves;
+    }
+
+    public void addHistoricMove(PieceConfiguration previousConfiguration, short newMove) {
+        if (previousConfiguration != null && previousConfiguration.getHistoricMoves() != null) {
+            historicMoves = new short[previousConfiguration.getHistoricMoves().length + 1];
+            System.arraycopy(previousConfiguration.getHistoricMoves(), 0, historicMoves, 0, previousConfiguration.getHistoricMoves().length);
+            historicMoves[historicMoves.length - 1] = newMove;
+        }
     }
 }

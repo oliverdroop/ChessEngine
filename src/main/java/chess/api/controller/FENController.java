@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 import static chess.api.ai.openings.OpeningBook.getOpeningResponse;
 import static chess.api.ai.DepthFirstPositionEvaluator.deriveGameEndType;
 import static chess.api.ai.ConcurrentPositionEvaluator.getBestMoveRecursively;
+import static chess.api.ai.util.StreamUtil.readObjectsFromStream;
 
 @RestController
 public class FENController {
@@ -46,7 +48,7 @@ public class FENController {
 
             if (outputConfiguration != null) {
                 final String outputFEN = FENWriter.write(outputConfiguration);
-                if (FENReader.read(outputFEN).getOnwardConfigurations().isEmpty()) {
+                if (FENReader.read(outputFEN).getOnwardConfigurations().length == 0) {
                     response.setGameResult(deriveGameEndType(outputConfiguration).toString());
                 }
                 response.setFen(outputFEN);
@@ -77,10 +79,14 @@ public class FENController {
                     Side.values()[Piece.getSide(pieceBitFlag)], Piece.getPieceType(pieceBitFlag),
                     Position.getCoordinateString(Position.getPosition(pieceBitFlag)));
 
-            final List<String> algebraicNotations = inputConfiguration.getOnwardConfigurationsForPiece(pieceBitFlag)
-                    .stream()
-                    .map(pc -> pc.getAlgebraicNotation(inputConfiguration))
-                    .collect(Collectors.toList());
+            final List<String> algebraicNotations = Arrays.stream(
+                readObjectsFromStream(
+                    inputConfiguration.getOnwardConfigurationsForPiece(pieceBitFlag),
+                    PieceConfiguration::fromInputStream,
+                    260)
+                )
+                .map(pc -> pc.getAlgebraicNotation(inputConfiguration))
+                .collect(Collectors.toList());
             LOGGER.info("Response: {}", algebraicNotations);
             return ResponseEntity.ok(algebraicNotations);
         } catch (Throwable e) {

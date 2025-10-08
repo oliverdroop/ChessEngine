@@ -1,11 +1,12 @@
 package chess.api.pieces;
 
-import chess.api.BitUtil;
+import chess.api.ai.util.BitUtil;
 import chess.api.PieceConfiguration;
 import chess.api.Position;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
 import java.util.*;
 import java.util.function.Predicate;
 
@@ -36,7 +37,7 @@ public abstract class Piece {
         };
     }
 
-    public static List<PieceConfiguration> getPossibleMoves(int pieceBitFlag, int[] positionBitFlags,
+    public static ByteArrayOutputStream getPossibleMoves(int pieceBitFlag, int[] positionBitFlags,
                                                             PieceConfiguration currentConfiguration) {
         int pieceFlag = getPieceTypeBitFlag(pieceBitFlag);
         switch(pieceFlag) {
@@ -47,7 +48,7 @@ public abstract class Piece {
             default:
                 break;
         }
-        List<PieceConfiguration> pieceConfigurations = new ArrayList<>();
+        ByteArrayOutputStream pieceConfigurations = new ByteArrayOutputStream();
         for(int[] directionalLimit : getMovableDirectionalLimits(pieceBitFlag, positionBitFlags)) {
             int directionX = directionalLimit[0];
             int directionY = directionalLimit[1];
@@ -94,7 +95,7 @@ public abstract class Piece {
         return pieceConfigurations;
     }
 
-    protected static void addNewPieceConfigurations(int pieceBitFlag, List<PieceConfiguration> pieceConfigurations,
+    protected static ByteArrayOutputStream addNewPieceConfigurations(int pieceBitFlag, ByteArrayOutputStream pieceConfigurations,
                                                     PieceConfiguration currentConfiguration, int newPiecePosition,
                                                     int takenPieceBitFlag) {
         PieceConfiguration newConfiguration = new PieceConfiguration(currentConfiguration, false);
@@ -110,7 +111,7 @@ public abstract class Piece {
             newConfiguration.addHistoricMove(currentConfiguration, describeMove(pieceBitFlag & 63, newPiecePosition, 0));
         } catch (Exception e) {
             LOGGER.error("Problem creating new piece configuration");
-            return;
+            return null;
         }
         newConfiguration.setTurnSide(currentConfiguration.getOpposingSide());
         newConfiguration.setEnPassantSquare(-1);
@@ -124,12 +125,13 @@ public abstract class Piece {
         if (BitUtil.hasBitFlag(pieceBitFlag, PieceConfiguration.BLACK_OCCUPIED)) {
             newConfiguration.setFullMoveNumber(currentConfiguration.getFullMoveNumber() + 1);
         }
-        pieceConfigurations.add(newConfiguration);
+        pieceConfigurations.writeBytes(PieceConfiguration.toOutputStream(newConfiguration).toByteArray());
 
         // Remove castling options when rook moves
         if (BitUtil.hasBitFlag(pieceBitFlag, ROOK_OCCUPIED)) {
             Rook.removeCastlingOptions(pieceBitFlag, newConfiguration);
         }
+        return pieceConfigurations;
     }
 
     public static String getAlgebraicNotation(

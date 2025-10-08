@@ -1,15 +1,16 @@
 package chess.api.pieces;
 
-import chess.api.BitUtil;
+import chess.api.ai.util.BitUtil;
 import chess.api.PieceConfiguration;
 import chess.api.Position;
+import chess.api.ai.util.PoppedObjectStreamModification;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.io.ByteArrayOutputStream;
 import java.util.Map;
 
-import static chess.api.MoveDescriber.describeMove;
 import static chess.api.Position.isValidPosition;
+import static chess.api.ai.util.StreamUtil.popObjectFromStream;
+import static chess.api.ai.util.StreamUtil.writeIntToOutputStream;
 
 public class King extends Piece{
 
@@ -25,8 +26,8 @@ public class King extends Piece{
         return isOnStartingPosition(pieceBitFlag) ? STARTING_POSITION_DIRECTIONAL_LIMITS : STANDARD_DIRECTIONAL_LIMITS;
     }
 
-    public static List<PieceConfiguration> getPossibleMoves(int pieceBitFlag, int[] positionBitFlags, PieceConfiguration currentConfiguration) {
-        List<PieceConfiguration> pieceConfigurations = new ArrayList<>();
+    public static ByteArrayOutputStream getPossibleMoves(int pieceBitFlag, int[] positionBitFlags, PieceConfiguration currentConfiguration) {
+        ByteArrayOutputStream pieceConfigurations = new ByteArrayOutputStream();
         for(int[] directionalLimit : getMovableDirectionalLimits(pieceBitFlag, positionBitFlags)) {
             int directionX = directionalLimit[0];
             int directionY = directionalLimit[1];
@@ -111,11 +112,14 @@ public class King extends Piece{
         return Position.getPosition(pieceBitFlag) == 4 + (getSide(pieceBitFlag) * 56);
     }
 
-    protected static void addNewPieceConfigurations(int pieceBitFlag, List<PieceConfiguration> pieceConfigurations,
+    protected static ByteArrayOutputStream addNewPieceConfigurations(int pieceBitFlag, ByteArrayOutputStream pieceConfigurations,
             PieceConfiguration currentConfiguration, int newPiecePosition, int takenPieceBitFlag) {
-        Piece.addNewPieceConfigurations(pieceBitFlag, pieceConfigurations, currentConfiguration, newPiecePosition, takenPieceBitFlag);
+        pieceConfigurations = Piece.addNewPieceConfigurations(pieceBitFlag, pieceConfigurations, currentConfiguration, newPiecePosition, takenPieceBitFlag);
         if (isOnStartingPosition(pieceBitFlag)) {
-            PieceConfiguration newPieceConfiguration = pieceConfigurations.get(pieceConfigurations.size() - 1);
+            final PoppedObjectStreamModification<PieceConfiguration> streamModification = popObjectFromStream(
+                pieceConfigurations, PieceConfiguration::fromInputStream, 260);
+
+            PieceConfiguration newPieceConfiguration = streamModification.poppedObject();
             newPieceConfiguration.removeCastlePosition(getPosition(pieceBitFlag) - 2);
             newPieceConfiguration.removeCastlePosition(getPosition(pieceBitFlag) + 2);
             if (CASTLE_POSITION_MAPPINGS.containsKey(newPiecePosition)) {
@@ -126,7 +130,10 @@ public class King extends Piece{
                 final int newCastlingRookBitFlag = oldCastlingRookBitFlag - oldRookPosition + newRookPosition;
                 newPieceConfiguration.addPiece(newCastlingRookBitFlag);
             }
+            streamModification.stream().writeBytes(PieceConfiguration.toOutputStream(newPieceConfiguration).toByteArray());
+            return streamModification.stream();
         }
+        return pieceConfigurations;
     }
 
     @Override

@@ -38,13 +38,13 @@ public class ConcurrentPositionEvaluator {
         final double currentDiff = pieceConfiguration.getValueDifferential();
 
         depth--;
-        final List<PieceConfiguration> onwardPieceConfigurations = pieceConfiguration.getOnwardConfigurations();
-        final int onwardConfigurationCount = onwardPieceConfigurations.size();
+        final PieceConfiguration[] onwardPieceConfigurations = pieceConfiguration.getOnwardConfigurations();
+        final int onwardConfigurationCount = onwardPieceConfigurations.length;
         final CompletableFuture<Double>[] onwardConfigurationScoreFutures = new CompletableFuture[onwardConfigurationCount];
         final boolean[] fiftyMoveRuleChecks = new boolean[onwardConfigurationCount];
 
         for (int i = 0; i < onwardConfigurationCount; i++) {
-            PieceConfiguration onwardPieceConfiguration = onwardPieceConfigurations.get(i);
+            PieceConfiguration onwardPieceConfiguration = onwardPieceConfigurations[i];
 
             fiftyMoveRuleChecks[i] = DepthFirstPositionEvaluator.isFiftyMoveRuleFailure(onwardPieceConfiguration);
 
@@ -65,7 +65,7 @@ public class ConcurrentPositionEvaluator {
         }
 
         if (bestOnwardConfigurationIndex >= 0) {
-            final PieceConfiguration bestOnwardConfiguration = onwardPieceConfigurations.get(bestOnwardConfigurationIndex);
+            final PieceConfiguration bestOnwardConfiguration = onwardPieceConfigurations[bestOnwardConfigurationIndex];
             return Optional.of(new ConfigurationScorePair(bestOnwardConfiguration, -bestOnwardConfigurationScore));
         }
         return Optional.empty();

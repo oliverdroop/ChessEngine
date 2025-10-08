@@ -37,8 +37,8 @@ public class BreadthFirstPositionEvaluator {
                     currentConfiguration = pieceConfiguration;
                 }
 
-                final List<PieceConfiguration> onwardConfigurations = currentConfiguration.getOnwardConfigurations();
-                final Double gameEndValue = getEndgameValue(onwardConfigurations.size(), currentConfiguration);
+                final PieceConfiguration[] onwardConfigurations = currentConfiguration.getOnwardConfigurations();
+                final Double gameEndValue = getEndgameValue(onwardConfigurations.length, currentConfiguration);
                 if (gameEndValue != null) {
                     inMemoryTrie.setScore(currentConfiguration.getHistoricMoves(), gameEndValue);
                     continue;
@@ -74,7 +74,7 @@ public class BreadthFirstPositionEvaluator {
         return null;
     }
 
-    private static void storeConfigurationScores(List<PieceConfiguration> onwardConfigurations, InMemoryTrie inMemoryTrie, boolean isMaximumDepth) {
+    private static void storeConfigurationScores(PieceConfiguration[] onwardConfigurations, InMemoryTrie inMemoryTrie, boolean isMaximumDepth) {
         PieceConfiguration bestOnwardConfiguration = null;
         double bestOnwardScore = -Double.MAX_VALUE;
         for(PieceConfiguration onwardConfiguration : onwardConfigurations) {
