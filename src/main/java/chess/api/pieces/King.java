@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 import static chess.api.MoveDescriber.describeMove;
+import static chess.api.PieceConfiguration.toNewConfigurationFromMove;
 import static chess.api.Position.isValidPosition;
 
 public class King extends Piece{
@@ -60,7 +61,8 @@ public class King extends Piece{
                     takenPieceBitFlag = currentConfiguration.getPieceAtPosition(testPositionIndex);
                 }
 
-                addNewPieceConfigurations(pieceBitFlag, pieceConfigurations, currentConfiguration, testPositionIndex, takenPieceBitFlag);
+                final short move = describeMove(pieceBitFlag & 63, testPositionIndex, 0);
+                pieceConfigurations.add(toNewConfigurationFromMove(currentConfiguration, move));
 
                 if (takenPieceBitFlag >= 0) {
                     // Stop considering moves beyond this taken piece
@@ -109,24 +111,6 @@ public class King extends Piece{
 
     private static boolean isOnStartingPosition(int pieceBitFlag) {
         return Position.getPosition(pieceBitFlag) == 4 + (getSide(pieceBitFlag) * 56);
-    }
-
-    protected static void addNewPieceConfigurations(int pieceBitFlag, List<PieceConfiguration> pieceConfigurations,
-            PieceConfiguration currentConfiguration, int newPiecePosition, int takenPieceBitFlag) {
-        Piece.addNewPieceConfigurations(pieceBitFlag, pieceConfigurations, currentConfiguration, newPiecePosition, takenPieceBitFlag);
-        if (isOnStartingPosition(pieceBitFlag)) {
-            PieceConfiguration newPieceConfiguration = pieceConfigurations.get(pieceConfigurations.size() - 1);
-            newPieceConfiguration.removeCastlePosition(getPosition(pieceBitFlag) - 2);
-            newPieceConfiguration.removeCastlePosition(getPosition(pieceBitFlag) + 2);
-            if (CASTLE_POSITION_MAPPINGS.containsKey(newPiecePosition)) {
-                final int oldRookPosition = CASTLE_POSITION_MAPPINGS.get(newPiecePosition);
-                final int oldCastlingRookBitFlag = currentConfiguration.getPieceAtPosition(oldRookPosition);
-                final int newRookPosition = (getPosition(pieceBitFlag) + newPiecePosition) >> 1;
-                newPieceConfiguration.removePiece(oldCastlingRookBitFlag);
-                final int newCastlingRookBitFlag = oldCastlingRookBitFlag - oldRookPosition + newRookPosition;
-                newPieceConfiguration.addPiece(newCastlingRookBitFlag);
-            }
-        }
     }
 
     @Override

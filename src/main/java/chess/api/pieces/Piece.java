@@ -1,6 +1,7 @@
 package chess.api.pieces;
 
 import chess.api.BitUtil;
+import chess.api.MoveDescriber;
 import chess.api.PieceConfiguration;
 import chess.api.Position;
 import org.slf4j.Logger;
@@ -81,8 +82,8 @@ public abstract class Piece {
                     }
                 }
 
-                addNewPieceConfigurations(
-                        pieceBitFlag, pieceConfigurations, currentConfiguration, testPositionIndex, takenPieceBitFlag);
+                final short move = describeMove(pieceBitFlag & 63, testPositionIndex, 0);
+                pieceConfigurations.add(toNewConfigurationFromMove(currentConfiguration, move));
 
                 if (takenPieceBitFlag >= 0) {
                     // Stop considering moves beyond this taken piece
@@ -92,44 +93,6 @@ public abstract class Piece {
             }
         }
         return pieceConfigurations;
-    }
-
-    protected static void addNewPieceConfigurations(int pieceBitFlag, List<PieceConfiguration> pieceConfigurations,
-                                                    PieceConfiguration currentConfiguration, int newPiecePosition,
-                                                    int takenPieceBitFlag) {
-        PieceConfiguration newConfiguration = new PieceConfiguration(currentConfiguration, false);
-        for(int pieceBitFlag2 : currentConfiguration.getPieceBitFlags()) {
-            if (pieceBitFlag2 != pieceBitFlag && pieceBitFlag2 != takenPieceBitFlag) {
-                newConfiguration.addPiece(pieceBitFlag2);
-            }
-        }
-        try {
-            int movedPieceBitFlag = (pieceBitFlag ^ getPosition(pieceBitFlag)) | newPiecePosition;
-            newConfiguration.addPiece(movedPieceBitFlag);
-            newConfiguration.removePiece(pieceBitFlag);
-            newConfiguration.addHistoricMove(currentConfiguration, describeMove(pieceBitFlag & 63, newPiecePosition, 0));
-        } catch (Exception e) {
-            LOGGER.error("Problem creating new piece configuration");
-            return;
-        }
-        newConfiguration.setTurnSide(currentConfiguration.getOpposingSide());
-        newConfiguration.setEnPassantSquare(-1);
-
-        if (takenPieceBitFlag >= 0 || BitUtil.hasBitFlag(pieceBitFlag, PieceConfiguration.PAWN_OCCUPIED)) {
-            newConfiguration.setHalfMoveClock(0);
-        } else {
-            newConfiguration.setHalfMoveClock(currentConfiguration.getHalfMoveClock() + 1);
-        }
-
-        if (BitUtil.hasBitFlag(pieceBitFlag, PieceConfiguration.BLACK_OCCUPIED)) {
-            newConfiguration.setFullMoveNumber(currentConfiguration.getFullMoveNumber() + 1);
-        }
-        pieceConfigurations.add(newConfiguration);
-
-        // Remove castling options when rook moves
-        if (BitUtil.hasBitFlag(pieceBitFlag, ROOK_OCCUPIED)) {
-            Rook.removeCastlingOptions(pieceBitFlag, newConfiguration);
-        }
     }
 
     public static String getAlgebraicNotation(

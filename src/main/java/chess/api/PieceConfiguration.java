@@ -366,12 +366,6 @@ public class PieceConfiguration {
         return positionBitFlags[Position.getPosition(positionBitFlag)];
     }
 
-    public void promotePiece(int position, int pieceTypeFlag) {
-        final int oldPieceBitFlag = getPieceAtPosition(position);
-        final int newPieceBitFlag = oldPieceBitFlag & ~ALL_PIECE_FLAGS_COMBINED;
-        positionBitFlags[position] = newPieceBitFlag | pieceTypeFlag;
-    }
-
     public int getTurnSide() {
         return auxiliaryData & 1;
     }

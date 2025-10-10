@@ -1,6 +1,7 @@
 package chess.api.pieces;
 
 import chess.api.BitUtil;
+import chess.api.MoveDescriber;
 import chess.api.PieceConfiguration;
 import chess.api.Position;
 import org.apache.logging.log4j.util.Strings;
@@ -66,7 +67,7 @@ public class Pawn extends Piece{
                     continue;
                 }
 
-                addNewPieceConfigurations(pieceBitFlag, pieceConfigurations, currentConfiguration, testPositionIndex, takenPieceBitFlag);
+                addNewPieceConfigurations(pieceBitFlag, pieceConfigurations, currentConfiguration, testPositionIndex);
 
                 if (takenPieceBitFlag >= 0) {
                     // Stop considering moves beyond this taken piece
@@ -119,32 +120,17 @@ public class Pawn extends Piece{
     }
 
     protected static void addNewPieceConfigurations(int pieceBitFlag, List<PieceConfiguration> pieceConfigurations,
-            PieceConfiguration currentConfiguration, int newPiecePosition, int takenPieceBitFlag) {
-        Piece.addNewPieceConfigurations(pieceBitFlag, pieceConfigurations, currentConfiguration, newPiecePosition, takenPieceBitFlag);
-        int translation = newPiecePosition - getPosition(pieceBitFlag);
-        PieceConfiguration newPieceConfiguration = pieceConfigurations.get(pieceConfigurations.size() - 1);
-        int newY = Position.getY(newPiecePosition);
-        if (Math.abs(translation) == 16) {
-            // Set the en passant square
-            newPieceConfiguration.setEnPassantSquare(getPosition(pieceBitFlag) + (translation / 2));
-        } else if (newY == 7 | newY == 0) {
-            // Promote pawn
-            pieceConfigurations.remove(pieceConfigurations.size() - 1);
-            for(int promotionPieceTypeFlag : PROMOTION_PIECE_TYPES.keySet()) {
-                PieceConfiguration promotedPawnConfiguration = getPromotedPawnConfiguration(newPieceConfiguration,
-                        newPiecePosition, promotionPieceTypeFlag);
-                promotedPawnConfiguration.addHistoricMove(
-                    currentConfiguration, describeMove(pieceBitFlag & 63, newPiecePosition, promotionPieceTypeFlag));
-                pieceConfigurations.add(promotedPawnConfiguration);
+            PieceConfiguration currentConfiguration, int newPiecePosition) {
+        final int newY = Position.getY(newPiecePosition);
+        short move = describeMove(pieceBitFlag & 63, newPiecePosition, 0);
+        if (newY == 7 | newY == 0) {
+            for(int i = KNIGHT_OCCUPIED; i <= QUEEN_OCCUPIED; i = i << 1) {
+                move = describeMove(pieceBitFlag & 63, newPiecePosition, i);
+                pieceConfigurations.add(toNewConfigurationFromMove(currentConfiguration, move));
             }
+        } else {
+            pieceConfigurations.add(toNewConfigurationFromMove(currentConfiguration, move));
         }
-    }
-
-    private static PieceConfiguration getPromotedPawnConfiguration(PieceConfiguration unpromotedPawnConfiguration,
-            int newPiecePosition, int promotedPieceTypeFlag) {
-        PieceConfiguration newPieceConfiguration = new PieceConfiguration(unpromotedPawnConfiguration, true);
-        newPieceConfiguration.promotePiece(newPiecePosition, promotedPieceTypeFlag);
-        return newPieceConfiguration;
     }
 
     private static boolean isOnStartingRank(int pieceBitFlag) {
