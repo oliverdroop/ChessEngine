@@ -24,7 +24,7 @@ public abstract class Piece {
      * and the third int corresponds to the maximum number of times the piece can move in that direction
      */
     public static int[][] getDirectionalLimits(int pieceBitFlag) {
-        int pieceFlag = getPieceTypeBitFlag(pieceBitFlag);
+        final int pieceFlag = getPieceTypeBitFlag(pieceBitFlag);
         return switch (pieceFlag) {
             case PAWN_OCCUPIED -> Pawn.getUnrestrictedDirectionalLimits(pieceBitFlag);
             case BISHOP_OCCUPIED -> Bishop.getDirectionalLimits();

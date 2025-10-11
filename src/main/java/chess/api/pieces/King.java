@@ -14,16 +14,18 @@ import static chess.api.Position.isValidPosition;
 
 public class King extends Piece{
 
-    private static final int[][] STANDARD_DIRECTIONAL_LIMITS = {{-1, -1, 1}, {0, -1, 1}, {1, -1, 1}, {-1, 0, 1}, {1, 0, 1}, {-1, 1, 1}, {0, 1, 1}, {1, 1, 1}};
-
-    private static final int[][] STARTING_POSITION_DIRECTIONAL_LIMITS = {{-1, -1, 1}, {0, -1, 1}, {1, -1, 1}, {-1, 0, 2}, {1, 0, 2}, {-1, 1, 1}, {0, 1, 1}, {1, 1, 1}};
+    private static final int[][][] DIRECTIONAL_LIMITS = {
+        {{-1, -1, 1}, {0, -1, 1}, {1, -1, 1}, {-1, 0, 1}, {1, 0, 1}, {-1, 1, 1}, {0, 1, 1}, {1, 1, 1}},
+        {{-1, -1, 1}, {0, -1, 1}, {1, -1, 1}, {-1, 0, 2}, {1, 0, 2}, {-1, 1, 1}, {0, 1, 1}, {1, 1, 1}}  // Starting position
+    };
 
     public static final Map<Integer, Integer> CASTLE_POSITION_MAPPINGS = Map.of(2, 0, 6, 7, 58, 56, 62, 63);
 
     public static final String AN_CODE = "K";
 
     public static int[][] getDirectionalLimits(int pieceBitFlag) {
-        return isOnStartingPosition(pieceBitFlag) ? STARTING_POSITION_DIRECTIONAL_LIMITS : STANDARD_DIRECTIONAL_LIMITS;
+        final int isOnStartingPosition = Boolean.compare(isOnStartingPosition(pieceBitFlag), false);
+        return DIRECTIONAL_LIMITS[isOnStartingPosition];
     }
 
     public static List<PieceConfiguration> getPossibleMoves(int pieceBitFlag, int[] positionBitFlags, PieceConfiguration currentConfiguration) {

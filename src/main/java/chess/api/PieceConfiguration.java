@@ -267,7 +267,7 @@ public class PieceConfiguration {
     }
 
     private static int[] stampCheckNonBlockerFlags(int[] positionBitFlags) {
-        final int checkedPlayerKingBitFlag = isPlayerInCheck(positionBitFlags);
+        final int checkedPlayerKingBitFlag = getCheckedPlayerKing(positionBitFlags);
         if (checkedPlayerKingBitFlag >= 0) {
             return getCheckNonBlockerPositionBitFlags(checkedPlayerKingBitFlag, positionBitFlags);
         }
@@ -327,7 +327,7 @@ public class PieceConfiguration {
         return valueDifferential;
     }
 
-    public static int isPlayerInCheck(int[] positionBitFlags) {
+    private static int getCheckedPlayerKing(int[] positionBitFlags) {
         return Arrays.stream(positionBitFlags)
                 .filter(pbf -> BitUtil.hasBitFlag(pbf, CHECK_FLAGS_COMBINED))
                 .findFirst()
@@ -339,11 +339,11 @@ public class PieceConfiguration {
                 .anyMatch(position -> BitUtil.hasBitFlag(position, CHECK_FLAGS_COMBINED));
     }
 
-    public int[] getPieceBitFlags() {
+    private int[] getPieceBitFlags() {
         return Arrays.stream(positionBitFlags).filter(pbf -> getPieceTypeBitFlag(pbf) != 0).toArray();
     }
 
-    public static int getPieceAndColourBitFlags(int positionBitFlag) {
+    private static int getPieceAndColourBitFlags(int positionBitFlag) {
         return positionBitFlag & (ALL_PIECE_AND_COLOUR_FLAGS_COMBINED);
     }
 
