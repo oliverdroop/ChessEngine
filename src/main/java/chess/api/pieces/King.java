@@ -85,16 +85,13 @@ public class King extends Piece{
     }
 
     private static boolean isLegalCastle(int pieceBitFlag, int[] positionBitFlags, int testPositionIndex) {
-        if (!BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PieceConfiguration.CASTLE_AVAILABLE)
-                || BitUtil.hasBitFlag(positionBitFlags[getPosition(pieceBitFlag)], PieceConfiguration.THREATENED) // No castling out of check
-                || BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PieceConfiguration.OPPONENT_OCCUPIED) // No taking by castle
-                    // Test if there is a piece in the B file when doing the long castle
-                || (Position.getX(testPositionIndex) == 2
-                        && (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex - 1], PieceConfiguration.PLAYER_OCCUPIED)
-                                || BitUtil.hasBitFlag(positionBitFlags[testPositionIndex - 1], PieceConfiguration.OPPONENT_OCCUPIED)))) {
-            return false;
-        }
-        return true;
+        return BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PieceConfiguration.CASTLE_AVAILABLE)
+            && !BitUtil.hasBitFlag(positionBitFlags[getPosition(pieceBitFlag)], PieceConfiguration.THREATENED) // No castling out of check
+            && !BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PieceConfiguration.OPPONENT_OCCUPIED) // No taking by castle
+            // Test if there is a piece in the B file when doing the long castle
+            && (Position.getX(testPositionIndex) != 2
+            || (!BitUtil.hasBitFlag(positionBitFlags[testPositionIndex - 1], PieceConfiguration.PLAYER_OCCUPIED)
+            && !BitUtil.hasBitFlag(positionBitFlags[testPositionIndex - 1], PieceConfiguration.OPPONENT_OCCUPIED)));
     }
 
     public static int[] stampThreatFlags(int pieceBitFlag, int[] positionBitFlags) {

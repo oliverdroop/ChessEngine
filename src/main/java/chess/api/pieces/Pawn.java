@@ -141,7 +141,7 @@ public class Pawn extends Piece{
         return moveableDirectionalLimits;
     }
 
-    protected static void addNewPieceConfigurations(int pieceBitFlag, List<PieceConfiguration> pieceConfigurations,
+    private static void addNewPieceConfigurations(int pieceBitFlag, List<PieceConfiguration> pieceConfigurations,
             PieceConfiguration currentConfiguration, int newPiecePosition) {
         final int newY = Position.getY(newPiecePosition);
         short move = describeMove(pieceBitFlag & 63, newPiecePosition, 0);
