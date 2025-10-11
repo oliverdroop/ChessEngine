@@ -1,7 +1,6 @@
 package chess.api.pieces;
 
 import chess.api.BitUtil;
-import chess.api.MoveDescriber;
 import chess.api.PieceConfiguration;
 import chess.api.Position;
 import org.slf4j.Logger;
@@ -27,7 +26,7 @@ public abstract class Piece {
     public static int[][] getDirectionalLimits(int pieceBitFlag) {
         int pieceFlag = getPieceTypeBitFlag(pieceBitFlag);
         return switch (pieceFlag) {
-            case PAWN_OCCUPIED -> Pawn.getDirectionalLimits(pieceBitFlag);
+            case PAWN_OCCUPIED -> Pawn.getUnrestrictedDirectionalLimits(pieceBitFlag);
             case BISHOP_OCCUPIED -> Bishop.getDirectionalLimits();
             case ROOK_OCCUPIED -> Rook.getDirectionalLimits();
             case QUEEN_OCCUPIED -> Queen.getDirectionalLimits();

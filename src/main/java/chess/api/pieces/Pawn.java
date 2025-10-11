@@ -1,7 +1,6 @@
 package chess.api.pieces;
 
 import chess.api.BitUtil;
-import chess.api.MoveDescriber;
 import chess.api.PieceConfiguration;
 import chess.api.Position;
 import org.apache.logging.log4j.util.Strings;
@@ -16,51 +15,36 @@ import static chess.api.Position.isValidPosition;
 
 public class Pawn extends Piece{
 
-    private static final int[][] WHITE_DIRECTIONAL_LIMITS = {{-1, 1, 1}, {0, 1, 2}, {1, 1, 1}};
-
-    private static final int[][] BLACK_DIRECTIONAL_LIMITS = {{1, -1, 1}, {0, -1, 2}, {-1, -1, 1}};
-
-    private static final int[][][][][] DIRECTIONAL_LIMITS = {
-        {
-            // WHITE
-            {
-                // Non-starting position
-                {{0, 1, 1}}, // Forward only
-                {{-1, 1, 1}, {0, 1, 1}}, // Forward and left diagonal
-                {{0, 1, 1}, {1, 1, 1}}, // Forward and right diagonal
-                {{-1, 1, 1}, {0, 1, 1}, {1, 1, 1}} // Forward and both diagonals
-            },
-            {
-                // Starting position
-                {{0, 1, 2}}, // Forward only
-                {{-1, 1, 1}, {0, 1, 2}}, // Forward and left diagonal
-                {{0, 1, 2}, {1, 1, 1}}, // Forward and right diagonal
-                WHITE_DIRECTIONAL_LIMITS // Forward and both diagonals
-            }
-        },
-        {
-            // BLACK
-            {
-                // Non-starting position
-                {{0, -1, 1}}, // Forward only
-                {{0, -1, 1}, {1, -1, 1}}, // Forward and left diagonal
-                {{-1, -1, 1}, {0, -1, 1}}, // Forward and right diagonal
-                {{1, -1, 1}, {0, -1, 1}, {-1, -1, 1}} // Forward and both diagonals
-            },
-            {
-                // Starting position
-                {{0, -1, 2}}, // Forward only
-                {{0, -1, 2}, {1, -1, 1}}, // Forward and left diagonal
-                {{-1, -1, 1}, {0, -1, 2}}, // Forward and right diagonal
-                BLACK_DIRECTIONAL_LIMITS // Forward and both diagonals
-            }
-        }
+    private static final int[][][] DIRECTIONAL_LIMITS = {
+                                                //  WHITE
+                                                //      Non-starting position
+        {{0, 1, 1}},                            //          Forward only
+        {{-1, 1, 1}, {0, 1, 1}},                //          Forward and left diagonal
+        {{0, 1, 1}, {1, 1, 1}},                 //          Forward and right diagonal
+        {{-1, 1, 1}, {0, 1, 1}, {1, 1, 1}},     //          Forward and both diagonals
+                                                //      Starting position
+        {{0, 1, 2}},                            //          Forward only
+        {{-1, 1, 1}, {0, 1, 2}},                //          Forward and left diagonal
+        {{0, 1, 2}, {1, 1, 1}},                 //          Forward and right diagonal
+        {{-1, 1, 1}, {0, 1, 2}, {1, 1, 1}},     //          Forward and both diagonals
+                                                //  BLACK
+                                                //      Non-starting position
+        {{0, -1, 1}},                           //          Forward only
+        {{0, -1, 1}, {1, -1, 1}},               //          Forward and left diagonal
+        {{-1, -1, 1}, {0, -1, 1}},              //          Forward and right diagonal
+        {{1, -1, 1}, {0, -1, 1}, {-1, -1, 1}},  //          Forward and both diagonals
+                                                //      Starting position
+        {{0, -1, 2}},                           //          Forward only
+        {{0, -1, 2}, {1, -1, 1}},               //          Forward and left diagonal
+        {{-1, -1, 1}, {0, -1, 2}},              //          Forward and right diagonal
+        {{1, -1, 1}, {0, -1, 2}, {-1, -1, 1}}   //          Forward and both diagonals
     };
 
     public static final Map<Integer, String> PROMOTION_PIECE_TYPES = Map.of(KNIGHT_OCCUPIED, "N", BISHOP_OCCUPIED, "B", ROOK_OCCUPIED, "R", QUEEN_OCCUPIED, "Q");
 
-    public static int[][] getDirectionalLimits(int pieceBitFlag) {
-        return getSide(pieceBitFlag) == 0 ? WHITE_DIRECTIONAL_LIMITS : BLACK_DIRECTIONAL_LIMITS;
+    public static int[][] getUnrestrictedDirectionalLimits(int pieceBitFlag) {
+        final int index = 7 | (getSide(pieceBitFlag) << 3);
+        return DIRECTIONAL_LIMITS[index];
     }
 
     public static List<PieceConfiguration> getPossibleMoves(int pieceBitFlag, int[] positionBitFlags, PieceConfiguration currentConfiguration) {
@@ -120,7 +104,7 @@ public class Pawn extends Piece{
     public static int[] stampThreatFlags(int pieceBitFlag, int[] positionBitFlags) {
         int[] directionalLimitThreatIndexes = {0, 2}; // Pawns can only threaten diagonally
         for(int i : directionalLimitThreatIndexes) {
-            int[] directionalLimit = getDirectionalLimits(pieceBitFlag)[i];
+            int[] directionalLimit = getUnrestrictedDirectionalLimits(pieceBitFlag)[i];
             int directionX = directionalLimit[0];
             int directionY = directionalLimit[1];
             int testPositionIndex = getPosition(pieceBitFlag);
@@ -144,8 +128,11 @@ public class Pawn extends Piece{
         final int isOnStartingPosition = Boolean.compare(isOnStartingRank(pieceBitFlag), false);
         final int leftDiagonalAvailable = isDiagonalMoveAvailable(pieceBitFlag, 0, positionBitFlags);
         final int rightDiagonalAvailable = isDiagonalMoveAvailable(pieceBitFlag, 2, positionBitFlags);
-        final int availability = leftDiagonalAvailable | (rightDiagonalAvailable << 1);
-        final int[][] moveableDirectionalLimits = DIRECTIONAL_LIMITS[turnSide][isOnStartingPosition][availability];
+        final int availability = (turnSide << 3)
+            | (isOnStartingPosition << 2)
+            | (rightDiagonalAvailable << 1)
+            | leftDiagonalAvailable;
+        final int[][] moveableDirectionalLimits = DIRECTIONAL_LIMITS[availability];
 
         int directionalBitFlags = getDirectionalFlags(positionBitFlags[getPosition(pieceBitFlag)]);
         if (directionalBitFlags != 0) {
@@ -173,7 +160,7 @@ public class Pawn extends Piece{
     }
 
     private static int isDiagonalMoveAvailable(int pieceBitFlag, int directionalLimitIndex, int[] positionBitFlags) {
-        int[][] directionalLimits = getDirectionalLimits(pieceBitFlag);
+        int[][] directionalLimits = getUnrestrictedDirectionalLimits(pieceBitFlag);
         int testPosition = Position.applyTranslation(getPosition(pieceBitFlag),
                 directionalLimits[directionalLimitIndex][0], directionalLimits[directionalLimitIndex][1]);
         if (testPosition < 0) {
