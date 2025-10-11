@@ -65,7 +65,7 @@ public class OpeningBook {
                 );
                 return outputConfiguration;
             }
-            LOGGER.info("No openings available for this configuration");
+            LOGGER.debug("No openings available for this configuration");
         }
         return null;
     }

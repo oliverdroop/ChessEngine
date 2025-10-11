@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -29,7 +30,7 @@ public class FENController {
 
     @PostMapping("/chess")
     public ResponseEntity<AiMoveResponseDto> getAiMove(@RequestBody @Valid AiMoveRequestDto aiMoveRequestDto) {
-        LOGGER.info("Received AI move request: {}", aiMoveRequestDto);
+        LOGGER.info("Received AI move request FEN: {}", aiMoveRequestDto.getFen());
         final AiMoveResponseDto response = new AiMoveResponseDto();
         try {
             final ObjectMapper objectMapper = new ObjectMapper();
@@ -46,16 +47,16 @@ public class FENController {
 
             if (outputConfiguration != null) {
                 final String outputFEN = FENWriter.write(outputConfiguration);
-                if (FENReader.read(outputFEN).getOnwardConfigurations().isEmpty()) {
-                    response.setGameResult(deriveGameEndType(outputConfiguration).toString());
+                if (outputConfiguration.getOnwardConfigurations().isEmpty()) {
+                    setAndLogGameEnd(response, outputConfiguration);
                 }
                 response.setFen(outputFEN);
                 response.setAlgebraicNotation(outputConfiguration.getAlgebraicNotation(inputConfiguration));
                 response.setCheck(outputConfiguration.isCheck());
+                LOGGER.info("Response FEN: {}", outputFEN);
             } else {
-                response.setGameResult(deriveGameEndType(inputConfiguration).toString());
+                setAndLogGameEnd(response, inputConfiguration);
             }
-            LOGGER.info("Response: {}", objectMapper.writeValueAsString(response));
             return ResponseEntity.ok().body(response);
         } catch (Throwable e) {
             final String errorMessage = String.format("Unable to get AI move: %s", e);
@@ -67,7 +68,7 @@ public class FENController {
 
     @PostMapping("/chess/available-moves")
     public ResponseEntity<List<String>> getAvailableMoves(@RequestBody @Valid AvailableMovesRequestDto availableMovesRequestDto) {
-        LOGGER.info("Received available moves request: {}", availableMovesRequestDto);
+        LOGGER.debug("Received available moves request: {}", availableMovesRequestDto);
         try {
             LOGGER.debug("FEN: {}", availableMovesRequestDto.getFen());
             LOGGER.debug("From: {}", availableMovesRequestDto.getFrom());
@@ -102,5 +103,11 @@ public class FENController {
             inputConfiguration.setHistoricMoves(historicMoves);
         }
         return inputConfiguration;
+    }
+
+    private void setAndLogGameEnd(AiMoveResponseDto response, PieceConfiguration pieceConfiguration) {
+        final GameEndType gameEndType = deriveGameEndType(pieceConfiguration);
+        response.setGameResult(gameEndType.toString());
+        LOGGER.info("{}: {}", gameEndType, pieceConfiguration);
     }
 }
