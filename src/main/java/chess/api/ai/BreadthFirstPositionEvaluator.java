@@ -43,7 +43,8 @@ public class BreadthFirstPositionEvaluator {
                     inMemoryTrie.setScore(currentConfiguration.getHistoricMoves(), gameEndValue);
                     continue;
                 }
-                storeConfigurationScores(onwardConfigurations, inMemoryTrie, isMaximumDepth);
+                final double currentLesserScore = currentConfiguration.getLesserScore();
+                storeConfigurationScores(onwardConfigurations, inMemoryTrie, isMaximumDepth, currentLesserScore);
             }
             currentDepth++;
         }
@@ -74,11 +75,15 @@ public class BreadthFirstPositionEvaluator {
         return null;
     }
 
-    private static void storeConfigurationScores(List<PieceConfiguration> onwardConfigurations, InMemoryTrie inMemoryTrie, boolean isMaximumDepth) {
+    private static void storeConfigurationScores(
+            List<PieceConfiguration> onwardConfigurations,
+            InMemoryTrie inMemoryTrie,
+            boolean isMaximumDepth,
+            double currentLesserScore) {
         PieceConfiguration bestOnwardConfiguration = null;
         double bestOnwardScore = -Double.MAX_VALUE;
         for(PieceConfiguration onwardConfiguration : onwardConfigurations) {
-            final double onwardScore = getConfigurationScore(onwardConfiguration);
+            final double onwardScore = getConfigurationScore(onwardConfiguration, currentLesserScore);
             if (!isMaximumDepth) {
                 // Store all the onward scores because we are not yet at the maximum depth
                 final short[] key = onwardConfiguration.getHistoricMoves();
@@ -96,12 +101,10 @@ public class BreadthFirstPositionEvaluator {
         }
     }
 
-    private static double getConfigurationScore(PieceConfiguration onwardConfiguration) {
+    private static double getConfigurationScore(PieceConfiguration onwardConfiguration, double currentLesserScore) {
         // Set all the bit flags in the onward configuration
-        onwardConfiguration.setHigherBitFlags();
-        final int valueComparison = onwardConfiguration.getValueDifferential();
-        final double onwardThreatValue = onwardConfiguration.getLesserScore();
-        return valueComparison + onwardThreatValue;
+        final int onwardValueComparison = onwardConfiguration.getValueDifferential();
+        return onwardValueComparison + currentLesserScore;
     }
 
     private static MoveScorePair getBestOnwardMoveScorePair(InMemoryTrie inMemoryTrie, short[] startingNode) {
