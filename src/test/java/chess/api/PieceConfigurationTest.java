@@ -12,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class PieceConfigurationTest {
 
-    private final PieceConfiguration pieceConfiguration = new PieceConfiguration();
+    private final PieceConfiguration pieceConfiguration = new IntsPieceConfiguration();
 
     @Test
     void testSetTurnSide_0() {

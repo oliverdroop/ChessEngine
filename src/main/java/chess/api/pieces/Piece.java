@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.function.Predicate;
 
+import static chess.api.IntsPieceConfiguration.getPieceTypeBitFlag;
 import static chess.api.MoveDescriber.describeMove;
 import static chess.api.PieceConfiguration.*;
 import static chess.api.Position.isValidPosition;

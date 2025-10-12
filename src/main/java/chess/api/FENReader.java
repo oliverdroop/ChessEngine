@@ -31,7 +31,7 @@ public class FENReader {
 
 	
 	public static PieceConfiguration read(String fen) {
-		PieceConfiguration pieceConfiguration = new PieceConfiguration();
+		PieceConfiguration pieceConfiguration = new IntsPieceConfiguration();
 		String[] fields = fen.split(" ");
 		String[] ranks = fields[0].split("/");
 		for(int y = 0; y < 8; y++) {
