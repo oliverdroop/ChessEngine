@@ -1,6 +1,7 @@
 package chess.api.controller;
 
 import chess.api.*;
+import chess.api.configuration.PieceConfiguration;
 import chess.api.dto.AvailableMovesRequestDto;
 import chess.api.dto.AiMoveRequestDto;
 import chess.api.dto.AiMoveResponseDto;
@@ -14,7 +15,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;

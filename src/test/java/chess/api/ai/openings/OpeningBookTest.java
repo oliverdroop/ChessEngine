@@ -1,7 +1,7 @@
 package chess.api.ai.openings;
 
 import chess.api.FENReader;
-import chess.api.PieceConfiguration;
+import chess.api.configuration.PieceConfiguration;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

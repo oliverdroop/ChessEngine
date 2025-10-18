@@ -3,7 +3,9 @@ package chess.api.ai;
 import chess.api.FENReader;
 import chess.api.FENWriter;
 import chess.api.GameEndType;
-import chess.api.PieceConfiguration;
+import chess.api.configuration.IntsPieceConfiguration;
+import chess.api.configuration.LongsPieceConfiguration;
+import chess.api.configuration.PieceConfiguration;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -30,8 +32,11 @@ public class AITest {
 
     @ParameterizedTest
     @MethodSource("providePositionEvaluatorArguments")
-	void testAITakesQueen_edgeOfBoard(BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction) {
-		setupTest("7k/8/8/q7/1P6/8/8/7K w - - 0 1");
+	void testAITakesQueen_edgeOfBoard(
+        Class<? extends PieceConfiguration> configurationClass,
+        BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
+    {
+        setupTest("7k/8/8/q7/1P6/8/8/7K w - - 0 1", configurationClass);
 		newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH);
 		Assertions.assertThat(FENWriter.write(newPieceConfiguration))
 				.as("White pawn should take black queen")
@@ -40,8 +45,11 @@ public class AITest {
 
     @ParameterizedTest
     @MethodSource("providePositionEvaluatorArguments")
-	void testAITakesQueen_middleOfBoard(BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction) {
-		setupTest("4k3/8/8/3q1p2/4P3/8/8/4K3 w - - 0 1");
+	void testAITakesQueen_middleOfBoard(
+        Class<? extends PieceConfiguration> configurationClass,
+        BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
+    {
+        setupTest("4k3/8/8/3q1p2/4P3/8/8/4K3 w - - 0 1", configurationClass);
 		newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH);
 		assertThat(FENWriter.write(newPieceConfiguration))
 				.as("White pawn should take black queen")
@@ -50,8 +58,11 @@ public class AITest {
 
     @ParameterizedTest
     @MethodSource("providePositionEvaluatorArguments")
-	void testAIChoosesCheckmate_bishopWithRooks(BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction) {
-		setupTest("k5B1/7R/8/8/8/8/P1PPPPPP/1R2K3 w - - 0 1");
+	void testAIChoosesCheckmate_bishopWithRooks(
+        Class<? extends PieceConfiguration> configurationClass,
+        BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
+    {
+        setupTest("k5B1/7R/8/8/8/8/P1PPPPPP/1R2K3 w - - 0 1", configurationClass);
 		newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH);
 		assertThat(FENWriter.write(newPieceConfiguration))
 				.as("White bishop should force checkmate")
@@ -60,8 +71,11 @@ public class AITest {
     
     @ParameterizedTest
     @MethodSource("providePositionEvaluatorArguments")
-	void testAIChoosesCheckmate_bishopWithKnights(BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction) {
-		setupTest("k5B1/3N4/8/1N6/8/8/8/4K3 w - - 0 1");
+	void testAIChoosesCheckmate_bishopWithKnights(
+        Class<? extends PieceConfiguration> configurationClass,
+        BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
+    {
+        setupTest("k5B1/3N4/8/1N6/8/8/8/4K3 w - - 0 1", configurationClass);
 		newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH);
 		assertThat(FENWriter.write(newPieceConfiguration))
 				.as("White bishop should force checkmate")
@@ -70,8 +84,11 @@ public class AITest {
     
     @ParameterizedTest
     @MethodSource("providePositionEvaluatorArguments")
-	void testAIChoosesCheckmate_twoRooks(BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction) {
-		setupTest("k7/7R/6R1/8/8/8/p3K3/8 w - - 0 1");
+	void testAIChoosesCheckmate_twoRooks(
+        Class<? extends PieceConfiguration> configurationClass,
+        BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
+    {
+        setupTest("k7/7R/6R1/8/8/8/p3K3/8 w - - 0 1", configurationClass);
 		newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH);
 		assertThat(FENWriter.write(newPieceConfiguration))
 				.as("White rook should force checkmate")
@@ -80,8 +97,11 @@ public class AITest {
 
     @ParameterizedTest
     @MethodSource("providePositionEvaluatorArguments")
-	void testAIChoosesCheckmate_twoRooksTowardsEdge(BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction) {
-		setupTest("K7/8/8/2r5/2r5/8/8/7k b - - 0 1");
+	void testAIChoosesCheckmate_twoRooksTowardsEdge(
+        Class<? extends PieceConfiguration> configurationClass,
+        BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
+    {
+        setupTest("K7/8/8/2r5/2r5/8/8/7k b - - 0 1", configurationClass);
 		newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH);
 		assertThat(FENWriter.write(newPieceConfiguration))
 				.as("Black rook should progress towards forcing checkmate")
@@ -93,8 +113,11 @@ public class AITest {
 
     @ParameterizedTest
     @MethodSource("providePositionEvaluatorArguments")
-	void testAIChoosesCheckmate_foolsMate(BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction) {
-		setupTest("rnbqkbnr/pppp1ppp/8/4p3/6P1/5P2/PPPPP2P/RNBQKBNR b KQkq - 0 2");
+	void testAIChoosesCheckmate_foolsMate(
+        Class<? extends PieceConfiguration> configurationClass,
+        BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
+    {
+        setupTest("rnbqkbnr/pppp1ppp/8/4p3/6P1/5P2/PPPPP2P/RNBQKBNR b KQkq - 0 2", configurationClass);
 		newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH);
 		assertThat(FENWriter.write(newPieceConfiguration))
 				.as("Black bishop should force checkmate")
@@ -103,8 +126,11 @@ public class AITest {
 
     @ParameterizedTest
     @MethodSource("providePositionEvaluatorArguments")
-	void testAIUpgradesPawn(BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction) {
-		setupTest("8/kBPN4/8/8/8/8/8/KR6 w - - 0 1");
+	void testAIUpgradesPawn(
+        Class<? extends PieceConfiguration> configurationClass,
+        BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
+    {
+        setupTest("8/kBPN4/8/8/8/8/8/KR6 w - - 0 1", configurationClass);
 		newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH);
 		assertThat(FENWriter.write(newPieceConfiguration))
 				.as("Promoting white pawn should choose knight to avoid stalemate")
@@ -113,8 +139,11 @@ public class AITest {
 
     @ParameterizedTest
     @MethodSource("providePositionEvaluatorArguments")
-	void testAIAvoidsStalemate(BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction) {
-		setupTest("7k/8/5N2/5N2/8/8/8/K7 w - - 0 1");
+	void testAIAvoidsStalemate(
+        Class<? extends PieceConfiguration> configurationClass,
+        BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
+    {
+        setupTest("7k/8/5N2/5N2/8/8/8/K7 w - - 0 1", configurationClass);
 		newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH);
 		assertThat(FENWriter.write(newPieceConfiguration))
 				.as("One of the knights should move to avoid blocking the black king in the corner")
@@ -123,8 +152,11 @@ public class AITest {
 
     @ParameterizedTest
     @MethodSource("providePositionEvaluatorArguments")
-	void testAIAvoidsCheckmate_earlyGame(BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction) {
-		setupTest("rn2kbnr/pbqp1pp1/1pp1p3/4N1Bp/3PP3/2NB1Q2/PPP2PPP/R3K2R b KQkq - 2 8");
+	void testAIAvoidsCheckmate_earlyGame(
+        Class<? extends PieceConfiguration> configurationClass,
+        BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
+    {
+        setupTest("rn2kbnr/pbqp1pp1/1pp1p3/4N1Bp/3PP3/2NB1Q2/PPP2PPP/R3K2R b KQkq - 2 8", configurationClass);
 		newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH);
 		assertThat(FENWriter.write(newPieceConfiguration))
 				.as("Black should avoid mate in 1")
@@ -141,8 +173,11 @@ public class AITest {
 
     @ParameterizedTest
     @MethodSource("providePositionEvaluatorArguments")
-	void testAIAvoidsCheckmate_lateGame(BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction) {
-		setupTest("k7/ppp5/8/8/8/8/8/QK5B b - - 2 8");
+	void testAIAvoidsCheckmate_lateGame(
+        Class<? extends PieceConfiguration> configurationClass,
+        BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
+    {
+        setupTest("k7/ppp5/8/8/8/8/8/QK5B b - - 2 8", configurationClass);
 		newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH);
 		assertThat(FENWriter.write(newPieceConfiguration))
 				.as("Black should avoid mate in 1")
@@ -152,8 +187,11 @@ public class AITest {
 
     @ParameterizedTest
     @MethodSource("providePositionEvaluatorArguments")
-	void simpleCornerTest_chooseCheckmateOverStalemate(BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction) {
-		setupTest("k7/2P5/K7/8/8/8/8/8 w - - 0 50");
+	void simpleCornerTest_chooseCheckmateOverStalemate(
+        Class<? extends PieceConfiguration> configurationClass,
+        BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
+    {
+        setupTest("k7/2P5/K7/8/8/8/8/8 w - - 0 50", configurationClass);
 		newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH);
 		assertThat(FENWriter.write(newPieceConfiguration))
 				.as("White should choose checkmate")
@@ -163,16 +201,22 @@ public class AITest {
 
     @ParameterizedTest
     @MethodSource("providePositionEvaluatorArguments")
-	void fiftyMoveRuleTest_loseByMovingKing(BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction) {
-		setupTest("7K/7P/8/8/8/8/8/k7 w - - 99 50");
+	void fiftyMoveRuleTest_loseByMovingKing(
+        Class<? extends PieceConfiguration> configurationClass,
+        BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
+    {
+        setupTest("7K/7P/8/8/8/8/8/k7 w - - 99 50", configurationClass);
 		newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH);
 		assertThat(newPieceConfiguration).isNull();
 	}
 
     @ParameterizedTest
     @MethodSource("providePositionEvaluatorArguments")
-	void fiftyMoveRuleTest_continueByMovingPawn(BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction) {
-		setupTest("7K/7P/8/8/7r/2P4k/8/B7 w - - 99 50");
+	void fiftyMoveRuleTest_continueByMovingPawn(
+        Class<? extends PieceConfiguration> configurationClass,
+        BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
+    {
+        setupTest("7K/7P/8/8/7r/2P4k/8/B7 w - - 99 50", configurationClass);
 		newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH);
 		assertThat(FENWriter.write(newPieceConfiguration))
 				.as("Expected white to avoid losing by moving a pawn")
@@ -181,8 +225,11 @@ public class AITest {
 
     @ParameterizedTest
     @MethodSource("providePositionEvaluatorArguments")
-	void testAIDoesNotBlunderQueen_earlyGame1(BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction) {
-		setupTest("r1b1kbnr/pppp1ppp/2n1p3/8/3PP2q/3B2P1/PPP2P1P/RNBQK1NR b KQkq - 5 4");
+	void testAIDoesNotBlunderQueen_earlyGame1(
+            Class<? extends PieceConfiguration> configurationClass,
+            BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
+    {
+		setupTest("r1b1kbnr/pppp1ppp/2n1p3/8/3PP2q/3B2P1/PPP2P1P/RNBQK1NR b KQkq - 5 4", configurationClass);
 		newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH);
 		assertThat(FENWriter.write(newPieceConfiguration))
 				.as("Expected black not to blunder its queen")
@@ -192,8 +239,11 @@ public class AITest {
 
     @ParameterizedTest
     @MethodSource("providePositionEvaluatorArguments")
-	void testAIDoesNotBlunderQueen_earlyGame2(BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction) {
-		setupTest("r1b1k1nr/pppp1ppp/2n1p3/8/1b1PP2q/2PB2P1/PP3P1P/RNBQK1NR b KQkq - 7 5");
+	void testAIDoesNotBlunderQueen_earlyGame2(
+            Class<? extends PieceConfiguration> configurationClass,
+            BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
+    {
+		setupTest("r1b1k1nr/pppp1ppp/2n1p3/8/1b1PP2q/2PB2P1/PP3P1P/RNBQK1NR b KQkq - 7 5", configurationClass);
 		newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH);
 		assertThat(FENWriter.write(newPieceConfiguration))
 				.as("Expected black not to blunder its queen")
@@ -205,8 +255,11 @@ public class AITest {
 
     @ParameterizedTest
     @MethodSource("providePositionEvaluatorArguments")
-    void deriveGameEndType(BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction) {
-        setupTest("r3q1nN/ppp4p/8/kb5R/1N1Q4/6P1/PP1BB3/R3K3 b Q - 6 20");
+    void deriveGameEndType(
+            Class<? extends PieceConfiguration> configurationClass,
+            BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
+    {
+        setupTest("r3q1nN/ppp4p/8/kb5R/1N1Q4/6P1/PP1BB3/R3K3 b Q - 6 20", configurationClass);
         newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH);
         assertThat(newPieceConfiguration.isCheck()).isTrue();
         assertThat(DepthFirstPositionEvaluator.deriveGameEndType(newPieceConfiguration))
@@ -240,16 +293,26 @@ public class AITest {
     private static Stream<Arguments> providePositionEvaluatorArguments() {
         return Stream.of(
             Arguments.of(
+                IntsPieceConfiguration.class,
                 (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) ConcurrentPositionEvaluator::getBestMoveRecursively
             ),
             Arguments.of(
+                IntsPieceConfiguration.class,
+                (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) BreadthFirstPositionEvaluator::getBestMoveRecursively
+            ),
+            Arguments.of(
+                LongsPieceConfiguration.class,
+                (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) ConcurrentPositionEvaluator::getBestMoveRecursively
+            ),
+            Arguments.of(
+                LongsPieceConfiguration.class,
                 (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) BreadthFirstPositionEvaluator::getBestMoveRecursively
             )
         );
     }
 	
-	private void setupTest(String fen) {
-		pieceConfiguration = FENReader.read(fen);
+	private void setupTest(String fen, Class<? extends PieceConfiguration> configurationClass) {
+        pieceConfiguration = FENReader.read(fen, configurationClass);
 	}
 }
 

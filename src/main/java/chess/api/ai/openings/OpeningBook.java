@@ -1,8 +1,7 @@
 package chess.api.ai.openings;
 
 import chess.api.FENReader;
-import chess.api.MoveDescriber;
-import chess.api.PieceConfiguration;
+import chess.api.configuration.PieceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

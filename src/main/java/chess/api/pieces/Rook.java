@@ -1,6 +1,6 @@
 package chess.api.pieces;
 
-import chess.api.PieceConfiguration;
+import chess.api.configuration.PieceConfiguration;
 
 import java.util.Map;
 

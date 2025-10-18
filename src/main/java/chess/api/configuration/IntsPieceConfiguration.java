@@ -1,5 +1,7 @@
-package chess.api;
+package chess.api.configuration;
 
+import chess.api.BitUtil;
+import chess.api.Position;
 import chess.api.pieces.Knight;
 import chess.api.pieces.Piece;
 
@@ -124,6 +126,57 @@ public class IntsPieceConfiguration extends PieceConfiguration {
         positionBitFlags = stampCheckNonBlockerFlags(stampThreatFlags(stampOccupationFlags(positionBitFlags)));
     }
 
+    @Override
+    public boolean isPlayerOccupied(int position) {
+        return BitUtil.hasBitFlag(positionBitFlags[position], PieceConfiguration.PLAYER_OCCUPIED);
+    }
+
+    @Override
+    public boolean isKingOccupied(int position) {
+        return BitUtil.hasBitFlag(positionBitFlags[position], PieceConfiguration.KING_OCCUPIED);
+    }
+
+    @Override
+    public boolean isPlayerKingOccupied(int position) {
+        return BitUtil.hasBitFlag(positionBitFlags[position], PLAYER_KING_OCCUPIED);
+    }
+
+    @Override
+    public boolean isOpponentOccupied(int position) {
+        return BitUtil.hasBitFlag(positionBitFlags[position], PieceConfiguration.OPPONENT_OCCUPIED);
+    }
+
+    @Override
+    public boolean isOpponentOccupiedOrEnPassantSquare(int position) {
+        return BitUtil.hasAnyBits(positionBitFlags[position], OPPONENT_OCCUPIED | EN_PASSANT_SQUARE);
+    }
+
+    @Override
+    public boolean isThreatened(int position) {
+        return BitUtil.hasBitFlag(positionBitFlags[position], PieceConfiguration.THREATENED);
+    }
+
+    @Override
+    public void setThreatened(int position) {
+        positionBitFlags[position] = BitUtil.applyBitFlag(positionBitFlags[position], PieceConfiguration.THREATENED);
+    }
+
+    @Override
+    public void setDirectionalFlag(int position, int directionalFlag) {
+        positionBitFlags[position] = positionBitFlags[position] | directionalFlag;
+    }
+
+    @Override
+    public boolean isCheckBlockingOrNoCheck(int position) {
+        return !BitUtil.hasBitFlag(positionBitFlags[position], PieceConfiguration.DOES_NOT_BLOCK_CHECK);
+    }
+
+    @Override
+    public boolean isCastleAvailable(int position) {
+        return BitUtil.hasBitFlag(positionBitFlags[position], PieceConfiguration.CASTLE_AVAILABLE);
+    }
+
+    @Override
     public List<PieceConfiguration> getOnwardConfigurations() {
         setHigherBitFlags();
         return Arrays.stream(getPieceBitFlags())
@@ -133,11 +186,12 @@ public class IntsPieceConfiguration extends PieceConfiguration {
             .collect(Collectors.toList());
     }
 
+    @Override
     public List<PieceConfiguration> getOnwardConfigurationsForPiece(int pieceBitFlag) {
         if (Arrays.stream(positionBitFlags).noneMatch(pbf -> pbf > 65535)) {
             setHigherBitFlags();
         }
-        return Piece.getPossibleMoves(pieceBitFlag, positionBitFlags, this);
+        return Piece.getPossibleMoves(pieceBitFlag, this);
     }
 
     @Override
@@ -262,7 +316,7 @@ public class IntsPieceConfiguration extends PieceConfiguration {
     private int[] stampThreatFlags(int[] positionBitFlags) {
         for(int pieceBitFlag : getPieceBitFlags()) {
             if (Piece.getSide(pieceBitFlag) != getTurnSide()) {
-                positionBitFlags = Piece.stampThreatFlags(pieceBitFlag, positionBitFlags);
+                Piece.stampThreatFlags(pieceBitFlag, this);
             }
         }
         return positionBitFlags;

@@ -1,11 +1,11 @@
 package chess.api.ai;
 
-import chess.api.PieceConfiguration;
+import chess.api.configuration.PieceConfiguration;
 import chess.api.storage.ephemeral.InMemoryTrie;
 
 import java.util.*;
 
-import static chess.api.PieceConfiguration.*;
+import static chess.api.configuration.PieceConfiguration.*;
 import static java.util.Arrays.copyOfRange;
 
 public class BreadthFirstPositionEvaluator {

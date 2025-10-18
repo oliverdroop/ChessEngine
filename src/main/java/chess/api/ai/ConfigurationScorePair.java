@@ -1,6 +1,6 @@
 package chess.api.ai;
 
-import chess.api.PieceConfiguration;
+import chess.api.configuration.PieceConfiguration;
 
 public record ConfigurationScorePair(PieceConfiguration pieceConfiguration, double score) implements Comparable<ConfigurationScorePair> {
 

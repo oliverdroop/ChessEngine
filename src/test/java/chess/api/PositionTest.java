@@ -1,15 +1,61 @@
 package chess.api;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.stream.Stream;
 
-import static chess.api.PieceConfiguration.*;
+import static chess.api.configuration.PieceConfiguration.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class PositionTest {
+
+    @Test
+    void testApplyTranslation_withIllegalNegXNegYTranslation() {
+        int position = 8;
+
+        int newPosition = Position.applyTranslation(position, -1, -1);
+
+        assertThat(newPosition).as("Unexpected value for translation which should be illegal").isEqualTo(-1);
+    }
+
+    @Test
+    void testApplyTranslation_withLegalNegYTranslation() {
+        int position = 8;
+
+        int newPosition = Position.applyTranslation(position, 0, -1);
+
+        assertThat(newPosition).as("Unexpected value for translation which should be legal").isEqualTo(0);
+    }
+
+    @Test
+    void testApplyTranslation_withIllegalPosXPosYTranslation() {
+        int position = 55;
+
+        int newPosition = Position.applyTranslation(position, 1, 1);
+
+        assertThat(newPosition).as("Unexpected value for translation which should be illegal").isEqualTo(-1);
+    }
+
+    @Test
+    void testApplyTranslation_withLegalPosXTranslation() {
+        int position = 62;
+
+        int newPosition = Position.applyTranslation(position, 1, 0);
+
+        assertThat(newPosition).as("Unexpected value for translation which should be illegal").isEqualTo(63);
+    }
+
+    @Test
+    void testApplyTranslation_withLegalPosYTranslation() {
+        int position = 7;
+
+        int newPosition = Position.applyTranslation(position, 0, 7);
+
+        assertThat(newPosition).as("Unexpected value for translation which should be legal").isEqualTo(63);
+    }
 
     @ParameterizedTest
     @MethodSource("getCoordinateStrings")

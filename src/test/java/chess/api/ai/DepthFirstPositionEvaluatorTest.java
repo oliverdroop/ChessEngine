@@ -2,7 +2,7 @@ package chess.api.ai;
 
 import chess.api.FENReader;
 import chess.api.FENWriter;
-import chess.api.PieceConfiguration;
+import chess.api.configuration.PieceConfiguration;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;

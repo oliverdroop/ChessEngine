@@ -1,7 +1,6 @@
 package chess.api.pieces;
 
-import chess.api.BitUtil;
-import chess.api.PieceConfiguration;
+import chess.api.configuration.PieceConfiguration;
 import chess.api.Position;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,16 +8,16 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.function.Predicate;
 
-import static chess.api.IntsPieceConfiguration.getPieceTypeBitFlag;
+import static chess.api.configuration.IntsPieceConfiguration.getPieceTypeBitFlag;
 import static chess.api.MoveDescriber.describeMove;
-import static chess.api.PieceConfiguration.*;
+import static chess.api.configuration.PieceConfiguration.*;
 import static chess.api.Position.isValidPosition;
 
 public abstract class Piece {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Piece.class);
 
-    private static final int[] FAST_VALUE_ARRAY = {0, 3, 3, 0, 5, 0, 0, 0, 9, 0, 0, 0, 0, 0, 0, 0, 1};
+    public static final int[] FAST_VALUE_ARRAY = {0, 3, 3, 0, 5, 0, 0, 0, 9, 0, 0, 0, 0, 0, 0, 0, 1};
 
     /**
      * @return An array of size-3 int arrays, where the first two ints correspond to a direction
@@ -37,19 +36,19 @@ public abstract class Piece {
         };
     }
 
-    public static List<PieceConfiguration> getPossibleMoves(int pieceBitFlag, int[] positionBitFlags,
+    public static List<PieceConfiguration> getPossibleMoves(int pieceBitFlag,
                                                             PieceConfiguration currentConfiguration) {
-        int pieceFlag = getPieceTypeBitFlag(pieceBitFlag);
+        final int pieceFlag = getPieceTypeBitFlag(pieceBitFlag);
         switch(pieceFlag) {
             case PAWN_OCCUPIED:
-                return Pawn.getPossibleMoves(pieceBitFlag, positionBitFlags, currentConfiguration);
+                return Pawn.getPossibleMoves(pieceBitFlag, currentConfiguration);
             case KING_OCCUPIED:
-                return King.getPossibleMoves(pieceBitFlag, positionBitFlags, currentConfiguration);
+                return King.getPossibleMoves(pieceBitFlag, currentConfiguration);
             default:
                 break;
         }
         List<PieceConfiguration> pieceConfigurations = new ArrayList<>();
-        for(int[] directionalLimit : getMovableDirectionalLimits(pieceBitFlag, positionBitFlags)) {
+        for(int[] directionalLimit : getMovableDirectionalLimits(pieceBitFlag, currentConfiguration)) {
             int directionX = directionalLimit[0];
             int directionY = directionalLimit[1];
             int limit = directionalLimit[2];
@@ -62,18 +61,18 @@ public abstract class Piece {
                 }
 
                 // Is this player piece blocked by another player piece?
-                if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PieceConfiguration.PLAYER_OCCUPIED)) {
+                if (currentConfiguration.isPlayerOccupied(testPositionIndex)) {
                     break;
                 }
 
                 // Is there an opponent piece on the position?
                 int takenPieceBitFlag = -1;
-                if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PieceConfiguration.OPPONENT_OCCUPIED)) {
-                    takenPieceBitFlag = positionBitFlags[testPositionIndex];
+                if (currentConfiguration.isOpponentOccupied(testPositionIndex)) {
+                    takenPieceBitFlag = currentConfiguration.getPieceAtPosition(testPositionIndex);
                 }
 
                 // Is this position a position which wouldn't block an existing checking direction?
-                if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PieceConfiguration.DOES_NOT_BLOCK_CHECK)) {
+                if (!currentConfiguration.isCheckBlockingOrNoCheck(testPositionIndex)) {
                     if (takenPieceBitFlag == -1) {
                         limit--;
                         continue;
@@ -111,16 +110,20 @@ public abstract class Piece {
 
     public abstract String getANCode();
 
-    public static int[] stampThreatFlags(int pieceBitFlag, int[] positionBitFlags) {
+    public static void stampThreatFlags(int pieceBitFlag, PieceConfiguration pieceConfiguration) {
         int pieceTypeFlag = getPieceTypeBitFlag(pieceBitFlag);
-        return switch (pieceTypeFlag) {
-            case PieceConfiguration.KING_OCCUPIED -> King.stampThreatFlags(pieceBitFlag, positionBitFlags);
-            case PieceConfiguration.PAWN_OCCUPIED -> Pawn.stampThreatFlags(pieceBitFlag, positionBitFlags);
-            default -> stampSimpleThreatFlags(pieceBitFlag, positionBitFlags);
-        };
+        switch (pieceTypeFlag) {
+            case PieceConfiguration.KING_OCCUPIED:
+                King.stampThreatFlags(pieceBitFlag, pieceConfiguration);
+                break;
+            case PieceConfiguration.PAWN_OCCUPIED:
+                Pawn.stampThreatFlags(pieceBitFlag, pieceConfiguration);
+                break;
+            default: stampSimpleThreatFlags(pieceBitFlag, pieceConfiguration);
+        }
     }
 
-    public static int[] stampSimpleThreatFlags(int pieceBitFlag, int[] positionBitFlags) {
+    public static void stampSimpleThreatFlags(int pieceBitFlag, PieceConfiguration pieceConfiguration) {
         for(int[] directionalLimit : getDirectionalLimits(pieceBitFlag)) {
             int directionX = directionalLimit[0];
             int directionY = directionalLimit[1];
@@ -135,49 +138,55 @@ public abstract class Piece {
 
                 if (potentialKingProtectorPosition < 0) {
                     // Opponent piece threatens the position
-                    positionBitFlags[testPositionIndex] = BitUtil.applyBitFlag(positionBitFlags[testPositionIndex], PieceConfiguration.THREATENED);
+                    pieceConfiguration.setThreatened(testPositionIndex);
                     // Is this opponent piece blocked by another opponent piece?
-                    if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PieceConfiguration.OPPONENT_OCCUPIED)) {
+                    if (pieceConfiguration.isOpponentOccupied(testPositionIndex)) {
                         break;
                     }
                 }
 
                 // Is there a player piece on the position?
-                if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PLAYER_OCCUPIED)) {
-                    boolean kingOccupied = BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], KING_OCCUPIED);
+                if (pieceConfiguration.isPlayerOccupied(testPositionIndex)) {
+                    final boolean kingOccupied = pieceConfiguration.isKingOccupied(testPositionIndex);
                     if (potentialKingProtectorPosition < 0) {
                         if (kingOccupied) {
                             // First player piece encountered in this direction is the player's king
                             // Player's king can't be a king protector
-                            positionBitFlags[testPositionIndex] = setDirectionalFlags(
-                                    positionBitFlags[testPositionIndex], directionX, directionY);
+                            final int directionalFlag = getDirectionalFlag(directionX, directionY);
+                            pieceConfiguration.setDirectionalFlag(testPositionIndex, directionalFlag);
                         } else {
                             // First player piece encountered in this direction is not the player's king
                             potentialKingProtectorPosition = testPositionIndex;
                         }
                     } else if (kingOccupied) {
                         // Second player piece encountered in this direction is the player's king
-                        positionBitFlags[potentialKingProtectorPosition] = setDirectionalFlags(
-                                positionBitFlags[potentialKingProtectorPosition], directionX, directionY);
+                        final int directionalFlag = getDirectionalFlag(directionX, directionY);
+                        pieceConfiguration.setDirectionalFlag(potentialKingProtectorPosition, directionalFlag);
                         break;
                     } else {
                         // Second player piece encountered in this direction is not the player's king.
                         break;
                     }
-                } else if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], OPPONENT_OCCUPIED)) {
+                } else if (pieceConfiguration.isOpponentOccupied(testPositionIndex)) {
                     break;
                 }
                 limit--;
             }
         }
-        return positionBitFlags;
     }
 
-    protected static int setDirectionalFlags(int number, int x, int y) {
+    protected static int applyDirectionalFlag(int number, int x, int y) {
         if ((x & 3) == 2 | (y & 3) == 2) {
             return number | PieceConfiguration.DIRECTION_ANY_KNIGHT;
         }
         return number | Position.DIRECTIONAL_BIT_FLAG_GRID[y + 1][x + 1];
+    }
+
+    protected static int getDirectionalFlag(int x, int y) {
+        if ((x & 3) == 2 | (y & 3) == 2) {
+            return PieceConfiguration.DIRECTION_ANY_KNIGHT;
+        }
+        return Position.DIRECTIONAL_BIT_FLAG_GRID[y + 1][x + 1];
     }
 
     public static int getDirectionalFlags(int number) {
@@ -212,23 +221,13 @@ public abstract class Piece {
                 .toArray(int[][]::new);
     }
 
-    protected static int[][] getMovableDirectionalLimits(int pieceBitFlag, int[] positionBitFlags) {
+    protected static int[][] getMovableDirectionalLimits(int pieceBitFlag, PieceConfiguration currentConfiguration) {
         int position = getPosition(pieceBitFlag);
-        int number = positionBitFlags[position];
+        int number = currentConfiguration.getPieceAtPosition(position);
         if (hasDirectionalFlags(number)) {
             return restrictDirections(pieceBitFlag, getDirectionalFlags(number));
         }
         return getDirectionalLimits(pieceBitFlag);
-    }
-
-    protected static int[][] arrayDeepCopy(int[][] arrayToCopy, int startIndex, int endIndex) {
-        int[][] output = new int[endIndex - startIndex][3];
-        int io = 0;
-        for(int i = startIndex; i < endIndex; i++) {
-            output[io] = arrayToCopy[i].clone();
-            io++;
-        }
-        return output;
     }
 
     public static int getPosition(int pieceBitFlag) {

@@ -1,16 +1,13 @@
-package chess.api;
+package chess.api.configuration;
 
-import chess.api.pieces.*;
+import chess.api.FENWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static chess.api.BitUtil.*;
-import static chess.api.IntsPieceConfiguration.toNewIntsConfigurationFromMove;
-import static chess.api.pieces.King.CASTLE_POSITION_MAPPINGS;
-import static chess.api.pieces.Pawn.PROMOTION_PIECE_TYPES;
+import static chess.api.configuration.IntsPieceConfiguration.toNewIntsConfigurationFromMove;
 
 public abstract class PieceConfiguration {
 
@@ -133,6 +130,26 @@ public abstract class PieceConfiguration {
 
     public abstract int getPieceAtPosition(int position);
 
+    public abstract boolean isPlayerOccupied(int position);
+
+    public abstract boolean isKingOccupied(int position);
+
+    public abstract boolean isPlayerKingOccupied(int position);
+
+    public abstract boolean isOpponentOccupied(int position);
+
+    public abstract boolean isOpponentOccupiedOrEnPassantSquare(int position);
+
+    public abstract boolean isThreatened(int position);
+
+    public abstract void setThreatened(int position);
+
+    public abstract void setDirectionalFlag(int position, int directionalFlag);
+
+    public abstract boolean isCheckBlockingOrNoCheck(int position);
+
+    public abstract boolean isCastleAvailable(int position);
+
     public abstract void setHigherBitFlags();
 
     public abstract <T extends PieceConfiguration> String getAlgebraicNotation(T previousConfiguration);
@@ -140,6 +157,8 @@ public abstract class PieceConfiguration {
     public static PieceConfiguration toNewConfigurationFromMoves(PieceConfiguration originalConfiguration, short[] historicMoves) {
         if (originalConfiguration instanceof IntsPieceConfiguration originalConfigurationImpl) {
             return IntsPieceConfiguration.toNewIntsConfigurationFromMoves(originalConfigurationImpl, historicMoves);
+        } else if (originalConfiguration instanceof LongsPieceConfiguration originalConfigurationImpl) {
+            return LongsPieceConfiguration.toNewLongsConfigurationFromMoves(originalConfigurationImpl, historicMoves);
         }
         return null;
     }
@@ -147,6 +166,8 @@ public abstract class PieceConfiguration {
     public static PieceConfiguration toNewConfigurationFromMove(PieceConfiguration previousConfiguration, short move) {
         if (previousConfiguration instanceof IntsPieceConfiguration previousConfigurationImpl) {
             return toNewIntsConfigurationFromMove(previousConfigurationImpl, move);
+        } else if (previousConfiguration instanceof LongsPieceConfiguration previousConfigurationImpl) {
+            return LongsPieceConfiguration.toNewLongsConfigurationFromMove(previousConfigurationImpl, move);
         }
         return null;
     }

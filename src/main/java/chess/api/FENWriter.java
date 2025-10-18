@@ -1,10 +1,11 @@
 package chess.api;
 
+import chess.api.configuration.PieceConfiguration;
 import chess.api.pieces.Piece;
 
 import java.util.Arrays;
 
-import static chess.api.PieceConfiguration.*;
+import static chess.api.configuration.PieceConfiguration.*;
 
 public class FENWriter {
 

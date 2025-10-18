@@ -6,7 +6,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.stream.Stream;
 
-import static chess.api.PieceConfiguration.*;
+import static chess.api.configuration.PieceConfiguration.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class PieceTest {

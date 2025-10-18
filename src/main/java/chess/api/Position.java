@@ -1,5 +1,6 @@
 package chess.api;
 
+import chess.api.configuration.PieceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

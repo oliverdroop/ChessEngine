@@ -2,8 +2,7 @@ package chess.api.validation;
 
 import chess.api.FENReader;
 import chess.api.FENWriter;
-import chess.api.MoveDescriber;
-import chess.api.PieceConfiguration;
+import chess.api.configuration.PieceConfiguration;
 import chess.api.dto.AiMoveRequestDto;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
@@ -12,7 +11,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 import static chess.api.MoveDescriber.getMoveFromAlgebraicNotation;
-import static chess.api.PieceConfiguration.toNewConfigurationFromMove;
+import static chess.api.configuration.PieceConfiguration.toNewConfigurationFromMove;
 
 public class AiMoveRequestValidator implements ConstraintValidator<AiMoveRequestValidation, AiMoveRequestDto> {
 

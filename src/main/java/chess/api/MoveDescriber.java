@@ -4,8 +4,8 @@ import java.util.Map;
 import java.util.regex.MatchResult;
 import java.util.regex.Pattern;
 
-import static chess.api.PieceConfiguration.*;
-import static chess.api.PieceConfiguration.KNIGHT_OCCUPIED;
+import static chess.api.configuration.PieceConfiguration.*;
+import static chess.api.configuration.PieceConfiguration.KNIGHT_OCCUPIED;
 import static java.lang.String.format;
 
 public class MoveDescriber {

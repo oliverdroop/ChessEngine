@@ -1,7 +1,6 @@
 package chess.api.pieces;
 
-import chess.api.BitUtil;
-import chess.api.PieceConfiguration;
+import chess.api.configuration.PieceConfiguration;
 import chess.api.Position;
 
 import java.util.ArrayList;
@@ -9,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import static chess.api.MoveDescriber.describeMove;
-import static chess.api.PieceConfiguration.toNewConfigurationFromMove;
+import static chess.api.configuration.PieceConfiguration.toNewConfigurationFromMove;
 import static chess.api.Position.isValidPosition;
 
 public class King extends Piece{
@@ -28,9 +27,9 @@ public class King extends Piece{
         return DIRECTIONAL_LIMITS[isOnStartingPosition];
     }
 
-    public static List<PieceConfiguration> getPossibleMoves(int pieceBitFlag, int[] positionBitFlags, PieceConfiguration currentConfiguration) {
+    public static List<PieceConfiguration> getPossibleMoves(int pieceBitFlag, PieceConfiguration currentConfiguration) {
         List<PieceConfiguration> pieceConfigurations = new ArrayList<>();
-        for(int[] directionalLimit : getMovableDirectionalLimits(pieceBitFlag, positionBitFlags)) {
+        for(int[] directionalLimit : getMovableDirectionalLimits(pieceBitFlag, currentConfiguration)) {
             int directionX = directionalLimit[0];
             int directionY = directionalLimit[1];
             int limit = directionalLimit[2];
@@ -43,23 +42,23 @@ public class King extends Piece{
                 }
 
                 // Is this position threatened?
-                if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PieceConfiguration.THREATENED)) {
+                if (currentConfiguration.isThreatened(testPositionIndex)) {
                     break;
                 }
 
                 // Is this player piece blocked by another player piece?
-                if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PieceConfiguration.PLAYER_OCCUPIED)) {
+                if (currentConfiguration.isPlayerOccupied(testPositionIndex)) {
                     break;
                 }
 
                 // Is this an attempted castling?
-                if (directionalLimit[2] == 2 && limit == 1 && !isLegalCastle(pieceBitFlag, positionBitFlags, testPositionIndex)) {
+                if (directionalLimit[2] == 2 && limit == 1 && !isLegalCastle(pieceBitFlag, currentConfiguration, testPositionIndex)) {
                     break;
                 }
 
                 // Is there an opponent piece on the position?
                 int takenPieceBitFlag = -1;
-                if (BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PieceConfiguration.OPPONENT_OCCUPIED)) {
+                if (currentConfiguration.isOpponentOccupied(testPositionIndex)) {
                     takenPieceBitFlag = currentConfiguration.getPieceAtPosition(testPositionIndex);
                 }
 
@@ -76,25 +75,25 @@ public class King extends Piece{
         return pieceConfigurations;
     }
 
-    protected static int[][] getMovableDirectionalLimits(int pieceBitFlag, int[] positionBitFlags) {
-        int number = positionBitFlags[getPosition(pieceBitFlag)];
+    protected static int[][] getMovableDirectionalLimits(int pieceBitFlag, PieceConfiguration currentconfiguration) {
+        int number = currentconfiguration.getPieceAtPosition(getPosition(pieceBitFlag));
         if (hasDirectionalFlags(number)) {
             return restrictDirections(pieceBitFlag, ~getDirectionalFlags(number));
         }
         return getDirectionalLimits(pieceBitFlag);
     }
 
-    private static boolean isLegalCastle(int pieceBitFlag, int[] positionBitFlags, int testPositionIndex) {
-        return BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PieceConfiguration.CASTLE_AVAILABLE)
-            && !BitUtil.hasBitFlag(positionBitFlags[getPosition(pieceBitFlag)], PieceConfiguration.THREATENED) // No castling out of check
-            && !BitUtil.hasBitFlag(positionBitFlags[testPositionIndex], PieceConfiguration.OPPONENT_OCCUPIED) // No taking by castle
+    private static boolean isLegalCastle(int pieceBitFlag, PieceConfiguration currentConfiguration, int testPositionIndex) {
+        return currentConfiguration.isCastleAvailable(testPositionIndex)
+            && !currentConfiguration.isThreatened(getPosition(pieceBitFlag)) // No castling out of check
+            && !currentConfiguration.isOpponentOccupied(testPositionIndex) // No taking by castle
             // Test if there is a piece in the B file when doing the long castle
             && (Position.getX(testPositionIndex) != 2
-            || (!BitUtil.hasBitFlag(positionBitFlags[testPositionIndex - 1], PieceConfiguration.PLAYER_OCCUPIED)
-            && !BitUtil.hasBitFlag(positionBitFlags[testPositionIndex - 1], PieceConfiguration.OPPONENT_OCCUPIED)));
+            || (!currentConfiguration.isPlayerOccupied(testPositionIndex - 1)
+            && !currentConfiguration.isOpponentOccupied(testPositionIndex - 1)));
     }
 
-    public static int[] stampThreatFlags(int pieceBitFlag, int[] positionBitFlags) {
+    public static void stampThreatFlags(int pieceBitFlag, PieceConfiguration pieceConfiguration) {
         for(int[] directionalLimit : getDirectionalLimits(pieceBitFlag)) {
             // Limit is always 1 for the king (castling positions can't be threatened by the king)
             int testPositionIndex = Position.applyTranslation(Position.getPosition(pieceBitFlag),
@@ -103,9 +102,8 @@ public class King extends Piece{
                 continue;
             }
 
-            positionBitFlags[testPositionIndex] = BitUtil.applyBitFlag(positionBitFlags[testPositionIndex], PieceConfiguration.THREATENED);
+            pieceConfiguration.setThreatened(testPositionIndex);
         }
-        return positionBitFlags;
     }
 
     private static boolean isOnStartingPosition(int pieceBitFlag) {
