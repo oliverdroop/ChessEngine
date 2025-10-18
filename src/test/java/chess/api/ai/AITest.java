@@ -268,6 +268,38 @@ public class AITest {
 
     @Test
     @Disabled
+    void testBothConfigurationTypesSameOutput() {
+        PieceConfiguration intsPieceConfiguration = FENReader.read(
+            FENWriter.STARTING_POSITION, IntsPieceConfiguration.class);
+
+        PieceConfiguration longsPieceConfiguration = FENReader.read(
+            FENWriter.STARTING_POSITION, LongsPieceConfiguration.class);
+        PieceConfiguration previousIntsConfiguration = null;
+        PieceConfiguration previousLongsConfiguration = null;
+        final int depth = 4;
+
+        while(intsPieceConfiguration != null && longsPieceConfiguration != null) {
+            LOGGER.info("IntsPieceConfiguration: {}, LongsPieceConfiguration: {}", intsPieceConfiguration, longsPieceConfiguration);
+            previousIntsConfiguration = intsPieceConfiguration;
+            previousLongsConfiguration = longsPieceConfiguration;
+            final PieceConfiguration newIntsConfiguration = DepthFirstPositionEvaluator
+                .getBestMoveRecursively(intsPieceConfiguration, depth);
+            final PieceConfiguration newLongsConfiguration = DepthFirstPositionEvaluator
+                .getBestMoveRecursively(longsPieceConfiguration, depth);
+            final String intsConfigurationFen = newIntsConfiguration.toString();
+            final String longsConfigurationFen = newLongsConfiguration.toString();
+            assertThat(intsConfigurationFen)
+                .as("A different IntsPieceConfiguration and LongsPieceConfiguration were chosen for the same input")
+                .isEqualTo(longsConfigurationFen);
+            intsPieceConfiguration = newIntsConfiguration;
+            longsPieceConfiguration = newLongsConfiguration;
+        }
+        LOGGER.info(DepthFirstPositionEvaluator.deriveGameEndType(previousIntsConfiguration).toString());
+        LOGGER.info(DepthFirstPositionEvaluator.deriveGameEndType(previousLongsConfiguration).toString());
+    }
+
+    @Test
+    @Disabled
     void testBothEvaluatorsSameOutput() {
         PieceConfiguration pieceConfiguration = FENReader.read(FENWriter.STARTING_POSITION);
         PieceConfiguration previousConfiguration = null;

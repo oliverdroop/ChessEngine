@@ -83,7 +83,7 @@ public class Pawn extends Piece{
                 }
 
                 // Is this position a position which wouldn't block an existing checking direction?
-                if (!currentConfiguration.isCheckBlockingOrNoCheck(testPositionIndex)) {
+                if (currentConfiguration.isIneffectiveCheckBlockAttempt(testPositionIndex)) {
                     limit--;
                     continue;
                 }

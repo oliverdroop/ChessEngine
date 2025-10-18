@@ -7,12 +7,8 @@ import chess.api.pieces.Piece;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.function.LongBinaryOperator;
 import java.util.stream.Collectors;
-
-import static chess.api.BitUtil.hasBitFlag;
-import static chess.api.pieces.King.CASTLE_POSITION_MAPPINGS;
 
 public class LongsPieceConfiguration extends PieceConfiguration {
 
@@ -162,92 +158,6 @@ public class LongsPieceConfiguration extends PieceConfiguration {
         }
     }
 
-    public static LongsPieceConfiguration toNewLongsConfigurationFromMoves(LongsPieceConfiguration originalConfiguration, short[] historicMoves) {
-        LongsPieceConfiguration currentConfiguration = originalConfiguration;
-        for (short historicMove : historicMoves) {
-            currentConfiguration = toNewLongsConfigurationFromMove(currentConfiguration, historicMove);
-        }
-        return currentConfiguration;
-    }
-
-    public static LongsPieceConfiguration toNewLongsConfigurationFromMove(LongsPieceConfiguration previousConfiguration, short moveDescription) {
-        final LongsPieceConfiguration newConfiguration = new LongsPieceConfiguration(previousConfiguration, true);
-        newConfiguration.addHistoricMove(previousConfiguration, moveDescription);
-        final int fromPos = (moveDescription & 0b0000111111000000) >> 6;
-        final int toPos = moveDescription & 0b0000000000111111;
-        final int promotionBitFlag = (moveDescription & 0b1111000000000000) >>> 1;
-        final int oldPieceBitFlag = previousConfiguration.getPieceAtPosition(fromPos);
-        final int newPieceBitFlag = promotionBitFlag == 0
-            ? (oldPieceBitFlag & ALL_PIECE_AND_COLOUR_FLAGS_COMBINED) | toPos
-            : (oldPieceBitFlag & COLOUR_FLAGS_COMBINED) | promotionBitFlag | toPos;
-        final int directlyTakenPieceBitFlag = previousConfiguration.getPieceAtPosition(toPos) & ALL_PIECE_FLAGS_COMBINED;
-        final boolean isAnyPieceTaken = directlyTakenPieceBitFlag > 0
-            || (previousConfiguration.getEnPassantSquare() == toPos && (newPieceBitFlag & PAWN_OCCUPIED) != 0);
-        final int posDiff = toPos - fromPos;
-        newConfiguration.removePiece(fromPos);
-        newConfiguration.removePiece(toPos);
-        newConfiguration.addPiece(newPieceBitFlag);
-        if (isAnyPieceTaken && directlyTakenPieceBitFlag == 0) {
-            // Remove pawn taken by en passant
-            final int takenPiecePosition = toPos - (8 - (previousConfiguration.getTurnSide() * 16));
-            newConfiguration.removePiece(takenPiecePosition);
-        }
-        if (hasBitFlag(oldPieceBitFlag, KING_OCCUPIED)) {
-            if (Math.abs(posDiff) == 2) {
-                // Castling
-                final int rookFromPos = CASTLE_POSITION_MAPPINGS.get(toPos);
-                final int rookToPos = posDiff > 0 ? fromPos + 1 : fromPos - 1;
-                final int oldRookBitFlag = previousConfiguration.getPieceAtPosition(rookFromPos);
-                final int newRookBitFlag = (oldRookBitFlag & ALL_PIECE_AND_COLOUR_FLAGS_COMBINED) | rookToPos;
-                newConfiguration.removePiece(rookFromPos);
-                newConfiguration.addPiece(newRookBitFlag);
-            }
-            // Remove castle positions for side because king has moved
-            final int leftCastlePosition = 2 + (56 * ((oldPieceBitFlag & BLACK_OCCUPIED) >> 9));
-            final int rightCastlePosition = leftCastlePosition + 4;
-            newConfiguration.removeCastlePosition(leftCastlePosition);
-            newConfiguration.removeCastlePosition(rightCastlePosition);
-        }
-        if (hasBitFlag(oldPieceBitFlag, ROOK_OCCUPIED) && CASTLE_POSITION_MAPPINGS.containsValue(fromPos)) {
-            // Remove castle position for rook because rook has moved
-            for(Map.Entry<Integer, Integer> entry : CASTLE_POSITION_MAPPINGS.entrySet()) {
-                if (entry.getValue() == fromPos) {
-                    newConfiguration.removeCastlePosition(entry.getKey());
-                }
-            }
-        }
-        if (hasBitFlag(directlyTakenPieceBitFlag, ROOK_OCCUPIED)) {
-            // Remove castle position for rook because rook has been taken
-            for(Map.Entry<Integer, Integer> entry : CASTLE_POSITION_MAPPINGS.entrySet()) {
-                if (entry.getValue() == toPos) {
-                    newConfiguration.removeCastlePosition(entry.getKey());
-                }
-            }
-        }
-
-        if (hasBitFlag(oldPieceBitFlag, PAWN_OCCUPIED) && Math.abs(posDiff) == 16) {
-            // Set the en passant square
-            newConfiguration.setEnPassantSquare((fromPos + toPos) >> 1);
-        } else {
-            // Clear the en passant square
-            newConfiguration.setEnPassantSquare(-1);
-        }
-
-        if (isAnyPieceTaken || hasBitFlag(oldPieceBitFlag, PAWN_OCCUPIED)) {
-            // Reset the half move clock to zero
-            newConfiguration.setHalfMoveClock(0);
-        } else {
-            // Increment the half move clock
-            newConfiguration.setHalfMoveClock(previousConfiguration.getHalfMoveClock() + 1);
-        }
-
-        // Increment the full move number
-        newConfiguration.setFullMoveNumber(previousConfiguration.getFullMoveNumber() + previousConfiguration.getTurnSide());
-        // Switch the turn side
-        newConfiguration.setTurnSide(previousConfiguration.getOpposingSide());
-        return newConfiguration;
-    }
-
     @Override
     public List<PieceConfiguration> getOnwardConfigurations() {
         setHigherBitFlags();
@@ -327,6 +237,11 @@ public class LongsPieceConfiguration extends PieceConfiguration {
     }
 
     @Override
+    public boolean isOpponentKnightOccupied(int position) {
+        return ((data[OPPONENT_OCCUPATION_DATA_INDEX] & data[KNIGHT_OCCUPATION_DATA_INDEX]) & (1L << position)) != 0;
+    }
+
+    @Override
     public boolean isThreatened(int position) {
         return (data[THREATENED_DATA_INDEX] & (1L << position)) != 0;
     }
@@ -343,8 +258,8 @@ public class LongsPieceConfiguration extends PieceConfiguration {
     }
 
     @Override
-    public boolean isCheckBlockingOrNoCheck(int position) {
-        return (data[DOES_NOT_BLOCK_CHECK_DATA_INDEX] & (1L << position)) == 0;
+    public boolean isIneffectiveCheckBlockAttempt(int position) {
+        return (data[DOES_NOT_BLOCK_CHECK_DATA_INDEX] & (1L << position)) != 0;
     }
 
     @Override
@@ -446,39 +361,15 @@ public class LongsPieceConfiguration extends PieceConfiguration {
     private void setCheckNonBlockerData(int kingPositionBitFlag) {
         final int kingPositionDirectionalFlags = Piece.getDirectionalFlags(kingPositionBitFlag);
         if (Arrays.stream(ALL_DIRECTIONAL_FLAGS).anyMatch(df -> df == kingPositionDirectionalFlags)) {
-            // The king is only checked from one direction
-            int currentPosition = kingPositionBitFlag;
-            int nextPositionIndex = Position.applyTranslationTowardsThreat(kingPositionDirectionalFlags, currentPosition);
-
-            while(!BitUtil.hasBitFlag(getPieceAtPosition(currentPosition), OPPONENT_OCCUPIED) && nextPositionIndex >= 0) {
-                setDoesNotBlockCheck(nextPositionIndex);
-                currentPosition = nextPositionIndex;
-                nextPositionIndex = Position.applyTranslationTowardsThreat(kingPositionDirectionalFlags, currentPosition);
-            }
-
-            if (kingPositionDirectionalFlags == DIRECTION_ANY_KNIGHT) {
-                // The king is checked only by a knight
-                for(int[] directionalLimit : Knight.getDirectionalLimits()) {
-                    int possibleCheckingKnightPosition = Position.applyTranslation(currentPosition, directionalLimit[0], directionalLimit[1]);
-                    if (possibleCheckingKnightPosition >= 0
-                        && isOpponentKnightOccupied(possibleCheckingKnightPosition)) {
-                        // Stamp the checking knight's position so it becomes a movable position
-                        setDoesNotBlockCheck(possibleCheckingKnightPosition);
-                    }
-                }
-            }
+            setCheckNonBlockerFlags(kingPositionBitFlag, kingPositionDirectionalFlags);
         }
 
         // Now reverse the bit DOES_NOT_BLOCK_CHECK data because it's on the squares which can block check
         data[DOES_NOT_BLOCK_CHECK_DATA_INDEX] = ~data[DOES_NOT_BLOCK_CHECK_DATA_INDEX];
     }
 
-    private void setDoesNotBlockCheck(int position) {
+    public void setDoesNotBlockCheck(int position) {
         data[DOES_NOT_BLOCK_CHECK_DATA_INDEX] = data[DOES_NOT_BLOCK_CHECK_DATA_INDEX] | (1L << position);
-    }
-
-    private boolean isOpponentKnightOccupied(int position) {
-        return ((data[OPPONENT_OCCUPATION_DATA_INDEX] & data[KNIGHT_OCCUPATION_DATA_INDEX]) & (1L << position)) != 0;
     }
 
     private long combineDataWithOr(int[] dataIndexes) {

@@ -1,13 +1,16 @@
 package chess.api.configuration;
 
+import chess.api.BitUtil;
 import chess.api.FENWriter;
+import chess.api.Position;
+import chess.api.pieces.Knight;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 import static chess.api.BitUtil.*;
-import static chess.api.configuration.IntsPieceConfiguration.toNewIntsConfigurationFromMove;
+import static chess.api.pieces.King.CASTLE_POSITION_MAPPINGS;
 
 public abstract class PieceConfiguration {
 
@@ -114,9 +117,9 @@ public abstract class PieceConfiguration {
 
     private short[] historicMoves;
 
-    public abstract <T extends PieceConfiguration> List<T> getOnwardConfigurations();
+    public abstract List<PieceConfiguration> getOnwardConfigurations();
 
-    public abstract <T extends PieceConfiguration> List<T> getOnwardConfigurationsForPiece(int pieceBitFlag);
+    public abstract List<PieceConfiguration> getOnwardConfigurationsForPiece(int pieceBitFlag);
 
     public abstract int getValueDifferential();
 
@@ -140,13 +143,17 @@ public abstract class PieceConfiguration {
 
     public abstract boolean isOpponentOccupiedOrEnPassantSquare(int position);
 
+    public abstract boolean isOpponentKnightOccupied(int position);
+
     public abstract boolean isThreatened(int position);
 
     public abstract void setThreatened(int position);
 
     public abstract void setDirectionalFlag(int position, int directionalFlag);
 
-    public abstract boolean isCheckBlockingOrNoCheck(int position);
+    public abstract boolean isIneffectiveCheckBlockAttempt(int position);
+
+    public abstract void setDoesNotBlockCheck(int position);
 
     public abstract boolean isCastleAvailable(int position);
 
@@ -155,21 +162,101 @@ public abstract class PieceConfiguration {
     public abstract <T extends PieceConfiguration> String getAlgebraicNotation(T previousConfiguration);
 
     public static PieceConfiguration toNewConfigurationFromMoves(PieceConfiguration originalConfiguration, short[] historicMoves) {
-        if (originalConfiguration instanceof IntsPieceConfiguration originalConfigurationImpl) {
-            return IntsPieceConfiguration.toNewIntsConfigurationFromMoves(originalConfigurationImpl, historicMoves);
-        } else if (originalConfiguration instanceof LongsPieceConfiguration originalConfigurationImpl) {
-            return LongsPieceConfiguration.toNewLongsConfigurationFromMoves(originalConfigurationImpl, historicMoves);
+        PieceConfiguration currentConfiguration = originalConfiguration;
+        for (short historicMove : historicMoves) {
+            currentConfiguration = toNewConfigurationFromMove(currentConfiguration, historicMove);
         }
-        return null;
+        return currentConfiguration;
     }
 
-    public static PieceConfiguration toNewConfigurationFromMove(PieceConfiguration previousConfiguration, short move) {
-        if (previousConfiguration instanceof IntsPieceConfiguration previousConfigurationImpl) {
-            return toNewIntsConfigurationFromMove(previousConfigurationImpl, move);
-        } else if (previousConfiguration instanceof LongsPieceConfiguration previousConfigurationImpl) {
-            return LongsPieceConfiguration.toNewLongsConfigurationFromMove(previousConfigurationImpl, move);
+    public static PieceConfiguration toNewConfigurationFromMove(PieceConfiguration previousConfiguration, short moveDescription) {
+        final PieceConfiguration newConfiguration = getPieceConfigurationImplementation(previousConfiguration);
+        newConfiguration.addHistoricMove(previousConfiguration, moveDescription);
+        final int fromPos = (moveDescription & 0b0000111111000000) >> 6;
+        final int toPos = moveDescription & 0b0000000000111111;
+        final int promotionBitFlag = (moveDescription & 0b1111000000000000) >>> 1;
+        final int oldPieceBitFlag = previousConfiguration.getPieceAtPosition(fromPos);
+        final int newPieceBitFlag = promotionBitFlag == 0
+            ? (oldPieceBitFlag & ALL_PIECE_AND_COLOUR_FLAGS_COMBINED) | toPos
+            : (oldPieceBitFlag & COLOUR_FLAGS_COMBINED) | promotionBitFlag | toPos;
+        final int directlyTakenPieceBitFlag = previousConfiguration.getPieceAtPosition(toPos) & ALL_PIECE_FLAGS_COMBINED;
+        final boolean isAnyPieceTaken = directlyTakenPieceBitFlag > 0
+            || (previousConfiguration.getEnPassantSquare() == toPos && (newPieceBitFlag & PAWN_OCCUPIED) != 0);
+        final int posDiff = toPos - fromPos;
+        newConfiguration.removePiece(fromPos);
+        newConfiguration.removePiece(toPos);
+        newConfiguration.addPiece(newPieceBitFlag);
+        if (isAnyPieceTaken && directlyTakenPieceBitFlag == 0) {
+            // Remove pawn taken by en passant
+            final int takenPiecePosition = toPos - (8 - (previousConfiguration.getTurnSide() * 16));
+            newConfiguration.removePiece(takenPiecePosition);
         }
-        return null;
+        if (hasBitFlag(oldPieceBitFlag, KING_OCCUPIED)) {
+            if (Math.abs(posDiff) == 2) {
+                // Castling
+                final int rookFromPos = CASTLE_POSITION_MAPPINGS.get(toPos);
+                final int rookToPos = posDiff > 0 ? fromPos + 1 : fromPos - 1;
+                final int oldRookBitFlag = previousConfiguration.getPieceAtPosition(rookFromPos);
+                final int newRookBitFlag = (oldRookBitFlag & ALL_PIECE_AND_COLOUR_FLAGS_COMBINED) | rookToPos;
+                newConfiguration.removePiece(rookFromPos);
+                newConfiguration.addPiece(newRookBitFlag);
+            }
+            // Remove castle positions for side because king has moved
+            final int leftCastlePosition = 2 + (56 * ((oldPieceBitFlag & BLACK_OCCUPIED) >> 9));
+            final int rightCastlePosition = leftCastlePosition + 4;
+            newConfiguration.removeCastlePosition(leftCastlePosition);
+            newConfiguration.removeCastlePosition(rightCastlePosition);
+        }
+        if (hasBitFlag(oldPieceBitFlag, ROOK_OCCUPIED) && CASTLE_POSITION_MAPPINGS.containsValue(fromPos)) {
+            // Remove castle position for rook because rook has moved
+            for(Map.Entry<Integer, Integer> entry : CASTLE_POSITION_MAPPINGS.entrySet()) {
+                if (entry.getValue() == fromPos) {
+                    newConfiguration.removeCastlePosition(entry.getKey());
+                }
+            }
+        }
+        if (hasBitFlag(directlyTakenPieceBitFlag, ROOK_OCCUPIED)) {
+            // Remove castle position for rook because rook has been taken
+            for(Map.Entry<Integer, Integer> entry : CASTLE_POSITION_MAPPINGS.entrySet()) {
+                if (entry.getValue() == toPos) {
+                    newConfiguration.removeCastlePosition(entry.getKey());
+                }
+            }
+        }
+
+        if (hasBitFlag(oldPieceBitFlag, PAWN_OCCUPIED) && Math.abs(posDiff) == 16) {
+            // Set the en passant square
+            newConfiguration.setEnPassantSquare((fromPos + toPos) >> 1);
+        } else {
+            // Clear the en passant square
+            newConfiguration.setEnPassantSquare(-1);
+        }
+
+        if (isAnyPieceTaken || hasBitFlag(oldPieceBitFlag, PAWN_OCCUPIED)) {
+            // Reset the half move clock to zero
+            newConfiguration.setHalfMoveClock(0);
+        } else {
+            // Increment the half move clock
+            newConfiguration.setHalfMoveClock(previousConfiguration.getHalfMoveClock() + 1);
+        }
+
+        // Increment the full move number
+        newConfiguration.setFullMoveNumber(previousConfiguration.getFullMoveNumber() + previousConfiguration.getTurnSide());
+        // Switch the turn side
+        newConfiguration.setTurnSide(previousConfiguration.getOpposingSide());
+        return newConfiguration;
+    }
+
+    private static PieceConfiguration getPieceConfigurationImplementation(PieceConfiguration previousConfiguration) {
+        final PieceConfiguration newConfiguration;
+        if (previousConfiguration instanceof IntsPieceConfiguration previousConfigurationImpl) {
+            newConfiguration = new IntsPieceConfiguration(previousConfigurationImpl, true);
+        } else if (previousConfiguration instanceof LongsPieceConfiguration previousConfigurationImpl) {
+            newConfiguration = new LongsPieceConfiguration(previousConfigurationImpl, true);
+        } else {
+            throw new IllegalArgumentException("Input PieceConfiguration was not a usable implementation");
+        }
+        return newConfiguration;
     }
 
     public int getTurnSide() {
@@ -225,6 +312,30 @@ public abstract class PieceConfiguration {
         final int negativeBit = enPassantSquare & Integer.MIN_VALUE;
         final int pos = (enPassantSquare & 0b111111) << 25 ;
         auxiliaryData = overwriteBits(auxiliaryData, 0b11111110000000000000000000000000, pos | negativeBit);
+    }
+
+    protected void setCheckNonBlockerFlags(int kingPositionBitFlag, int kingPositionDirectionalFlags) {
+        // The king is only checked from one direction
+        int currentPosition = kingPositionBitFlag;
+        int nextPositionIndex = Position.applyTranslationTowardsThreat(kingPositionDirectionalFlags, currentPosition);
+
+        while(!BitUtil.hasBitFlag(getPieceAtPosition(currentPosition), OPPONENT_OCCUPIED) && nextPositionIndex >= 0) {
+            setDoesNotBlockCheck(nextPositionIndex);
+            currentPosition = nextPositionIndex;
+            nextPositionIndex = Position.applyTranslationTowardsThreat(kingPositionDirectionalFlags, currentPosition);
+        }
+
+        if (kingPositionDirectionalFlags == DIRECTION_ANY_KNIGHT) {
+            // The king is checked only by a knight
+            for(int[] directionalLimit : Knight.getDirectionalLimits()) {
+                int possibleCheckingKnightPosition = Position.applyTranslation(currentPosition, directionalLimit[0], directionalLimit[1]);
+                if (possibleCheckingKnightPosition >= 0
+                    && isOpponentKnightOccupied(possibleCheckingKnightPosition)) {
+                    // Stamp the checking knight's position so it becomes a movable position
+                    setDoesNotBlockCheck(possibleCheckingKnightPosition);
+                }
+            }
+        }
     }
 
     public String toString() {

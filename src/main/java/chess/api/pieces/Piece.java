@@ -72,7 +72,7 @@ public abstract class Piece {
                 }
 
                 // Is this position a position which wouldn't block an existing checking direction?
-                if (!currentConfiguration.isCheckBlockingOrNoCheck(testPositionIndex)) {
+                if (currentConfiguration.isIneffectiveCheckBlockAttempt(testPositionIndex)) {
                     if (takenPieceBitFlag == -1) {
                         limit--;
                         continue;
