@@ -3,15 +3,12 @@ package chess.api;
 import chess.api.configuration.IntsPieceConfiguration;
 import chess.api.configuration.LongsPieceConfiguration;
 import chess.api.configuration.PieceConfiguration;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

@@ -57,7 +57,8 @@ public class OpeningBook {
                 final Opening chosenOpening = possibleOpenings.get(RANDOM.nextInt(possibleOpenings.size()));
                 LOGGER.info("Choosing {}", chosenOpening.getClass().getSimpleName());
                 final int fenIndex = chosenOpening.fens.indexOf(inputFEN);
-                final PieceConfiguration outputConfiguration = FENReader.read(chosenOpening.fens.get(fenIndex + 1));
+                final PieceConfiguration outputConfiguration = FENReader.read(
+                    chosenOpening.fens.get(fenIndex + 1), inputConfiguration.getConfigurationClass());
                 outputConfiguration.addHistoricMove(
                     inputConfiguration,
                     getMoveFromAlgebraicNotation(outputConfiguration.getAlgebraicNotation(inputConfiguration))

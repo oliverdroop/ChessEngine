@@ -1,12 +1,12 @@
 package chess.api.controller;
 
 import chess.api.*;
+import chess.api.configuration.LongsPieceConfiguration;
 import chess.api.configuration.PieceConfiguration;
 import chess.api.dto.AvailableMovesRequestDto;
 import chess.api.dto.AiMoveRequestDto;
 import chess.api.dto.AiMoveResponseDto;
 import chess.api.pieces.Piece;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
@@ -28,12 +28,13 @@ public class FENController {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FENController.class);
 
+    private static final Class<? extends PieceConfiguration> CONFIGURATION_CLASS = LongsPieceConfiguration.class;
+
     @PostMapping("/chess")
     public ResponseEntity<AiMoveResponseDto> getAiMove(@RequestBody @Valid AiMoveRequestDto aiMoveRequestDto) {
         LOGGER.info("Received AI move request FEN: {}", aiMoveRequestDto.getFen());
         final AiMoveResponseDto response = new AiMoveResponseDto();
         try {
-            final ObjectMapper objectMapper = new ObjectMapper();
             LOGGER.debug("FEN: {}", aiMoveRequestDto.getFen());
             LOGGER.debug("Depth: {}", aiMoveRequestDto.getDepth());
             final PieceConfiguration inputConfiguration = getInputConfiguration(aiMoveRequestDto);
@@ -72,7 +73,8 @@ public class FENController {
         try {
             LOGGER.debug("FEN: {}", availableMovesRequestDto.getFen());
             LOGGER.debug("From: {}", availableMovesRequestDto.getFrom());
-            final PieceConfiguration inputConfiguration = FENReader.read(availableMovesRequestDto.getFen());
+            final PieceConfiguration inputConfiguration = FENReader.read(
+                availableMovesRequestDto.getFen(), CONFIGURATION_CLASS);
             final int pieceBitFlag = inputConfiguration.getPieceAtPosition(Position.getPosition(availableMovesRequestDto.getFrom()));
             LOGGER.info("Getting available moves for the {} {} at {}",
                     Side.values()[Piece.getSide(pieceBitFlag)], Piece.getPieceType(pieceBitFlag),
@@ -92,7 +94,7 @@ public class FENController {
     }
 
     private PieceConfiguration getInputConfiguration(AiMoveRequestDto aiMoveRequestDto) {
-        final PieceConfiguration inputConfiguration = FENReader.read(aiMoveRequestDto.getFen());
+        final PieceConfiguration inputConfiguration = FENReader.read(aiMoveRequestDto.getFen(), CONFIGURATION_CLASS);
         final List<String> moveHistory = aiMoveRequestDto.getMoveHistory();
         if (moveHistory != null) {
             final List<Short> historicMoveList = moveHistory.stream().map(MoveDescriber::getMoveFromAlgebraicNotation).toList();

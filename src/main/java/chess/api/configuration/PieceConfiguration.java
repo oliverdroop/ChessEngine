@@ -4,6 +4,7 @@ import chess.api.BitUtil;
 import chess.api.FENWriter;
 import chess.api.Position;
 import chess.api.pieces.Knight;
+import chess.api.pieces.Piece;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,6 +12,7 @@ import java.util.*;
 
 import static chess.api.BitUtil.*;
 import static chess.api.pieces.King.CASTLE_POSITION_MAPPINGS;
+import static chess.api.pieces.Pawn.PROMOTION_PIECE_TYPES;
 
 public abstract class PieceConfiguration {
 
@@ -117,6 +119,8 @@ public abstract class PieceConfiguration {
 
     private short[] historicMoves;
 
+    public abstract Class<? extends PieceConfiguration> getConfigurationClass();
+
     public abstract List<PieceConfiguration> getOnwardConfigurations();
 
     public abstract List<PieceConfiguration> getOnwardConfigurationsForPiece(int pieceBitFlag);
@@ -129,9 +133,11 @@ public abstract class PieceConfiguration {
 
     public abstract void addPiece(int pieceData);
 
-    public abstract void removePiece(int pieceData);
+    protected abstract void removePiece(int pieceData);
 
     public abstract int getPieceAtPosition(int position);
+
+    protected abstract int getPieceAndColourFlags(int position);
 
     public abstract boolean isPlayerOccupied(int position);
 
@@ -143,7 +149,7 @@ public abstract class PieceConfiguration {
 
     public abstract boolean isOpponentOccupiedOrEnPassantSquare(int position);
 
-    public abstract boolean isOpponentKnightOccupied(int position);
+    protected abstract boolean isOpponentKnightOccupied(int position);
 
     public abstract boolean isThreatened(int position);
 
@@ -153,13 +159,11 @@ public abstract class PieceConfiguration {
 
     public abstract boolean isIneffectiveCheckBlockAttempt(int position);
 
-    public abstract void setDoesNotBlockCheck(int position);
+    protected abstract void setDoesNotBlockCheck(int position);
 
     public abstract boolean isCastleAvailable(int position);
 
     public abstract void setHigherBitFlags();
-
-    public abstract <T extends PieceConfiguration> String getAlgebraicNotation(T previousConfiguration);
 
     public static PieceConfiguration toNewConfigurationFromMoves(PieceConfiguration originalConfiguration, short[] historicMoves) {
         PieceConfiguration currentConfiguration = originalConfiguration;
@@ -245,6 +249,37 @@ public abstract class PieceConfiguration {
         // Switch the turn side
         newConfiguration.setTurnSide(previousConfiguration.getOpposingSide());
         return newConfiguration;
+    }
+
+    public String getAlgebraicNotation(PieceConfiguration previousConfiguration) {
+        boolean capturing = false;
+        int previousBitFlag = Integer.MIN_VALUE;
+        int currentBitFlag = Integer.MIN_VALUE;
+        for(int pos : Position.POSITIONS) {
+            int currentPieceOnPosition = getPieceAndColourFlags(pos);
+            int previousPieceOnPosition = previousConfiguration.getPieceAndColourFlags(pos);
+            int currentColour = currentPieceOnPosition & COLOUR_FLAGS_COMBINED;
+            int previousColour = previousPieceOnPosition & COLOUR_FLAGS_COMBINED;
+            if (currentPieceOnPosition == previousPieceOnPosition) {
+                continue;
+            }
+            if (currentPieceOnPosition == 0 && !BitUtil.hasBitFlag(previousBitFlag, KING_OCCUPIED)) {
+                // Moving from this position
+                previousBitFlag = previousConfiguration.getPieceAtPosition(pos);
+            } else if (previousPieceOnPosition == 0 && !BitUtil.hasBitFlag(currentBitFlag, KING_OCCUPIED)) {
+                // Moving to this position
+                currentBitFlag = getPieceAtPosition(pos);
+            } else if (currentColour != 0 && previousColour != 0 && currentColour != previousColour) {
+                currentBitFlag = getPieceAtPosition(pos);
+                capturing = true;
+            }
+        }
+        String promotionTo = null;
+        if ((previousBitFlag & ALL_PIECE_FLAGS_COMBINED) != (currentBitFlag & ALL_PIECE_FLAGS_COMBINED)) {
+            promotionTo = PROMOTION_PIECE_TYPES.get(currentBitFlag & ALL_PIECE_FLAGS_COMBINED).toLowerCase();
+        }
+        return Piece.getAlgebraicNotation(
+            Piece.getPosition(previousBitFlag), Piece.getPosition(currentBitFlag), capturing, promotionTo);
     }
 
     private static PieceConfiguration getPieceConfigurationImplementation(PieceConfiguration previousConfiguration) {

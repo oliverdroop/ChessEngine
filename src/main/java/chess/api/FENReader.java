@@ -1,11 +1,9 @@
 package chess.api;
 
-import chess.api.configuration.IntsPieceConfiguration;
 import chess.api.configuration.PieceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
@@ -33,10 +31,6 @@ public class FENReader {
 		pieceMappings.put('P', PAWN_OCCUPIED);
 		pieceMappings.put('p', PAWN_OCCUPIED);
 	}
-
-    public static PieceConfiguration read(String fen) {
-        return read(fen, IntsPieceConfiguration.class);
-    }
 
     public static PieceConfiguration read(String fen, Class<? extends PieceConfiguration> clazz) {
         PieceConfiguration pieceConfiguration;

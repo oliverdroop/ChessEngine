@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -150,18 +151,24 @@ public class PieceConfigurationTest {
 
     @ParameterizedTest
     @MethodSource("getAlgebraicNotationFENs")
-    void testGetAlgebraicNotation(String fen1, String fen2, String expectedNotation) {
-        PieceConfiguration pieceConfiguration1 = FENReader.read(fen1);
-        PieceConfiguration pieceConfiguration2 = FENReader.read(fen2);
+    void testGetAlgebraicNotation(
+            String fen1,
+            String fen2,
+            String expectedNotation,
+            Class<? extends PieceConfiguration> configurationClass)
+    {
+        PieceConfiguration pieceConfiguration1 = FENReader.read(fen1, configurationClass);
+        PieceConfiguration pieceConfiguration2 = FENReader.read(fen2, configurationClass);
 
         assertThat(pieceConfiguration2.getAlgebraicNotation(pieceConfiguration1))
                 .as("Unexpected algebraic notation")
                 .isEqualTo(expectedNotation);
     }
 
-    @Test
-    void testGetAlgebraicNotation_fromStartingPosition() {
-        final PieceConfiguration pieceConfiguration1 = FENReader.read(FENWriter.STARTING_POSITION);
+    @ParameterizedTest
+    @ValueSource(classes = {IntsPieceConfiguration.class, LongsPieceConfiguration.class})
+    void testGetAlgebraicNotation_fromStartingPosition(Class<? extends PieceConfiguration> configurationClass) {
+        final PieceConfiguration pieceConfiguration1 = FENReader.read(FENWriter.STARTING_POSITION, configurationClass);
         final int pieceBitFlag = pieceConfiguration1.getPieceAtPosition(12);
         final List<String> algebraicNotations = pieceConfiguration1.getOnwardConfigurationsForPiece(pieceBitFlag)
             .stream()
@@ -171,27 +178,33 @@ public class PieceConfigurationTest {
         assertThat(algebraicNotations).containsExactlyInAnyOrder("e2e3", "e2e4");
     }
 
-    @Test
-    void testStartingDifferential() {
-        PieceConfiguration pieceConfiguration = FENReader.read("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    @ParameterizedTest
+    @ValueSource(classes = {IntsPieceConfiguration.class, LongsPieceConfiguration.class})
+    void testStartingDifferential(Class<? extends PieceConfiguration> configurationClass) {
+        PieceConfiguration pieceConfiguration = FENReader.read(
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", configurationClass);
 
         assertThat(pieceConfiguration.getValueDifferential())
                 .as("The starting position piece values should be equal")
                 .isEqualTo(0);
     }
 
-    @Test
-    void testPlayerTeamTotalValue() {
-        PieceConfiguration pieceConfiguration = FENReader.read("8/8/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    @ParameterizedTest
+    @ValueSource(classes = {IntsPieceConfiguration.class, LongsPieceConfiguration.class})
+    void testPlayerTeamTotalValue(Class<? extends PieceConfiguration> configurationClass) {
+        PieceConfiguration pieceConfiguration = FENReader.read(
+            "8/8/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", configurationClass);
 
         assertThat(pieceConfiguration.getValueDifferential())
                 .as("The player side values should be totalled correctly")
                 .isEqualTo(39);
     }
 
-    @Test
-    void testOpponentTotalValue() {
-        PieceConfiguration pieceConfiguration = FENReader.read("rnbqkbnr/pppppppp/8/8/8/8/8/8 w KQkq - 0 1");
+    @ParameterizedTest
+    @ValueSource(classes = {IntsPieceConfiguration.class, LongsPieceConfiguration.class})
+    void testOpponentTotalValue(Class<? extends PieceConfiguration> configurationClass) {
+        PieceConfiguration pieceConfiguration = FENReader.read(
+            "rnbqkbnr/pppppppp/8/8/8/8/8/8 w KQkq - 0 1", configurationClass);
 
         assertThat(pieceConfiguration.getValueDifferential())
                 .as("The opposing side values should be totalled correctly")
@@ -221,15 +234,24 @@ public class PieceConfigurationTest {
 
     private static Stream<Arguments> getAlgebraicNotationFENs() {
         return Stream.of(
-                Arguments.of("7k/8/8/8/8/P7/8/7K w - - 0 1", "7k/8/8/8/P7/8/8/7K b - - 0 1", "a3a4"),
-                Arguments.of("7k/8/8/8/8/Q7/8/7K w - - 0 1", "7k/8/8/8/Q7/8/8/7K b - - 1 1", "a3a4"),
-                Arguments.of("7k/8/8/8/p7/Q7/8/7K w - - 0 1", "7k/8/8/8/Q7/8/8/7K b - - 0 1", "a3xa4"),
-                Arguments.of("7k/P7/8/8/8/8/8/7K w - - 0 1", "Q6k/8/8/8/8/8/8/7K b - - 0 1", "a7a8q"),
-                Arguments.of("p6k/1P6/8/8/8/8/8/7K w - - 0 1", "Q6k/8/8/8/8/8/8/7K b - - 0 1", "b7xa8q"),
-                Arguments.of("7k/8/8/8/8/8/p7/7K w - - 0 1", "7k/8/8/8/8/8/8/q6K b - - 0 1", "a2a1q"),
-                Arguments.of("7k/8/8/8/8/8/1p6/P6K w - - 0 1", "7k/8/8/8/8/8/8/q6K b - - 0 1", "b2xa1q"),
-                Arguments.of("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1", "r3k2r/8/8/8/8/8/8/R4RK1 b kq - 1 1", "e1g1"),
-                Arguments.of("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1", "r3k2r/8/8/8/8/8/8/2KR3R b kq - 1 1", "e1c1")
+            Arguments.of("7k/8/8/8/8/P7/8/7K w - - 0 1", "7k/8/8/8/P7/8/8/7K b - - 0 1", "a3a4", IntsPieceConfiguration.class),
+            Arguments.of("7k/8/8/8/8/Q7/8/7K w - - 0 1", "7k/8/8/8/Q7/8/8/7K b - - 1 1", "a3a4", IntsPieceConfiguration.class),
+            Arguments.of("7k/8/8/8/p7/Q7/8/7K w - - 0 1", "7k/8/8/8/Q7/8/8/7K b - - 0 1", "a3xa4", IntsPieceConfiguration.class),
+            Arguments.of("7k/P7/8/8/8/8/8/7K w - - 0 1", "Q6k/8/8/8/8/8/8/7K b - - 0 1", "a7a8q", IntsPieceConfiguration.class),
+            Arguments.of("p6k/1P6/8/8/8/8/8/7K w - - 0 1", "Q6k/8/8/8/8/8/8/7K b - - 0 1", "b7xa8q", IntsPieceConfiguration.class),
+            Arguments.of("7k/8/8/8/8/8/p7/7K w - - 0 1", "7k/8/8/8/8/8/8/q6K b - - 0 1", "a2a1q", IntsPieceConfiguration.class),
+            Arguments.of("7k/8/8/8/8/8/1p6/P6K w - - 0 1", "7k/8/8/8/8/8/8/q6K b - - 0 1", "b2xa1q", IntsPieceConfiguration.class),
+            Arguments.of("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1", "r3k2r/8/8/8/8/8/8/R4RK1 b kq - 1 1", "e1g1", IntsPieceConfiguration.class),
+            Arguments.of("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1", "r3k2r/8/8/8/8/8/8/2KR3R b kq - 1 1", "e1c1", IntsPieceConfiguration.class),
+            Arguments.of("7k/8/8/8/8/P7/8/7K w - - 0 1", "7k/8/8/8/P7/8/8/7K b - - 0 1", "a3a4", LongsPieceConfiguration.class),
+            Arguments.of("7k/8/8/8/8/Q7/8/7K w - - 0 1", "7k/8/8/8/Q7/8/8/7K b - - 1 1", "a3a4", LongsPieceConfiguration.class),
+            Arguments.of("7k/8/8/8/p7/Q7/8/7K w - - 0 1", "7k/8/8/8/Q7/8/8/7K b - - 0 1", "a3xa4", LongsPieceConfiguration.class),
+            Arguments.of("7k/P7/8/8/8/8/8/7K w - - 0 1", "Q6k/8/8/8/8/8/8/7K b - - 0 1", "a7a8q", LongsPieceConfiguration.class),
+            Arguments.of("p6k/1P6/8/8/8/8/8/7K w - - 0 1", "Q6k/8/8/8/8/8/8/7K b - - 0 1", "b7xa8q", LongsPieceConfiguration.class),
+            Arguments.of("7k/8/8/8/8/8/p7/7K w - - 0 1", "7k/8/8/8/8/8/8/q6K b - - 0 1", "a2a1q", LongsPieceConfiguration.class),
+            Arguments.of("7k/8/8/8/8/8/1p6/P6K w - - 0 1", "7k/8/8/8/8/8/8/q6K b - - 0 1", "b2xa1q", LongsPieceConfiguration.class),
+            Arguments.of("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1", "r3k2r/8/8/8/8/8/8/R4RK1 b kq - 1 1", "e1g1", LongsPieceConfiguration.class),
+            Arguments.of("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1", "r3k2r/8/8/8/8/8/8/2KR3R b kq - 1 1", "e1c1", LongsPieceConfiguration.class)
         );
     }
 }

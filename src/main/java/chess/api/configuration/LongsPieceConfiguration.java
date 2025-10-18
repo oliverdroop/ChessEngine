@@ -2,7 +2,6 @@ package chess.api.configuration;
 
 import chess.api.BitUtil;
 import chess.api.Position;
-import chess.api.pieces.Knight;
 import chess.api.pieces.Piece;
 
 import java.util.Arrays;
@@ -159,6 +158,11 @@ public class LongsPieceConfiguration extends PieceConfiguration {
     }
 
     @Override
+    public Class<? extends PieceConfiguration> getConfigurationClass() {
+        return LongsPieceConfiguration.class;
+    }
+
+    @Override
     public List<PieceConfiguration> getOnwardConfigurations() {
         setHigherBitFlags();
         return Arrays.stream(getPieceBitFlags())
@@ -297,16 +301,21 @@ public class LongsPieceConfiguration extends PieceConfiguration {
     }
 
     @Override
+    protected int getPieceAndColourFlags(int position) {
+        int pieceData = 0;
+        for(int dataIndex : PIECE_AND_COLOUR_DATA_INDEXES) {
+            final long dataLong = data[dataIndex];
+            pieceData |= (int) ((dataLong >>> position) & 1L) << (dataIndex + 6);
+        }
+        return pieceData;
+    }
+
+    @Override
     public void setHigherBitFlags() {
         clearNonPieceFlags();
         stampOccupationData();
         stampThreatData();
         stampCheckNonBlockerData();
-    }
-
-    @Override
-    public <T extends PieceConfiguration> String getAlgebraicNotation(T previousConfiguration) {
-        return "";
     }
 
     private int[] getPieceBitFlags() {

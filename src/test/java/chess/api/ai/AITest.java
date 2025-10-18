@@ -301,7 +301,7 @@ public class AITest {
     @Test
     @Disabled
     void testBothEvaluatorsSameOutput() {
-        PieceConfiguration pieceConfiguration = FENReader.read(FENWriter.STARTING_POSITION);
+        PieceConfiguration pieceConfiguration = FENReader.read(FENWriter.STARTING_POSITION, IntsPieceConfiguration.class);
         PieceConfiguration previousConfiguration = null;
         final int depth = 4;
 

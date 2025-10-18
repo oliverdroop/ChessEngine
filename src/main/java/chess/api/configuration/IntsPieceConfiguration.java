@@ -2,14 +2,11 @@ package chess.api.configuration;
 
 import chess.api.BitUtil;
 import chess.api.Position;
-import chess.api.pieces.Knight;
 import chess.api.pieces.Piece;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import static chess.api.pieces.Pawn.PROMOTION_PIECE_TYPES;
 
 public class IntsPieceConfiguration extends PieceConfiguration {
 
@@ -29,6 +26,11 @@ public class IntsPieceConfiguration extends PieceConfiguration {
 
     public static int getPieceTypeBitFlag(int positionBitFlag) {
         return positionBitFlag & ALL_PIECE_FLAGS_COMBINED;
+    }
+
+    @Override
+    public Class<? extends PieceConfiguration> getConfigurationClass() {
+        return IntsPieceConfiguration.class;
     }
 
     @Override
@@ -158,41 +160,6 @@ public class IntsPieceConfiguration extends PieceConfiguration {
     }
 
     @Override
-    public String getAlgebraicNotation(PieceConfiguration previousConfiguration) {
-        if (!(previousConfiguration instanceof IntsPieceConfiguration previousConfigurationImpl)) {
-            return null;
-        }
-        boolean capturing = false;
-        int previousBitFlag = Integer.MIN_VALUE;
-        int currentBitFlag = Integer.MIN_VALUE;
-        for(int pos : Position.POSITIONS) {
-            int currentPieceOnPosition = positionBitFlags[pos] & ALL_PIECE_AND_COLOUR_FLAGS_COMBINED;
-            int previousPieceOnPosition = previousConfigurationImpl.positionBitFlags[pos] & ALL_PIECE_AND_COLOUR_FLAGS_COMBINED;
-            int currentColour = currentPieceOnPosition & COLOUR_FLAGS_COMBINED;
-            int previousColour = previousPieceOnPosition & COLOUR_FLAGS_COMBINED;
-            if (currentPieceOnPosition == previousPieceOnPosition) {
-                continue;
-            }
-            if (currentPieceOnPosition == 0 && !BitUtil.hasBitFlag(previousBitFlag, KING_OCCUPIED)) {
-                // Moving from this position
-                previousBitFlag = previousConfigurationImpl.positionBitFlags[pos];
-            } else if (previousPieceOnPosition == 0 && !BitUtil.hasBitFlag(currentBitFlag, KING_OCCUPIED)) {
-                // Moving to this position
-                currentBitFlag = positionBitFlags[pos];
-            } else if (currentColour != 0 && previousColour != 0 && currentColour != previousColour) {
-                currentBitFlag = positionBitFlags[pos];
-                capturing = true;
-            }
-        }
-        String promotionTo = null;
-        if ((previousBitFlag & ALL_PIECE_FLAGS_COMBINED) != (currentBitFlag & ALL_PIECE_FLAGS_COMBINED)) {
-            promotionTo = PROMOTION_PIECE_TYPES.get(currentBitFlag & ALL_PIECE_FLAGS_COMBINED).toLowerCase();
-        }
-        return Piece.getAlgebraicNotation(
-            Piece.getPosition(previousBitFlag), Piece.getPosition(currentBitFlag), capturing, promotionTo);
-    }
-
-    @Override
     public boolean isCheck() {
         return Arrays.stream(this.positionBitFlags)
             .anyMatch(position -> BitUtil.hasBitFlag(position, CHECK_FLAGS_COMBINED));
@@ -201,6 +168,11 @@ public class IntsPieceConfiguration extends PieceConfiguration {
     @Override
     public int getPieceAtPosition(int positionBitFlag) {
         return positionBitFlags[Position.getPosition(positionBitFlag)];
+    }
+
+    @Override
+    protected int getPieceAndColourFlags(int position) {
+        return getPieceAndColourBitFlags(positionBitFlags[position]);
     }
 
     @Override

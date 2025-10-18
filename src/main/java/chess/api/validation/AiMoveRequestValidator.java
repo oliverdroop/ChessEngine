@@ -2,6 +2,7 @@ package chess.api.validation;
 
 import chess.api.FENReader;
 import chess.api.FENWriter;
+import chess.api.configuration.IntsPieceConfiguration;
 import chess.api.configuration.PieceConfiguration;
 import chess.api.dto.AiMoveRequestDto;
 import jakarta.validation.ConstraintValidator;
@@ -34,7 +35,8 @@ public class AiMoveRequestValidator implements ConstraintValidator<AiMoveRequest
         if (moveHistory.stream().anyMatch(this::isInvalidAlgebraicNotation)) {
             return false;
         }
-        PieceConfiguration currentConfiguration = FENReader.read(FENWriter.STARTING_POSITION);
+        PieceConfiguration currentConfiguration = FENReader.read(
+            FENWriter.STARTING_POSITION, IntsPieceConfiguration.class);
         for (final String moveAlgebraicNotation : moveHistory) {
             final short moveDescription = getMoveFromAlgebraicNotation(moveAlgebraicNotation);
             currentConfiguration = toNewConfigurationFromMove(currentConfiguration, moveDescription);
