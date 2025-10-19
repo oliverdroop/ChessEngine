@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.function.Predicate;
 
-import static chess.api.configuration.IntsPieceConfiguration.getPieceTypeBitFlag;
+import static chess.api.configuration.PieceConfiguration.getPieceTypeBitFlag;
 import static chess.api.MoveDescriber.describeMove;
 import static chess.api.configuration.PieceConfiguration.*;
 import static chess.api.Position.isValidPosition;
@@ -38,8 +38,8 @@ public abstract class Piece {
 
     public static List<PieceConfiguration> getPossibleMoves(int pieceBitFlag,
                                                             PieceConfiguration currentConfiguration) {
-        final int pieceFlag = getPieceTypeBitFlag(pieceBitFlag);
-        switch(pieceFlag) {
+        final int pieceTypeFlag = getPieceTypeBitFlag(pieceBitFlag);
+        switch(pieceTypeFlag) {
             case PAWN_OCCUPIED:
                 return Pawn.getPossibleMoves(pieceBitFlag, currentConfiguration);
             case KING_OCCUPIED:
@@ -47,32 +47,32 @@ public abstract class Piece {
             default:
                 break;
         }
-        List<PieceConfiguration> pieceConfigurations = new ArrayList<>();
+        final List<PieceConfiguration> pieceConfigurations = new ArrayList<>();
         for(int[] directionalLimit : getMovableDirectionalLimits(pieceBitFlag, currentConfiguration)) {
-            int directionX = directionalLimit[0];
-            int directionY = directionalLimit[1];
+            final int directionX = directionalLimit[0];
+            final int directionY = directionalLimit[1];
             int limit = directionalLimit[2];
-            int testPositionIndex = Position.getPosition(pieceBitFlag);
+            int testPosition = Position.getPosition(pieceBitFlag);
 
             while (limit > 0) {
-                testPositionIndex = Position.applyTranslation(testPositionIndex, directionX, directionY);
-                if (!isValidPosition(testPositionIndex)) {
+                testPosition = Position.applyTranslation(testPosition, directionX, directionY);
+                if (!isValidPosition(testPosition)) {
                     break;
                 }
 
                 // Is this player piece blocked by another player piece?
-                if (currentConfiguration.isPlayerOccupied(testPositionIndex)) {
+                if (currentConfiguration.isPlayerOccupied(testPosition)) {
                     break;
                 }
 
                 // Is there an opponent piece on the position?
                 int takenPieceBitFlag = -1;
-                if (currentConfiguration.isOpponentOccupied(testPositionIndex)) {
-                    takenPieceBitFlag = currentConfiguration.getPieceAtPosition(testPositionIndex);
+                if (currentConfiguration.isOpponentOccupied(testPosition)) {
+                    takenPieceBitFlag = currentConfiguration.getPieceAtPosition(testPosition);
                 }
 
                 // Is this position a position which wouldn't block an existing checking direction?
-                if (currentConfiguration.isIneffectiveCheckBlockAttempt(testPositionIndex)) {
+                if (currentConfiguration.isIneffectiveCheckBlockAttempt(testPosition)) {
                     if (takenPieceBitFlag == -1) {
                         limit--;
                         continue;
@@ -81,7 +81,7 @@ public abstract class Piece {
                     }
                 }
 
-                final short move = describeMove(pieceBitFlag & 63, testPositionIndex, 0);
+                final short move = describeMove(pieceBitFlag & 63, testPosition, 0);
                 pieceConfigurations.add(toNewConfigurationFromMove(currentConfiguration, move));
 
                 if (takenPieceBitFlag >= 0) {
@@ -125,38 +125,38 @@ public abstract class Piece {
 
     public static void stampSimpleThreatFlags(int pieceBitFlag, PieceConfiguration pieceConfiguration) {
         for(int[] directionalLimit : getDirectionalLimits(pieceBitFlag)) {
-            int directionX = directionalLimit[0];
-            int directionY = directionalLimit[1];
+            final int directionX = directionalLimit[0];
+            final int directionY = directionalLimit[1];
             int limit = directionalLimit[2];
-            int testPositionIndex = getPosition(pieceBitFlag);
+            int testPosition = getPosition(pieceBitFlag);
             int potentialKingProtectorPosition = -1;
             while (limit > 0) {
-                testPositionIndex = Position.applyTranslation(testPositionIndex, directionX, directionY);
-                if (!isValidPosition(testPositionIndex)) {
+                testPosition = Position.applyTranslation(testPosition, directionX, directionY);
+                if (!isValidPosition(testPosition)) {
                     break;
                 }
 
                 if (potentialKingProtectorPosition < 0) {
                     // Opponent piece threatens the position
-                    pieceConfiguration.setThreatened(testPositionIndex);
+                    pieceConfiguration.setThreatened(testPosition);
                     // Is this opponent piece blocked by another opponent piece?
-                    if (pieceConfiguration.isOpponentOccupied(testPositionIndex)) {
+                    if (pieceConfiguration.isOpponentOccupied(testPosition)) {
                         break;
                     }
                 }
 
                 // Is there a player piece on the position?
-                if (pieceConfiguration.isPlayerOccupied(testPositionIndex)) {
-                    final boolean kingOccupied = pieceConfiguration.isKingOccupied(testPositionIndex);
+                if (pieceConfiguration.isPlayerOccupied(testPosition)) {
+                    final boolean kingOccupied = pieceConfiguration.isKingOccupied(testPosition);
                     if (potentialKingProtectorPosition < 0) {
                         if (kingOccupied) {
                             // First player piece encountered in this direction is the player's king
                             // Player's king can't be a king protector
                             final int directionalFlag = getDirectionalFlag(directionX, directionY);
-                            pieceConfiguration.setDirectionalFlag(testPositionIndex, directionalFlag);
+                            pieceConfiguration.setDirectionalFlag(testPosition, directionalFlag);
                         } else {
                             // First player piece encountered in this direction is not the player's king
-                            potentialKingProtectorPosition = testPositionIndex;
+                            potentialKingProtectorPosition = testPosition;
                         }
                     } else if (kingOccupied) {
                         // Second player piece encountered in this direction is the player's king
@@ -167,19 +167,12 @@ public abstract class Piece {
                         // Second player piece encountered in this direction is not the player's king.
                         break;
                     }
-                } else if (pieceConfiguration.isOpponentOccupied(testPositionIndex)) {
+                } else if (pieceConfiguration.isOpponentOccupied(testPosition)) {
                     break;
                 }
                 limit--;
             }
         }
-    }
-
-    protected static int applyDirectionalFlag(int number, int x, int y) {
-        if ((x & 3) == 2 | (y & 3) == 2) {
-            return number | PieceConfiguration.DIRECTION_ANY_KNIGHT;
-        }
-        return number | Position.DIRECTIONAL_BIT_FLAG_GRID[y + 1][x + 1];
     }
 
     protected static int getDirectionalFlag(int x, int y) {
@@ -243,7 +236,7 @@ public abstract class Piece {
             case ROOK_OCCUPIED -> PieceType.ROOK;
             case QUEEN_OCCUPIED -> PieceType.QUEEN;
             case PAWN_OCCUPIED -> PieceType.PAWN;
-            default -> throw new RuntimeException("No piece type recognised from which to get PieceType enum");
+            default -> throw new IllegalArgumentException("No piece type recognised from which to get PieceType enum");
         };
     }
 
@@ -260,7 +253,7 @@ public abstract class Piece {
             case ROOK_OCCUPIED -> Rook.getFENCode(pieceBitFlag);
             case QUEEN_OCCUPIED -> Queen.getFENCode(pieceBitFlag);
             case PAWN_OCCUPIED -> Pawn.getFENCode(pieceBitFlag);
-            default -> throw new RuntimeException("No piece type recognised from which to get FEN code");
+            default -> throw new IllegalArgumentException("No piece type recognised from which to get FEN code");
         };
     }
 

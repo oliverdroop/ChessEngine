@@ -55,14 +55,14 @@ public class Position {
     }
 
     public static String getCoordinateString(int position) {
-        int[] coordinates = getCoordinates(position);
+        final int[] coordinates = getCoordinates(position);
         return String.valueOf((char) (coordinates[0] + 97)) +
             (char) (coordinates[1] + 49);
     }
 
     public static int getPosition(String coordinateString) {
         if (!coordinateString.matches("^[a-h][1-8]$")) {
-            throw new RuntimeException(String.format("Unable to parse %s as coordinate string", coordinateString));
+            throw new IllegalArgumentException(String.format("Unable to parse %s as coordinate string", coordinateString));
         }
         return getPosition(coordinateString.charAt(0) - 97, coordinateString.charAt(1) - 49);
     }
@@ -84,8 +84,8 @@ public class Position {
     public static int applyTranslationTowardsThreat(int directionBitFlag, int positionBitFlag) {
 
         // Move in the opposite direction to the threat direction
-        int translationIndex = directionBitFlag >> 18;
-        int[] translation = TRANSLATIONS_TOWARDS_THREAT[translationIndex];
+        final int translationIndex = directionBitFlag >> 18;
+        final int[] translation = TRANSLATIONS_TOWARDS_THREAT[translationIndex];
         return applyTranslation(positionBitFlag, translation[0], translation[1]);
     }
 

@@ -1,12 +1,10 @@
 package chess.api.ai.openings;
 
-public class BenkoGambit extends IndianDefense {
+public class BenkoGambit extends BenoniDefense {
 
     BenkoGambit() {
         super(
-            "rnbqkb1r/pppppppp/5n2/8/2PP4/8/PP2PPPP/RNBQKBNR b KQkq c3 0 2",
-            "rnbqkb1r/pp1ppppp/5n2/2p5/2PP4/8/PP2PPPP/RNBQKBNR w KQkq c6 0 3",
-            "rnbqkb1r/pp1ppppp/5n2/2pP4/2P5/8/PP2PPPP/RNBQKBNR b KQkq - 0 3"
+            "rnbqkb1r/p2ppppp/5n2/1ppP4/2P5/8/PP2PPPP/RNBQKBNR w KQkq b6 0 4"
         );
     }
 }

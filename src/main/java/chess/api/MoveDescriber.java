@@ -16,6 +16,8 @@ public class MoveDescriber {
         "b", BISHOP_OCCUPIED,
         "n", KNIGHT_OCCUPIED
     );
+    private static final Pattern POSITION_PATTERN = Pattern.compile("[a-h][1-8]");
+    private static final Pattern PROMOTION_PATTERN = Pattern.compile("[qrbn]$");
 
     public static short describeMove(int posFrom, int posTo, int promotionTypeBitFlag) {
         final int outputInt = (promotionTypeBitFlag << 1) | (posFrom << 6) | posTo;
@@ -23,18 +25,16 @@ public class MoveDescriber {
     }
 
     public static short getMoveFromAlgebraicNotation(String algebraicNotation) {
-        final Pattern positionPattern = Pattern.compile("[a-h][1-8]");
-        final Pattern promotionPattern = Pattern.compile("[qrbn]$");
-        final int[] fromAndToPositions = positionPattern.matcher(algebraicNotation)
+        final int[] fromAndToPositions = POSITION_PATTERN.matcher(algebraicNotation)
             .results()
             .mapToInt(matchResult -> Position.getPosition(matchResult.group()))
             .toArray();
 
-        if (fromAndToPositions.length != 2) {
+        if (fromAndToPositions.length != 2 || fromAndToPositions[0] == fromAndToPositions[1]) {
             throw new IllegalArgumentException(
                 format("Unable to get move from algebraic notation %s", algebraicNotation));
         }
-        final String promotionString = promotionPattern.matcher(algebraicNotation)
+        final String promotionString = PROMOTION_PATTERN.matcher(algebraicNotation)
             .results()
             .map(MatchResult::group)
             .reduce(String::concat)

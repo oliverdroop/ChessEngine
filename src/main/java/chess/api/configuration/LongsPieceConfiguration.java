@@ -217,58 +217,58 @@ public class LongsPieceConfiguration extends PieceConfiguration {
 
     @Override
     public boolean isPlayerOccupied(int position) {
-        return (data[PLAYER_OCCUPATION_DATA_INDEX] & (1L << position)) != 0;
+        return isBitSetAtPosition(PLAYER_OCCUPATION_DATA_INDEX, position);
     }
 
     @Override
     public boolean isKingOccupied(int position) {
-        return (data[KING_OCCUPATION_DATA_INDEX] & (1L << position)) != 0;
+        return isBitSetAtPosition(KING_OCCUPATION_DATA_INDEX, position);
     }
 
     @Override
     public boolean isPlayerKingOccupied(int position) {
-        return ((data[PLAYER_OCCUPATION_DATA_INDEX] & data[KING_OCCUPATION_DATA_INDEX]) & (1L << position)) != 0;
+        return isBitSetAtPosition(data[PLAYER_OCCUPATION_DATA_INDEX] & data[KING_OCCUPATION_DATA_INDEX], position);
     }
 
     @Override
     public boolean isOpponentOccupied(int position) {
-        return (data[OPPONENT_OCCUPATION_DATA_INDEX] & (1L << position)) != 0;
+        return isBitSetAtPosition(OPPONENT_OCCUPATION_DATA_INDEX, position);
     }
 
     @Override
     public boolean isOpponentOccupiedOrEnPassantSquare(int position) {
-        return ((data[OPPONENT_OCCUPATION_DATA_INDEX] | data[EN_PASSANT_SQUARE_DATA_INDEX]) & (1L << position)) != 0;
+        return isBitSetAtPosition(data[OPPONENT_OCCUPATION_DATA_INDEX] | data[EN_PASSANT_SQUARE_DATA_INDEX], position);
     }
 
     @Override
     public boolean isOpponentKnightOccupied(int position) {
-        return ((data[OPPONENT_OCCUPATION_DATA_INDEX] & data[KNIGHT_OCCUPATION_DATA_INDEX]) & (1L << position)) != 0;
+        return isBitSetAtPosition(data[OPPONENT_OCCUPATION_DATA_INDEX] & data[KNIGHT_OCCUPATION_DATA_INDEX], position);
     }
 
     @Override
     public boolean isThreatened(int position) {
-        return (data[THREATENED_DATA_INDEX] & (1L << position)) != 0;
+        return isBitSetAtPosition(THREATENED_DATA_INDEX, position);
     }
 
     @Override
     public void setThreatened(int position) {
-        data[THREATENED_DATA_INDEX] = data[THREATENED_DATA_INDEX] | (1L << position);
+        data[THREATENED_DATA_INDEX] |= (1L << position);
     }
 
     @Override
     public void setDirectionalFlag(int position, int directionalFlag) {
         final int dataIndex = Integer.numberOfTrailingZeros(directionalFlag) - 6;
-        data[dataIndex] = data[dataIndex] | (1L << position);
+        data[dataIndex] |= (1L << position);
     }
 
     @Override
     public boolean isIneffectiveCheckBlockAttempt(int position) {
-        return (data[DOES_NOT_BLOCK_CHECK_DATA_INDEX] & (1L << position)) != 0;
+        return isBitSetAtPosition(DOES_NOT_BLOCK_CHECK_DATA_INDEX, position);
     }
 
     @Override
     public boolean isCastleAvailable(int position) {
-        return (data[CASTLE_AVAILABLE_DATA_INDEX] & (1L << position)) != 0;
+        return isBitSetAtPosition(CASTLE_AVAILABLE_DATA_INDEX, position);
     }
 
     @Override
@@ -277,7 +277,7 @@ public class LongsPieceConfiguration extends PieceConfiguration {
         for(int[] possibleDataIndexes : PIECE_COLOUR_AND_OCCUPATION_DATA_INDEXES) {
             final int dataIndex = getDataIndex(pieceData, possibleDataIndexes);
             if (dataIndex >= 0) {
-                data[dataIndex] = data[dataIndex] | (1L << position);
+                data[dataIndex] |= (1L << position);
             }
         }
     }
@@ -410,8 +410,17 @@ public class LongsPieceConfiguration extends PieceConfiguration {
     }
 
     private void clearNonPieceFlags() {
-        for(int dataIndex : NON_PIECE_OR_COLOUR_DATA_INDEXES) {
+        for(int dataIndex : HIGHER_FLAG_DATA_INDEXES) {
+//        for(int dataIndex : NON_PIECE_OR_COLOUR_DATA_INDEXES) {
             data[dataIndex] = 0;
         }
+    }
+
+    private boolean isBitSetAtPosition(int dataIndex, int position) {
+        return isBitSetAtPosition(data[dataIndex], position);
+    }
+
+    private boolean isBitSetAtPosition(long data, int position) {
+        return (data & (1L << position)) != 0;
     }
 }

@@ -53,28 +53,28 @@ public class Pawn extends Piece{
             int directionX = directionalLimit[0];
             int directionY = directionalLimit[1];
             int limit = directionalLimit[2];
-            int testPositionIndex = getPosition(pieceBitFlag);
+            int testPosition = getPosition(pieceBitFlag);
 
             while (limit > 0) {
-                testPositionIndex = Position.applyTranslation(testPositionIndex, directionX, directionY);
-                if (!isValidPosition(testPositionIndex)) {
+                testPosition = Position.applyTranslation(testPosition, directionX, directionY);
+                if (!isValidPosition(testPosition)) {
                     break;
                 }
 
                 // Is this player piece blocked by another player piece?
-                if (currentConfiguration.isPlayerOccupied(testPositionIndex)) {
+                if (currentConfiguration.isPlayerOccupied(testPosition)) {
                     break;
                 }
 
                 // Is there an opponent piece on the position?
                 int takenPieceBitFlag = -1;
-                if (currentConfiguration.isOpponentOccupiedOrEnPassantSquare(testPositionIndex)) {
+                if (currentConfiguration.isOpponentOccupiedOrEnPassantSquare(testPosition)) {
                     if (directionX != 0) {
                         // This is a diagonal move so taking a piece is valid
-                        takenPieceBitFlag = currentConfiguration.getPieceAtPosition(testPositionIndex);
+                        takenPieceBitFlag = currentConfiguration.getPieceAtPosition(testPosition);
                         if ((takenPieceBitFlag & ALL_PIECE_FLAGS_COMBINED) == 0) {
                             // This is an en-passant move
-                            takenPieceBitFlag = currentConfiguration.getPieceAtPosition(testPositionIndex - 8 + (16 * currentConfiguration.getTurnSide()));
+                            takenPieceBitFlag = currentConfiguration.getPieceAtPosition(testPosition - 8 + (16 * currentConfiguration.getTurnSide()));
                         }
                     } else {
                         // This is a straight forward move so taking a piece is not possible
@@ -83,12 +83,12 @@ public class Pawn extends Piece{
                 }
 
                 // Is this position a position which wouldn't block an existing checking direction?
-                if (currentConfiguration.isIneffectiveCheckBlockAttempt(testPositionIndex)) {
+                if (currentConfiguration.isIneffectiveCheckBlockAttempt(testPosition)) {
                     limit--;
                     continue;
                 }
 
-                addNewPieceConfigurations(pieceBitFlag, pieceConfigurations, currentConfiguration, testPositionIndex);
+                addNewPieceConfigurations(pieceBitFlag, pieceConfigurations, currentConfiguration, testPosition);
 
                 if (takenPieceBitFlag >= 0) {
                     // Stop considering moves beyond this taken piece
@@ -102,22 +102,23 @@ public class Pawn extends Piece{
 
     public static void stampThreatFlags(int pieceBitFlag, PieceConfiguration pieceConfiguration) {
         final int[] directionalLimitThreatIndexes = {0, 2}; // Pawns can only threaten diagonally
+        final int[][] unrestrictedDirectionalLimits = getUnrestrictedDirectionalLimits(pieceBitFlag);
         for(int i : directionalLimitThreatIndexes) {
-            final int[] directionalLimit = getUnrestrictedDirectionalLimits(pieceBitFlag)[i];
+            final int[] directionalLimit = unrestrictedDirectionalLimits[i];
             final int directionX = directionalLimit[0];
             final int directionY = directionalLimit[1];
-            int testPositionIndex = getPosition(pieceBitFlag);
-            testPositionIndex = Position.applyTranslation(testPositionIndex, directionX, directionY);
-            if (!isValidPosition(testPositionIndex)) {
+            int testPosition = getPosition(pieceBitFlag);
+            testPosition = Position.applyTranslation(testPosition, directionX, directionY);
+            if (!isValidPosition(testPosition)) {
                 continue;
             }
 
-            pieceConfiguration.setThreatened(testPositionIndex);
+            pieceConfiguration.setThreatened(testPosition);
 
-            if (pieceConfiguration.isPlayerKingOccupied(testPositionIndex)) {
+            if (pieceConfiguration.isPlayerKingOccupied(testPosition)) {
                 // Player piece encountered in this direction is the player's king
                 final int directionalFlag = getDirectionalFlag(directionX, directionY);
-                pieceConfiguration.setDirectionalFlag(testPositionIndex, directionalFlag);
+                pieceConfiguration.setDirectionalFlag(testPosition, directionalFlag);
             }
         }
     }

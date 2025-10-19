@@ -32,7 +32,7 @@ public class InMemoryTrie {
 
     public void setScore(short[] moveHistory, double score) {
         if (moveHistory == null) {
-            return;
+            throw new IllegalArgumentException("Cannot set the score for a null collection of moves");
         }
         trieMap.put(moveHistory, score);
     }

@@ -9,6 +9,7 @@ import java.util.stream.Stream;
 
 import static chess.api.configuration.PieceConfiguration.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class PositionTest {
 
@@ -79,6 +80,13 @@ public class PositionTest {
     @MethodSource("getExpectedTranslations")
     void testApplyTranslation(int position, int x, int y, boolean isNotNegative) {
         assertThat(Position.applyTranslation(position, x, y) >= 0).isEqualTo(isNotNegative);
+    }
+
+    @Test
+    void testGetPosition_throwsException() {
+        assertThatThrownBy(() -> Position.getPosition("i1"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Unable to parse i1 as coordinate string");
     }
 
     private static Stream<Arguments> getCoordinateStrings() {

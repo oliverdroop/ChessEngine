@@ -33,36 +33,36 @@ public class King extends Piece{
             int directionX = directionalLimit[0];
             int directionY = directionalLimit[1];
             int limit = directionalLimit[2];
-            int testPositionIndex = getPosition(pieceBitFlag);
+            int testPosition = getPosition(pieceBitFlag);
 
             while (limit > 0) {
-                testPositionIndex = Position.applyTranslation(testPositionIndex, directionX, directionY);
-                if (!isValidPosition(testPositionIndex)) {
+                testPosition = Position.applyTranslation(testPosition, directionX, directionY);
+                if (!isValidPosition(testPosition)) {
                     break;
                 }
 
                 // Is this position threatened?
-                if (currentConfiguration.isThreatened(testPositionIndex)) {
+                if (currentConfiguration.isThreatened(testPosition)) {
                     break;
                 }
 
                 // Is this player piece blocked by another player piece?
-                if (currentConfiguration.isPlayerOccupied(testPositionIndex)) {
+                if (currentConfiguration.isPlayerOccupied(testPosition)) {
                     break;
                 }
 
                 // Is this an attempted castling?
-                if (directionalLimit[2] == 2 && limit == 1 && !isLegalCastle(pieceBitFlag, currentConfiguration, testPositionIndex)) {
+                if (directionalLimit[2] == 2 && limit == 1 && !isLegalCastle(pieceBitFlag, currentConfiguration, testPosition)) {
                     break;
                 }
 
                 // Is there an opponent piece on the position?
                 int takenPieceBitFlag = -1;
-                if (currentConfiguration.isOpponentOccupied(testPositionIndex)) {
-                    takenPieceBitFlag = currentConfiguration.getPieceAtPosition(testPositionIndex);
+                if (currentConfiguration.isOpponentOccupied(testPosition)) {
+                    takenPieceBitFlag = currentConfiguration.getPieceAtPosition(testPosition);
                 }
 
-                final short move = describeMove(pieceBitFlag & 63, testPositionIndex, 0);
+                final short move = describeMove(pieceBitFlag & 63, testPosition, 0);
                 pieceConfigurations.add(toNewConfigurationFromMove(currentConfiguration, move));
 
                 if (takenPieceBitFlag >= 0) {
@@ -83,26 +83,26 @@ public class King extends Piece{
         return getDirectionalLimits(pieceBitFlag);
     }
 
-    private static boolean isLegalCastle(int pieceBitFlag, PieceConfiguration currentConfiguration, int testPositionIndex) {
-        return currentConfiguration.isCastleAvailable(testPositionIndex)
+    private static boolean isLegalCastle(int pieceBitFlag, PieceConfiguration currentConfiguration, int testPosition) {
+        return currentConfiguration.isCastleAvailable(testPosition)
             && !currentConfiguration.isThreatened(getPosition(pieceBitFlag)) // No castling out of check
-            && !currentConfiguration.isOpponentOccupied(testPositionIndex) // No taking by castle
+            && !currentConfiguration.isOpponentOccupied(testPosition) // No taking by castle
             // Test if there is a piece in the B file when doing the long castle
-            && (Position.getX(testPositionIndex) != 2
-            || (!currentConfiguration.isPlayerOccupied(testPositionIndex - 1)
-            && !currentConfiguration.isOpponentOccupied(testPositionIndex - 1)));
+            && (Position.getX(testPosition) != 2
+            || (!currentConfiguration.isPlayerOccupied(testPosition - 1)
+            && !currentConfiguration.isOpponentOccupied(testPosition - 1)));
     }
 
     public static void stampThreatFlags(int pieceBitFlag, PieceConfiguration pieceConfiguration) {
         for(int[] directionalLimit : getDirectionalLimits(pieceBitFlag)) {
             // Limit is always 1 for the king (castling positions can't be threatened by the king)
-            int testPositionIndex = Position.applyTranslation(Position.getPosition(pieceBitFlag),
+            int testPosition = Position.applyTranslation(Position.getPosition(pieceBitFlag),
                     directionalLimit[0], directionalLimit[1]);
-            if (!isValidPosition(testPositionIndex)) {
+            if (!isValidPosition(testPosition)) {
                 continue;
             }
 
-            pieceConfiguration.setThreatened(testPositionIndex);
+            pieceConfiguration.setThreatened(testPosition);
         }
     }
 

@@ -24,10 +24,6 @@ public class IntsPieceConfiguration extends PieceConfiguration {
         }
     }
 
-    public static int getPieceTypeBitFlag(int positionBitFlag) {
-        return positionBitFlag & ALL_PIECE_FLAGS_COMBINED;
-    }
-
     @Override
     public Class<? extends PieceConfiguration> getConfigurationClass() {
         return IntsPieceConfiguration.class;

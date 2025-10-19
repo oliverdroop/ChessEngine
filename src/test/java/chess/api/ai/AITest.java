@@ -139,16 +139,16 @@ public class AITest {
 
     @ParameterizedTest
     @MethodSource("providePositionEvaluatorArguments")
-	void testAIAvoidsStalemate(
+    void testAIAvoidsStalemate_toExtraDepth(
         Class<? extends PieceConfiguration> configurationClass,
         BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
     {
         setupTest("7k/8/5N2/5N2/8/8/8/K7 w - - 0 1", configurationClass);
-		newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH);
-		assertThat(FENWriter.write(newPieceConfiguration))
-				.as("One of the knights should move to avoid blocking the black king in the corner")
-				.doesNotContain("5N2/5N2");
-	}
+        newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH + 1);
+        assertThat(FENWriter.write(newPieceConfiguration))
+            .as("One of the knights should move to avoid blocking the black king in the corner")
+            .doesNotContain("5N2/5N2");
+    }
 
     @ParameterizedTest
     @MethodSource("providePositionEvaluatorArguments")
@@ -201,14 +201,14 @@ public class AITest {
 
     @ParameterizedTest
     @MethodSource("providePositionEvaluatorArguments")
-	void fiftyMoveRuleTest_loseByMovingKing(
+    void fiftyMoveRuleTest_stalemateByMovingKing_toExtraDepth(
         Class<? extends PieceConfiguration> configurationClass,
         BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
     {
         setupTest("7K/7P/8/8/8/8/8/k7 w - - 99 50", configurationClass);
-		newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH);
-		assertThat(newPieceConfiguration).isNull();
-	}
+        newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH + 1);
+        assertThat(newPieceConfiguration).isNull();
+    }
 
     @ParameterizedTest
     @MethodSource("providePositionEvaluatorArguments")
@@ -219,7 +219,7 @@ public class AITest {
         setupTest("7K/7P/8/8/7r/2P4k/8/B7 w - - 99 50", configurationClass);
 		newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH);
 		assertThat(FENWriter.write(newPieceConfiguration))
-				.as("Expected white to avoid losing by moving a pawn")
+				.as("Expected white to avoid stalemate by moving a pawn")
 				.isEqualTo("7K/7P/8/8/2P4r/7k/8/B7 b - - 0 50");
 	}
 

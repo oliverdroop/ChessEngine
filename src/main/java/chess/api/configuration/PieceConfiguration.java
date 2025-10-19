@@ -251,6 +251,10 @@ public abstract class PieceConfiguration {
         return newConfiguration;
     }
 
+    public static int getPieceTypeBitFlag(int positionBitFlag) {
+        return positionBitFlag & ALL_PIECE_FLAGS_COMBINED;
+    }
+
     public String getAlgebraicNotation(PieceConfiguration previousConfiguration) {
         boolean capturing = false;
         int previousBitFlag = Integer.MIN_VALUE;

@@ -10,9 +10,12 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
+import static chess.api.GameEndType.STALEMATE;
+import static chess.api.GameEndType.WHITE_VICTORY;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.verify;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest
@@ -91,6 +94,39 @@ public class FENControllerTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(OBJECT_MAPPER.writeValueAsString(buildRequest(fen, moveHistory))))
             .andExpect(status().isOk());
+    }
+
+    @Test
+    void testGetAiMove_withAiVictory() throws Exception {
+        String fen = "k7/2P5/K7/8/8/8/8/8 w - - 0 50";
+        mockMvc.perform(
+                post("/chess")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(OBJECT_MAPPER.writeValueAsString(buildRequest(fen))))
+            .andExpect(status().isOk())
+            .andExpect(content().string(containsString(WHITE_VICTORY.toString())));
+    }
+
+    @Test
+    void testGetAiMove_withCallerVictory() throws Exception {
+        String fen = "k1R5/8/K7/8/8/8/8/8 b - - 0 50";
+        mockMvc.perform(
+                post("/chess")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(OBJECT_MAPPER.writeValueAsString(buildRequest(fen))))
+            .andExpect(status().isOk())
+            .andExpect(content().string(containsString(WHITE_VICTORY.toString())));
+    }
+
+    @Test
+    void testGetAiMove_withAiStalemate() throws Exception {
+        String fen = "7K/7P/8/8/8/8/8/k7 w - - 99 50";
+        mockMvc.perform(
+                post("/chess")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(OBJECT_MAPPER.writeValueAsString(buildRequest(fen))))
+            .andExpect(status().isOk())
+            .andExpect(content().string(containsString(STALEMATE.toString())));
     }
 
     private AiMoveRequestDto buildRequest(String fen) {

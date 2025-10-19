@@ -76,7 +76,7 @@ public class DepthFirstPositionEvaluator {
     }
 
     public static GameEndType deriveGameEndType(PieceConfiguration finalConfiguration) {
-        if (finalConfiguration.isCheck() || finalConfiguration.getHalfMoveClock() == NO_CAPTURE_OR_PAWN_MOVE_LIMIT) {
+        if (finalConfiguration.isCheck()/* || finalConfiguration.getHalfMoveClock() == NO_CAPTURE_OR_PAWN_MOVE_LIMIT*/) {
             return GameEndType.values()[1 - finalConfiguration.getTurnSide()];
         } else {
             return GameEndType.STALEMATE;

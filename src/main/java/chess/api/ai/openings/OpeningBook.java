@@ -14,6 +14,7 @@ public class OpeningBook {
     private static final Logger LOGGER = LoggerFactory.getLogger(OpeningBook.class);
     private static final Random RANDOM = new Random();
     private static final List<Opening> openings = new ArrayList<>();
+    private static final int MAX_FULL_MOVE_NUMBER;
 
     static {
         openings.add(new AlekhinesDefense());
@@ -27,7 +28,6 @@ public class OpeningBook {
         openings.add(new KaroKannDefense());
         openings.add(new KingsGambit());
         openings.add(new KingsIndianAttack());
-        openings.add(new KingsIndianDefense());
         openings.add(new LondonSystem());
         openings.add(new ModernBenoniDefense());
         openings.add(new NimzoIndianDefense());
@@ -43,12 +43,18 @@ public class OpeningBook {
         openings.add(new SlavDefense());
         openings.add(new TrompowskiAttack());
         openings.add(new ViennaGame());
+
+        MAX_FULL_MOVE_NUMBER = openings.stream()
+            .map(Opening::getMaxFullMoveNumber)
+            .max(Comparator.naturalOrder())
+            .orElse(0);
     }
 
     public static PieceConfiguration getOpeningResponse(PieceConfiguration inputConfiguration) {
-        if (inputConfiguration.getFullMoveNumber() < 4) {
+        final int fullMoveNumber = inputConfiguration.getFullMoveNumber();
+        if (fullMoveNumber <= MAX_FULL_MOVE_NUMBER) {
             final String inputFEN = inputConfiguration.toString();
-            final List<Opening> possibleOpenings = getPossibleOpenings(inputFEN);
+            final List<Opening> possibleOpenings = getPossibleOpenings(inputFEN, fullMoveNumber);
 
             if (!possibleOpenings.isEmpty()) {
                 LOGGER.debug("The following openings are valid for this FEN: {}", possibleOpenings.stream()
@@ -74,9 +80,11 @@ public class OpeningBook {
         return openings;
     }
 
-    private static List<Opening> getPossibleOpenings(String inputFEN) {
+    private static List<Opening> getPossibleOpenings(String inputFEN, int fullMoveNumber) {
         return openings.stream()
+            .filter(opening -> opening.getMaxFullMoveNumber() >= fullMoveNumber)
             .filter(opening -> {
+                LOGGER.debug("Considering the {}", opening.getClass().getSimpleName());
                 final int fenIndex = opening.fens.indexOf(inputFEN);
                 return fenIndex >= 0 && fenIndex < opening.fens.size() - 1;
             })
