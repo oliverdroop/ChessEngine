@@ -117,24 +117,6 @@ public class LongsPieceConfiguration extends PieceConfiguration {
         EN_PASSANT_SQUARE_DATA_INDEX
     };
 
-    private static final int[] NON_PIECE_OR_COLOUR_DATA_INDEXES = new int[]{
-        PLAYER_OCCUPATION_DATA_INDEX,
-        OPPONENT_OCCUPATION_DATA_INDEX,
-        THREATENED_DATA_INDEX,
-        DIRECTION_N_DATA_INDEX,
-        DIRECTION_NE_DATA_INDEX,
-        DIRECTION_E_DATA_INDEX,
-        DIRECTION_SE_DATA_INDEX,
-        DIRECTION_S_DATA_INDEX,
-        DIRECTION_SW_DATA_INDEX,
-        DIRECTION_W_DATA_INDEX,
-        DIRECTION_NW_DATA_INDEX,
-        DIRECTION_ANY_KNIGHT_DATA_INDEX,
-        DOES_NOT_BLOCK_CHECK_DATA_INDEX,
-        CASTLE_AVAILABLE_DATA_INDEX,
-        EN_PASSANT_SQUARE_DATA_INDEX
-    };
-
     private static final int[][] PIECE_COLOUR_AND_OCCUPATION_DATA_INDEXES = new int[][]{
         PLAYER_DATA_INDEXES, COLOUR_DATA_INDEXES, PIECE_DATA_INDEXES
     };
@@ -285,8 +267,9 @@ public class LongsPieceConfiguration extends PieceConfiguration {
     @Override
     public void removePiece(int pieceData) {
         final int position = pieceData & 63;
+        final long mask = ~(1L << position);
         for(int dataIndex = 0; dataIndex < data.length; dataIndex++) {
-            data[dataIndex] = data[dataIndex] & ~(1L << position);
+            data[dataIndex] &= mask;
         }
     }
 
@@ -303,7 +286,7 @@ public class LongsPieceConfiguration extends PieceConfiguration {
     @Override
     protected int getPieceAndColourFlags(int position) {
         int pieceData = 0;
-        for(int dataIndex : PIECE_AND_COLOUR_DATA_INDEXES) {
+        for(int dataIndex = WHITE_OCCUPATION_DATA_INDEX; dataIndex < THREATENED_DATA_INDEX; dataIndex++) {
             final long dataLong = data[dataIndex];
             pieceData |= (int) ((dataLong >>> position) & 1L) << (dataIndex + 6);
         }
@@ -312,7 +295,7 @@ public class LongsPieceConfiguration extends PieceConfiguration {
 
     @Override
     public void setHigherBitFlags() {
-        clearNonPieceFlags();
+        clearNonPieceData();
         stampOccupationData();
         stampThreatData();
         stampCheckNonBlockerData();
@@ -320,10 +303,15 @@ public class LongsPieceConfiguration extends PieceConfiguration {
 
     private int[] getPieceBitFlags() {
         final long combined = combineDataWithOr(PIECE_DATA_INDEXES);
-        return Arrays.stream(Position.POSITIONS)
-            .filter(pos -> ((1L << pos) & combined) != 0)
-            .map(this::getPieceAtPosition)
-            .toArray();
+        final int[] piecesData = new int[32];
+        int pieceIndex = 0;
+        for(int position = 0; position < 64; position++) {
+            if (((1L << position) & combined) != 0) {
+                piecesData[pieceIndex] = getPieceAtPosition(position);
+                pieceIndex++;
+            }
+        }
+        return Arrays.copyOfRange(piecesData, 0, pieceIndex);
     }
 
     private void stampOccupationData() {
@@ -339,7 +327,7 @@ public class LongsPieceConfiguration extends PieceConfiguration {
             data[EN_PASSANT_SQUARE_DATA_INDEX] = 1L << enPassantSquare;
         }
         for(int castlePosition : getCastlePositions()) {
-            data[CASTLE_AVAILABLE_DATA_INDEX] = data[CASTLE_AVAILABLE_DATA_INDEX] | (1L << castlePosition);
+            data[CASTLE_AVAILABLE_DATA_INDEX] |= 1L << castlePosition;
         }
     }
 
@@ -378,7 +366,7 @@ public class LongsPieceConfiguration extends PieceConfiguration {
     }
 
     public void setDoesNotBlockCheck(int position) {
-        data[DOES_NOT_BLOCK_CHECK_DATA_INDEX] = data[DOES_NOT_BLOCK_CHECK_DATA_INDEX] | (1L << position);
+        data[DOES_NOT_BLOCK_CHECK_DATA_INDEX] |= 1L << position;
     }
 
     private long combineDataWithOr(int[] dataIndexes) {
@@ -409,9 +397,8 @@ public class LongsPieceConfiguration extends PieceConfiguration {
         return (1 << dataIndex) << 6;
     }
 
-    private void clearNonPieceFlags() {
+    private void clearNonPieceData() {
         for(int dataIndex : HIGHER_FLAG_DATA_INDEXES) {
-//        for(int dataIndex : NON_PIECE_OR_COLOUR_DATA_INDEXES) {
             data[dataIndex] = 0;
         }
     }

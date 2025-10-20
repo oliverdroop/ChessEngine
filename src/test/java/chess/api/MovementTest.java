@@ -44,7 +44,7 @@ public class MovementTest {
     @ValueSource(classes = {IntsPieceConfiguration.class, LongsPieceConfiguration.class})
     void testBishopMovement_withPlayerPiecesBlocking(Class<? extends PieceConfiguration> configurationClass) {
         PieceConfiguration pieceConfiguration = setupTest(
-            "nNRRRRRR/NBRRRRRR/RRRRRRRR/RRRRRRRR/RRRRRRRR/RRRRRRRR/RRRRRRRR/RRRRRRRR w - - 0 1", configurationClass);
+            "nNKN3r/PBPP4/PPPP4/8/8/8/8/k7 w - - 0 1", configurationClass);
 
         List<PieceConfiguration> pieceConfigurations = pieceConfiguration.getOnwardConfigurations();
 
