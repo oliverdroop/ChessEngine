@@ -2,7 +2,6 @@ package chess.api.pieces;
 
 import chess.api.configuration.PieceConfiguration;
 import chess.api.Position;
-import org.apache.logging.log4j.util.Strings;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -170,10 +169,5 @@ public class Pawn extends Piece{
 
     public static char getFENCode(int pieceBitFlag) {
         return (char) (80 + (getSide(pieceBitFlag) * 32));
-    }
-
-    @Override
-    public String getANCode() {
-        return Strings.EMPTY;
     }
 }

@@ -3,15 +3,15 @@ package chess.api;
 import chess.api.configuration.PieceConfiguration;
 import chess.api.pieces.Piece;
 
-import java.util.Arrays;
+import java.util.*;
 
 import static chess.api.configuration.PieceConfiguration.*;
 
 public class FENWriter {
 
 	public static final String STARTING_POSITION = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-	private static final char[] CASTLE_POSITION_CODES = {'K', 'Q', 'k', 'q'};
-	private static final int[] CASTLE_POSITIONS = {6, 2, 62, 58};
+    private static final Map<Integer, String> CASTLE_POSITION_CODES = Map.of(6, "K", 2, "Q", 62, "k", 58, "q");
+
 	public static String write(PieceConfiguration pieceConfiguration){
 		StringBuilder fenBuilder = new StringBuilder();
 		//board pieces
@@ -41,19 +41,13 @@ public class FENWriter {
 		fenBuilder.append(pieceConfiguration.getTurnSide() == 0 ? 'w' : 'b');
 		fenBuilder.append(' ');
 		//castling availability
-		boolean castling = false;
-		int[] castlePositions = pieceConfiguration.getCastlePositions();
-		for(int i = 0; i < 4; i++) {
-			int castlePosition = CASTLE_POSITIONS[i];
-			if(Arrays.stream(castlePositions).anyMatch(cp -> cp == castlePosition)) {
-				char castlePositionCode = CASTLE_POSITION_CODES[i];
-				fenBuilder.append(castlePositionCode);
-				castling = true;
-			}
-		}
-		if (!castling) {
-			fenBuilder.append('-');
-		}
+        fenBuilder.append(
+            Arrays.stream(pieceConfiguration.getCastlePositions())
+                .boxed()
+                .map(CASTLE_POSITION_CODES::get)
+                .sorted()
+                .reduce(String::concat)
+                .orElse("-"));
 		fenBuilder.append(' ');
 		//en Passant piece
 		if (pieceConfiguration.getEnPassantSquare() >= 0) {

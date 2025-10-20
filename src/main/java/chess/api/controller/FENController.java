@@ -86,6 +86,10 @@ public class FENController {
                     .collect(Collectors.toList());
             LOGGER.info("Response: {}", algebraicNotations);
             return ResponseEntity.ok(algebraicNotations);
+        } catch (IllegalArgumentException e) {
+            final String errorMessage = String.format("Unable to get available moves from %s: No piece at position", availableMovesRequestDto.getFrom());
+            LOGGER.warn(errorMessage);
+            return ResponseEntity.noContent().build();
         } catch (Throwable e) {
             final String errorMessage = String.format("Unable to get available moves: %s", e.getMessage());
             LOGGER.error(errorMessage, e);

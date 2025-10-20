@@ -20,8 +20,6 @@ public class King extends Piece{
 
     public static final Map<Integer, Integer> CASTLE_POSITION_MAPPINGS = Map.of(2, 0, 6, 7, 58, 56, 62, 63);
 
-    public static final String AN_CODE = "K";
-
     public static int[][] getDirectionalLimits(int pieceBitFlag) {
         final int isOnStartingPosition = Boolean.compare(isOnStartingPosition(pieceBitFlag), false);
         return DIRECTIONAL_LIMITS[isOnStartingPosition];
@@ -75,8 +73,8 @@ public class King extends Piece{
         return pieceConfigurations;
     }
 
-    protected static int[][] getMovableDirectionalLimits(int pieceBitFlag, PieceConfiguration currentconfiguration) {
-        int number = currentconfiguration.getPieceAtPosition(getPosition(pieceBitFlag));
+    protected static int[][] getMovableDirectionalLimits(int pieceBitFlag, PieceConfiguration currentConfiguration) {
+        int number = currentConfiguration.getPieceAtPosition(getPosition(pieceBitFlag));
         if (hasDirectionalFlags(number)) {
             return restrictDirections(pieceBitFlag, ~getDirectionalFlags(number));
         }
@@ -108,11 +106,6 @@ public class King extends Piece{
 
     private static boolean isOnStartingPosition(int pieceBitFlag) {
         return Position.getPosition(pieceBitFlag) == 4 + (getSide(pieceBitFlag) * 56);
-    }
-
-    @Override
-    public String getANCode() {
-        return AN_CODE;
     }
 
     public static char getFENCode(int pieceBitFlag) {

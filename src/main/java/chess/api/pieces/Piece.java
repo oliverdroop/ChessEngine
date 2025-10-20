@@ -108,8 +108,6 @@ public abstract class Piece {
         return sb.toString();
     }
 
-    public abstract String getANCode();
-
     public static void stampThreatFlags(int pieceBitFlag, PieceConfiguration pieceConfiguration) {
         int pieceTypeFlag = getPieceTypeBitFlag(pieceBitFlag);
         switch (pieceTypeFlag) {
