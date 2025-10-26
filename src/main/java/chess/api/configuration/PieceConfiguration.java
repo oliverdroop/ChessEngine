@@ -358,7 +358,7 @@ public abstract class PieceConfiguration {
         int currentPosition = kingPositionBitFlag;
         int nextPositionIndex = Position.applyTranslationTowardsThreat(kingPositionDirectionalFlags, currentPosition);
 
-        while(!BitUtil.hasBitFlag(getPieceAtPosition(currentPosition), OPPONENT_OCCUPIED) && nextPositionIndex >= 0) {
+        while(nextPositionIndex >= 0 && !BitUtil.hasBitFlag(getPieceAtPosition(currentPosition), OPPONENT_OCCUPIED)) {
             setDoesNotBlockCheck(nextPositionIndex);
             currentPosition = nextPositionIndex;
             nextPositionIndex = Position.applyTranslationTowardsThreat(kingPositionDirectionalFlags, currentPosition);
@@ -390,7 +390,7 @@ public abstract class PieceConfiguration {
     }
 
     public void addHistoricMove(PieceConfiguration previousConfiguration, short newMove) {
-        if (previousConfiguration != null && previousConfiguration.getHistoricMoves() != null) {
+        if (previousConfiguration.getHistoricMoves() != null) {
             historicMoves = new short[previousConfiguration.getHistoricMoves().length + 1];
             System.arraycopy(previousConfiguration.getHistoricMoves(), 0, historicMoves, 0, previousConfiguration.getHistoricMoves().length);
             historicMoves[historicMoves.length - 1] = newMove;

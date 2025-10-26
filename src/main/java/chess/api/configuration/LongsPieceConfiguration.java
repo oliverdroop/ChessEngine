@@ -57,6 +57,8 @@ public class LongsPieceConfiguration extends PieceConfiguration {
 
     public static final int EN_PASSANT_SQUARE_DATA_INDEX = 22;
 
+    private static final int DATA_LENGTH = 23;
+
     private static final int[] PLAYER_DATA_INDEXES = new int[]{
         PLAYER_OCCUPATION_DATA_INDEX,
         OPPONENT_OCCUPATION_DATA_INDEX
@@ -258,29 +260,19 @@ public class LongsPieceConfiguration extends PieceConfiguration {
     public void removePiece(int pieceData) {
         final int position = pieceData & 63;
         final long mask = ~(1L << position);
-        for(int dataIndex = 0; dataIndex < data.length; dataIndex++) {
+        for(int dataIndex = 0; dataIndex < DATA_LENGTH; dataIndex++) {
             data[dataIndex] &= mask;
         }
     }
 
     @Override
     public int getPieceAtPosition(int position) {
-        int pieceData = 0;
-        for(int dataIndex = 0; dataIndex < data.length; dataIndex++) {
-            final long dataLong = data[dataIndex];
-            pieceData |= (int) ((dataLong >>> position) & 1L) << (dataIndex + 6);
-        }
-        return pieceData | position;
+        return getDataAtPosition(position, 0, DATA_LENGTH) | position;
     }
 
     @Override
     protected int getPieceAndColourFlags(int position) {
-        int pieceData = 0;
-        for(int dataIndex = WHITE_OCCUPATION_DATA_INDEX; dataIndex < THREATENED_DATA_INDEX; dataIndex++) {
-            final long dataLong = data[dataIndex];
-            pieceData |= (int) ((dataLong >>> position) & 1L) << (dataIndex + 6);
-        }
-        return pieceData;
+        return getDataAtPosition(position, WHITE_OCCUPATION_DATA_INDEX, THREATENED_DATA_INDEX);
     }
 
     @Override
@@ -372,6 +364,15 @@ public class LongsPieceConfiguration extends PieceConfiguration {
             .mapToLong(i -> data[i])
             .reduce(binaryOperator)
             .orElse(0);
+    }
+
+    private int getDataAtPosition(int position, int fromDataIndex, int toDataIndexExclusive) {
+        int pieceData = 0;
+        for(int dataIndex = fromDataIndex; dataIndex < toDataIndexExclusive; dataIndex++) {
+            final long dataLong = data[dataIndex];
+            pieceData |= (int) ((dataLong >>> position) & 1L) << dataIndex;
+        }
+        return pieceData << 6;
     }
 
     private void clearNonPieceData() {
