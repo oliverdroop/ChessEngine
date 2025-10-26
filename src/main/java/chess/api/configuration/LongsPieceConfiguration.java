@@ -62,11 +62,6 @@ public class LongsPieceConfiguration extends PieceConfiguration {
         OPPONENT_OCCUPATION_DATA_INDEX
     };
 
-    private static final int[] COLOUR_DATA_INDEXES = new int[]{
-        WHITE_OCCUPATION_DATA_INDEX,
-        BLACK_OCCUPATION_DATA_INDEX
-    };
-
     private static final int[] PIECE_DATA_INDEXES = new int[]{
         KING_OCCUPATION_DATA_INDEX,
         KNIGHT_OCCUPATION_DATA_INDEX,
@@ -115,10 +110,6 @@ public class LongsPieceConfiguration extends PieceConfiguration {
         DOES_NOT_BLOCK_CHECK_DATA_INDEX,
         CASTLE_AVAILABLE_DATA_INDEX,
         EN_PASSANT_SQUARE_DATA_INDEX
-    };
-
-    private static final int[][] PIECE_COLOUR_AND_OCCUPATION_DATA_INDEXES = new int[][]{
-        PLAYER_DATA_INDEXES, COLOUR_DATA_INDEXES, PIECE_DATA_INDEXES
     };
 
     private static final LongBinaryOperator OR_BINARY_OPERATOR = ((l1, l2) -> l1 | l2);
@@ -256,11 +247,10 @@ public class LongsPieceConfiguration extends PieceConfiguration {
     @Override
     public void addPiece(int pieceData) {
         final int position = pieceData & 63;
-        for(int[] possibleDataIndexes : PIECE_COLOUR_AND_OCCUPATION_DATA_INDEXES) {
-            final int dataIndex = getDataIndex(pieceData, possibleDataIndexes);
-            if (dataIndex >= 0) {
-                data[dataIndex] |= (1L << position);
-            }
+        final int shiftedPieceData = pieceData >>> 6;
+        for(int dataIndex = 0; dataIndex < THREATENED_DATA_INDEX; dataIndex++) {
+            final long bitFlag = ((shiftedPieceData >>> dataIndex) & 1L) << position;
+            data[dataIndex] |= bitFlag;
         }
     }
 
@@ -382,19 +372,6 @@ public class LongsPieceConfiguration extends PieceConfiguration {
             .mapToLong(i -> data[i])
             .reduce(binaryOperator)
             .orElse(0);
-    }
-
-    private int getDataIndex(int pieceData, int[] possibleIndexes) {
-        for(int dataIndex : possibleIndexes) {
-            if ((getMask(dataIndex) & pieceData) != 0) {
-                return dataIndex;
-            }
-        }
-        return -1;
-    }
-
-    private int getMask(int dataIndex) {
-        return (1 << dataIndex) << 6;
     }
 
     private void clearNonPieceData() {

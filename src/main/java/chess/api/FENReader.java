@@ -15,21 +15,21 @@ public class FENReader {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(FENReader.class);
 
-	private static final Map<Character, Integer> pieceMappings = new HashMap<>();
+	private static final Map<Character, Integer> PIECE_MAPPINGS = new HashMap<>();
 
 	static {
-		pieceMappings.put('K', KING_OCCUPIED);
-		pieceMappings.put('k', KING_OCCUPIED);
-		pieceMappings.put('Q', QUEEN_OCCUPIED);
-		pieceMappings.put('q', QUEEN_OCCUPIED);
-		pieceMappings.put('R', ROOK_OCCUPIED);
-		pieceMappings.put('r', ROOK_OCCUPIED);
-		pieceMappings.put('N', KNIGHT_OCCUPIED);
-		pieceMappings.put('n', KNIGHT_OCCUPIED);
-		pieceMappings.put('B', BISHOP_OCCUPIED);
-		pieceMappings.put('b', BISHOP_OCCUPIED);
-		pieceMappings.put('P', PAWN_OCCUPIED);
-		pieceMappings.put('p', PAWN_OCCUPIED);
+		PIECE_MAPPINGS.put('K', KING_OCCUPIED);
+		PIECE_MAPPINGS.put('k', KING_OCCUPIED);
+		PIECE_MAPPINGS.put('Q', QUEEN_OCCUPIED);
+		PIECE_MAPPINGS.put('q', QUEEN_OCCUPIED);
+		PIECE_MAPPINGS.put('R', ROOK_OCCUPIED);
+		PIECE_MAPPINGS.put('r', ROOK_OCCUPIED);
+		PIECE_MAPPINGS.put('N', KNIGHT_OCCUPIED);
+		PIECE_MAPPINGS.put('n', KNIGHT_OCCUPIED);
+		PIECE_MAPPINGS.put('B', BISHOP_OCCUPIED);
+		PIECE_MAPPINGS.put('b', BISHOP_OCCUPIED);
+		PIECE_MAPPINGS.put('P', PAWN_OCCUPIED);
+		PIECE_MAPPINGS.put('p', PAWN_OCCUPIED);
 	}
 
     public static PieceConfiguration read(String fen, Class<? extends PieceConfiguration> clazz) {
@@ -95,9 +95,9 @@ public class FENReader {
     }
 	
 	public static int createPiece(char c, int x, int y) {
-		int position = Position.getPosition(x, y);
+		final int position = Position.getPosition(x, y);
 		int sideFlag = c < 97 ? WHITE_OCCUPIED : BLACK_OCCUPIED;
-		int pieceTypeFlag = pieceMappings.get(c);
-		return position + pieceTypeFlag + sideFlag;
+		final int pieceTypeFlag = PIECE_MAPPINGS.get(c);
+		return position | pieceTypeFlag | sideFlag;
 	}
 }

@@ -242,6 +242,14 @@ public class IntsPieceConfiguration extends PieceConfiguration {
     }
 
     private int[] getPieceBitFlags() {
-        return Arrays.stream(positionBitFlags).filter(pbf -> getPieceTypeBitFlag(pbf) != 0).toArray();
+        final int[] piecesData = new int[32];
+        int pieceIndex = 0;
+        for(int position = 0; position < 64; position++) {
+            if (getPieceTypeBitFlag(positionBitFlags[position]) != 0) {
+                piecesData[pieceIndex] = getPieceAtPosition(position);
+                pieceIndex++;
+            }
+        }
+        return Arrays.copyOfRange(piecesData, 0, pieceIndex);
     }
 }
