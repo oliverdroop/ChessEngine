@@ -351,19 +351,21 @@ public class LongsPieceConfiguration extends PieceConfiguration {
         data[DOES_NOT_BLOCK_CHECK_DATA_INDEX] |= 1L << position;
     }
 
-    private long combineDataWithOr(int[] dataIndexes) {
-        return combineData(dataIndexes, OR_BINARY_OPERATOR);
+    private long combineDataWithOr(int... dataIndexes) {
+        return combineData(OR_BINARY_OPERATOR, dataIndexes);
     }
 
-    private long combineDataWithAnd(int[] dataIndexes) {
-        return combineData(dataIndexes, AND_BINARY_OPERATOR);
+    private long combineDataWithAnd(int... dataIndexes) {
+        return combineData(AND_BINARY_OPERATOR, dataIndexes);
     }
 
-    private long combineData(int[] dataIndexes, LongBinaryOperator binaryOperator) {
-        return Arrays.stream(dataIndexes)
-            .mapToLong(i -> data[i])
-            .reduce(binaryOperator)
-            .orElse(0);
+    private long combineData(LongBinaryOperator binaryOperator, int... dataIndexes) {
+        long accumulation = data[dataIndexes[0]];
+        for(int dataIndexIndex = 1; dataIndexIndex < dataIndexes.length; dataIndexIndex++) {
+            final int dataIndex = dataIndexes[dataIndexIndex];
+            accumulation = binaryOperator.applyAsLong(accumulation, data[dataIndex]);
+        }
+        return accumulation;
     }
 
     private int getDataAtPosition(int position, int fromDataIndex, int toDataIndexExclusive) {
