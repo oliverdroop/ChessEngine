@@ -37,7 +37,7 @@ public class DepthFirstPositionEvaluatorTest {
 
     @ParameterizedTest
     @ValueSource(classes = {IntsPieceConfiguration.class, LongsPieceConfiguration.class})
-    void testPlayAIGame(Class<? extends PieceConfiguration> configurationClass) {
+    void testPlayAIGame_DepthFirstVsBreadthFirst(Class<? extends PieceConfiguration> configurationClass) {
         PieceConfiguration pieceConfiguration = FENReader.read(FENWriter.STARTING_POSITION, configurationClass);
         PieceConfiguration previousConfiguration = null;
 
@@ -48,6 +48,25 @@ public class DepthFirstPositionEvaluatorTest {
                 pieceConfiguration = DepthFirstPositionEvaluator.getBestMoveRecursively(pieceConfiguration, 4);
             } else {
                 pieceConfiguration = BreadthFirstPositionEvaluator.getBestMoveRecursively(pieceConfiguration, 4);
+            }
+        }
+        LOGGER.info(DepthFirstPositionEvaluator.deriveGameEndType(previousConfiguration).toString());
+    }
+
+    @Test
+    void testPlayAIGame_IntsVsLongs() {
+        PieceConfiguration pieceConfiguration = FENReader.read(FENWriter.STARTING_POSITION, IntsPieceConfiguration.class);
+        PieceConfiguration previousConfiguration = null;
+
+        while(pieceConfiguration != null) {
+            LOGGER.info(pieceConfiguration.toString());
+            previousConfiguration = pieceConfiguration;
+            if (pieceConfiguration.getTurnSide() == 0) {
+                PieceConfiguration input = FENReader.read(FENWriter.write(pieceConfiguration), IntsPieceConfiguration.class);
+                pieceConfiguration = DepthFirstPositionEvaluator.getBestMoveRecursively(input, 4);
+            } else {
+                PieceConfiguration input = FENReader.read(FENWriter.write(pieceConfiguration), LongsPieceConfiguration.class);
+                pieceConfiguration = DepthFirstPositionEvaluator.getBestMoveRecursively(input, 4);
             }
         }
         LOGGER.info(DepthFirstPositionEvaluator.deriveGameEndType(previousConfiguration).toString());

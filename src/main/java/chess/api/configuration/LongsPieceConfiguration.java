@@ -118,6 +118,19 @@ public class LongsPieceConfiguration extends PieceConfiguration {
 
     private static final LongBinaryOperator AND_BINARY_OPERATOR = ((l1, l2) -> l1 & l2);
 
+    private static final long[] STARTING_POSITION_PIECE_DATA = new long[10];
+
+    static {
+        STARTING_POSITION_PIECE_DATA[2] = 0b0000000000000000000000000000000000000000000000001111111111111111L;
+        STARTING_POSITION_PIECE_DATA[3] = 0b1111111111111111000000000000000000000000000000000000000000000000L;
+        STARTING_POSITION_PIECE_DATA[4] = 0b0001000000000000000000000000000000000000000000000000000000010000L;
+        STARTING_POSITION_PIECE_DATA[5] = 0b0100001000000000000000000000000000000000000000000000000001000010L;
+        STARTING_POSITION_PIECE_DATA[6] = 0b0010010000000000000000000000000000000000000000000000000000100100L;
+        STARTING_POSITION_PIECE_DATA[7] = 0b1000000100000000000000000000000000000000000000000000000010000001L;
+        STARTING_POSITION_PIECE_DATA[8] = 0b0000100000000000000000000000000000000000000000000000000000001000L;
+        STARTING_POSITION_PIECE_DATA[9] = 0b0000000011111111000000000000000000000000000000001111111100000000L;
+    }
+
     private final long[] data = new long[23];
 
     public LongsPieceConfiguration(){}
@@ -178,11 +191,15 @@ public class LongsPieceConfiguration extends PieceConfiguration {
         final int threatenedOpponentCount = Long.bitCount(data[THREATENED_DATA_INDEX] & data[OPPONENT_OCCUPATION_DATA_INDEX]);
         final int playerOccupiedCentreCount = Long.bitCount(data[PLAYER_OCCUPATION_DATA_INDEX] & 103481868288L);
         final int opponentOccupiedCentreCount = Long.bitCount(data[OPPONENT_OCCUPATION_DATA_INDEX] & 103481868288L);
+        final int undevelopedPlayerCount = countUndevelopedPiecesBySide(getTurnSide());
+        final int undevelopedOpponentCount = countUndevelopedPiecesBySide(getOpposingSide());
         return (threatenedCount * -0.00625)
             + (threatenedPlayerCount * -0.00625)
             + (threatenedOpponentCount * 0.00625)
-            + (playerOccupiedCentreCount * -0.05)
-            + (opponentOccupiedCentreCount * 0.05);
+            + (undevelopedPlayerCount * -0.00625)
+            + (undevelopedOpponentCount * 0.00625)
+            + (playerOccupiedCentreCount * 0.025)
+            + (opponentOccupiedCentreCount * -0.025);
     }
 
     @Override
@@ -283,6 +300,25 @@ public class LongsPieceConfiguration extends PieceConfiguration {
         stampCheckNonBlockerData();
     }
 
+    protected void setDoesNotBlockCheck(int position) {
+        data[DOES_NOT_BLOCK_CHECK_DATA_INDEX] |= 1L << position;
+    }
+
+    int countUndevelopedPiecesBySide(int turnSide) {
+        final int colourDataIndex = turnSide + 2;
+        final long colourData = data[colourDataIndex];
+        int count = 0;
+        for(int dataIndex : PIECE_DATA_INDEXES) {
+            count += Long.bitCount(
+                data[dataIndex]
+                    & colourData
+                    & STARTING_POSITION_PIECE_DATA[dataIndex]
+                    & STARTING_POSITION_PIECE_DATA[colourDataIndex]
+            );
+        }
+        return count;
+    }
+
     private int[] getPieceBitFlags() {
         final long combined = combineDataWithOr(PIECE_DATA_INDEXES);
         final int[] piecesData = new int[32];
@@ -345,10 +381,6 @@ public class LongsPieceConfiguration extends PieceConfiguration {
 
         // Now reverse the bit DOES_NOT_BLOCK_CHECK data because it's on the squares which can block check
         data[DOES_NOT_BLOCK_CHECK_DATA_INDEX] = ~data[DOES_NOT_BLOCK_CHECK_DATA_INDEX];
-    }
-
-    public void setDoesNotBlockCheck(int position) {
-        data[DOES_NOT_BLOCK_CHECK_DATA_INDEX] |= 1L << position;
     }
 
     private long combineDataWithOr(int... dataIndexes) {
