@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
+import static chess.api.utils.TestUtils.loadConfigurationWithHistory;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class AITest {
@@ -264,6 +265,74 @@ public class AITest {
         assertThat(newPieceConfiguration.isCheck()).isTrue();
         assertThat(DepthFirstPositionEvaluator.deriveGameEndType(newPieceConfiguration))
             .isEqualTo(GameEndType.BLACK_VICTORY);
+    }
+
+    @ParameterizedTest
+    @MethodSource("providePositionEvaluatorArguments")
+    void testAIAvoidsStalemate_threefoldRepetition(
+        Class<? extends PieceConfiguration> configurationClass,
+        BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction
+    ) {
+        pieceConfiguration = loadConfigurationWithHistory(
+            configurationClass,
+            FENWriter.STARTING_POSITION,
+            "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq d3 0 1",
+            "rnbqkb1r/pppppppp/5n2/8/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 1 2",
+            "rnbqkb1r/pppppppp/5n2/8/2PP4/8/PP2PPPP/RNBQKBNR b KQkq c3 0 2",
+            "rnbqkb1r/pppp1ppp/4pn2/8/2PP4/8/PP2PPPP/RNBQKBNR w KQkq - 0 3",
+            "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq d3 0 1",
+            "rnbqkbnr/ppppp1pp/8/5p2/3P4/8/PPP1PPPP/RNBQKBNR w KQkq f6 0 2",
+            "rnbqkbnr/ppppp1pp/8/5p2/2PP4/8/PP2PPPP/RNBQKBNR b KQkq c3 0 2",
+            "rnbqkbnr/pppp2pp/4p3/5p2/2PP4/8/PP2PPPP/RNBQKBNR w KQkq - 0 3",
+            "rnbqkbnr/pppp2pp/4p3/5p2/2PP4/2N5/PP2PPPP/R1BQKBNR b KQkq - 1 3",
+            "rnbqk1nr/pppp2pp/4p3/5p2/1bPP4/2N5/PP2PPPP/R1BQKBNR w KQkq - 2 4",
+            "rnbqk1nr/pppp2pp/4p3/5p2/1bPP4/2N5/PPQ1PPPP/R1B1KBNR b KQkq - 3 4",
+            "rnbqk1nr/pppp2pp/4p3/5p2/2PP4/2b5/PPQ1PPPP/R1B1KBNR w KQkq - 0 5",
+            "rnbqk1nr/pppp2pp/4p3/5p2/2PP4/2Q5/PP2PPPP/R1B1KBNR b KQkq - 0 5",
+            "rnb1k1nr/pppp2pp/4p3/5p2/2PP3q/2Q5/PP2PPPP/R1B1KBNR w KQkq - 1 6",
+            "rnb1k1nr/pppp2pp/4p3/5p2/2PP3q/2Q2N2/PP2PPPP/R1B1KB1R b KQkq - 2 6",
+            "rnb1k1nr/pppp2pp/4p3/5p2/2PP2q1/2Q2N2/PP2PPPP/R1B1KB1R w KQkq - 3 7",
+            "rnb1k1nr/pppp2pp/4p3/5p2/2PP2q1/2Q2N1P/PP2PPP1/R1B1KB1R b KQkq - 0 7",
+            "rnb1k1nr/pppp2pp/4p3/5p1q/2PP4/2Q2N1P/PP2PPP1/R1B1KB1R w KQkq - 1 8",
+            "rnb1k1nr/pppp2pp/4p3/5p1q/2PP1B2/2Q2N1P/PP2PPP1/R3KB1R b KQkq - 2 8",
+            "rnb1k1nr/ppp3pp/3pp3/5p1q/2PP1B2/2Q2N1P/PP2PPP1/R3KB1R w KQkq - 0 9",
+            "rnb1k1nr/ppp3pp/3pp3/5p1q/2PP1B2/2Q1PN1P/PP3PP1/R3KB1R b KQkq - 0 9",
+            "r1b1k1nr/ppp3pp/2npp3/5p1q/2PP1B2/2Q1PN1P/PP3PP1/R3KB1R w KQkq - 1 10",
+            "r1b1k1nr/ppp3pp/2npp3/5p1q/2PP1B2/2Q1PN1P/PP2BPP1/R3K2R b KQkq - 2 10",
+            "r1b1k1nr/ppp3pp/2npp1q1/5p2/2PP1B2/2Q1PN1P/PP2BPP1/R3K2R w KQkq - 3 11",
+            "r1b1k1nr/ppp3pp/2npp1q1/5p2/2PP1B2/2Q1PN1P/PP2BPP1/R4RK1 b kq - 4 11",
+            "r1b1k1nr/ppp3pp/2npp3/5p1q/2PP1B2/2Q1PN1P/PP2BPP1/R4RK1 w kq - 5 12",
+            "r1b1k1nr/ppp3pp/2npp3/5p1q/2PP1B2/P1Q1PN1P/1P2BPP1/R4RK1 b kq - 0 12",
+            "r1b1k1nr/1pp3pp/p1npp3/5p1q/2PP1B2/P1Q1PN1P/1P2BPP1/R4RK1 w kq - 0 13",
+            "r1b1k1nr/1pp3pp/p1npp3/5p1q/2PP1B2/P3PN1P/1PQ1BPP1/R4RK1 b kq - 1 13",
+            "r1b1k1nr/1pp3pp/p2pp3/n4p1q/2PP1B2/P3PN1P/1PQ1BPP1/R4RK1 w kq - 2 14",
+            "r1b1k1nr/1pp3pp/p2pp3/n4p1q/2PP1B2/P3PN1P/1PQ1BPP1/R3R1K1 b kq - 3 14",
+            "r1b1k1nr/2p3pp/pp1pp3/n4p1q/2PP1B2/P3PN1P/1PQ1BPP1/R3R1K1 w kq - 0 15",
+            "r1b1k1nr/2p3pp/pp1pp3/n4p1q/2PP1B2/P3PN1P/1PQ1BPP1/3RR1K1 b kq - 1 15",
+            "r3k1nr/1bp3pp/pp1pp3/n4p1q/2PP1B2/P3PN1P/1PQ1BPP1/3RR1K1 w kq - 2 16",
+            "r3k1nr/1bp3pp/pp1pp3/n4pNq/2PP1B2/P3P2P/1PQ1BPP1/3RR1K1 b kq - 3 16",
+            "r3k1nr/1bp3pp/pp1pp1q1/n4pN1/2PP1B2/P3P2P/1PQ1BPP1/3RR1K1 w kq - 4 17",
+            "r3k1nr/1bp3pp/pp1pp1q1/n4pN1/1PPP1B2/P3P2P/2Q1BPP1/3RR1K1 b kq b3 0 17",
+            "r3k1nr/1bp3pp/ppnpp1q1/5pN1/1PPP1B2/P3P2P/2Q1BPP1/3RR1K1 w kq - 1 18",
+            "r3k1nr/1bp3pp/ppnpp1q1/5p2/1PPP1B2/P3PN1P/2Q1BPP1/3RR1K1 b kq - 2 18",
+            "r3k1nr/1bp3p1/ppnpp1qp/5p2/1PPP1B2/P3PN1P/2Q1BPP1/3RR1K1 w kq - 0 19",
+            "r3k1nr/1bp3p1/ppnpp1qp/5p2/1PPP4/P3PN1P/2Q1BPPB/3RR1K1 b kq - 1 19",
+            "r3k1nr/1bp3p1/ppnpp1q1/5p1p/1PPP4/P3PN1P/2Q1BPPB/3RR1K1 w kq - 0 20",
+            "r3k1nr/1bp3p1/ppnpp1q1/5p1p/1PPP4/P3PN1P/2QRBPPB/4R1K1 b kq - 1 20",
+            "2kr2nr/1bp3p1/ppnpp1q1/5p1p/1PPP4/P3PN1P/2QRBPPB/4R1K1 w - - 2 21",
+            "2kr2nr/1bp3p1/ppnpp1q1/5p1p/1PPP3N/P3P2P/2QRBPPB/4R1K1 b - - 3 21",
+            "2kr2nr/1bp3p1/ppnpp3/5pqp/1PPP3N/P3P2P/2QRBPPB/4R1K1 w - - 4 22",
+            "2kr2nr/1bp3p1/ppnpp3/5pqp/1PPP4/P3PN1P/2QRBPPB/4R1K1 b - - 5 22",
+            "2kr2nr/1bp3p1/ppnpp1q1/5p1p/1PPP4/P3PN1P/2QRBPPB/4R1K1 w - - 6 23",
+            "2kr2nr/1bp3p1/ppnpp1q1/5p1p/1PPP3N/P3P2P/2QRBPPB/4R1K1 b - - 7 23",
+            "2kr2nr/1bp3p1/ppnpp3/5pqp/1PPP3N/P3P2P/2QRBPPB/4R1K1 w - - 8 24",
+            "2kr2nr/1bp3p1/ppnpp3/5pqp/1PPP4/P3PN1P/2QRBPPB/4R1K1 b - - 9 24"
+        );
+        newPieceConfiguration = aiFunction.apply(pieceConfiguration, 5);
+
+        assertThat(FENWriter.write(newPieceConfiguration))
+            .as("AI should avoid repeating the same position three times")
+            .doesNotContain("2kr2nr/1bp3p1/ppnpp1q1/5p1p/1PPP4/P3PN1P/2QRBPPB/4R1K1 w - -");
     }
 
     @Test

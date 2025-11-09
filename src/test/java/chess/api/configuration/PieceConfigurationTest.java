@@ -11,6 +11,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.util.List;
 import java.util.stream.Stream;
 
+import static chess.api.utils.TestUtils.loadConfigurationWithHistory;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class PieceConfigurationTest {
@@ -211,6 +212,13 @@ public class PieceConfigurationTest {
                 .isEqualTo(-39);
     }
 
+    @ParameterizedTest
+    @MethodSource("getMoveRepetitionArguments")
+    void countLoopsInHistory(boolean expectedIsFailure, String[] fens) {
+        PieceConfiguration pieceConfiguration = loadConfigurationWithHistory(LongsPieceConfiguration.class, fens);
+        assertThat(pieceConfiguration.isThreefoldRepetitionFailure()).isEqualTo(expectedIsFailure);
+    }
+
     private static Stream<Arguments> getEnPassantSquareValues() {
         return Stream.of(
                 Arguments.of(16, 0b00100001111111111111111111111111),
@@ -252,6 +260,60 @@ public class PieceConfigurationTest {
             Arguments.of("7k/8/8/8/8/8/1p6/P6K w - - 0 1", "7k/8/8/8/8/8/8/q6K b - - 0 1", "b2xa1q", LongsPieceConfiguration.class),
             Arguments.of("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1", "r3k2r/8/8/8/8/8/8/R4RK1 b kq - 1 1", "e1g1", LongsPieceConfiguration.class),
             Arguments.of("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1", "r3k2r/8/8/8/8/8/8/2KR3R b kq - 1 1", "e1c1", LongsPieceConfiguration.class)
+        );
+    }
+
+    private static Stream<Arguments> getMoveRepetitionArguments() {
+        return Stream.of(
+            Arguments.of(
+                false,
+                new String[]{
+                    FENWriter.STARTING_POSITION,
+                    "rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 1 1",
+                    "r1bqkbnr/pppppppp/2n5/8/8/5N2/PPPPPPPP/RNBQKB1R w KQkq - 2 2",
+                    "r1bqkbnr/pppppppp/2n5/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 3 2"
+                }
+            ),
+            Arguments.of(
+                false,
+                new String[]{
+                    FENWriter.STARTING_POSITION,
+                    "rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 1 1",
+                    "r1bqkbnr/pppppppp/2n5/8/8/5N2/PPPPPPPP/RNBQKB1R w KQkq - 2 2",
+                    "r1bqkbnr/pppppppp/2n5/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 3 2",
+                    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 4 3"
+                }
+            ),
+            Arguments.of(
+                true,
+                new String[]{
+                    FENWriter.STARTING_POSITION,
+                    "rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 1 1",
+                    "r1bqkbnr/pppppppp/2n5/8/8/5N2/PPPPPPPP/RNBQKB1R w KQkq - 2 2",
+                    "r1bqkbnr/pppppppp/2n5/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 3 2",
+                    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 4 3",
+                    "rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 5 3",
+                    "r1bqkbnr/pppppppp/2n5/8/8/5N2/PPPPPPPP/RNBQKB1R w KQkq - 6 4",
+                    "r1bqkbnr/pppppppp/2n5/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 7 4",
+                    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 8 5"
+                }
+            ),
+            Arguments.of(
+                false,
+                new String[]{
+                    FENWriter.STARTING_POSITION,
+                    "rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 1 1",
+                    "r1bqkbnr/pppppppp/2n5/8/8/5N2/PPPPPPPP/RNBQKB1R w KQkq - 2 2",
+                    "r1bqkbnr/pppppppp/2n5/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 3 2",
+                    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 4 3",
+                    "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 3",
+                    "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 4",
+                    "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 4",
+                    "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 5",
+                    "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 3 5",
+                    "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 4 6"
+                }
+            )
         );
     }
 }

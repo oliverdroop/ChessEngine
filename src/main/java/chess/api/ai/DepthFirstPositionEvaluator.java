@@ -43,10 +43,12 @@ public class DepthFirstPositionEvaluator {
         final int onwardConfigurationCount = onwardPieceConfigurations.size();
         final double[] onwardConfigurationScores = new double[onwardConfigurationCount];
         final boolean[] fiftyMoveRuleChecks = new boolean[onwardConfigurationCount];
+        final boolean[] threefoldRepetitionChecks = new boolean[onwardConfigurationCount];
         for (int i = 0; i < onwardConfigurationCount; i++) {
             PieceConfiguration onwardPieceConfiguration = onwardPieceConfigurations.get(i);
 
             fiftyMoveRuleChecks[i] = isFiftyMoveRuleFailure(onwardPieceConfiguration);
+            threefoldRepetitionChecks[i] = onwardPieceConfiguration.isThreefoldRepetitionFailure();
 
             double nextDiff = onwardPieceConfiguration.getValueDifferential();
             double comparison = currentDiff - nextDiff;
@@ -62,7 +64,9 @@ public class DepthFirstPositionEvaluator {
         double bestOnwardConfigurationScore = -Double.MAX_VALUE;
         for(int i = 0; i < onwardConfigurationCount; i++) {
             double onwardConfigurationScore = onwardConfigurationScores[i] + threatValue;
-            if (onwardConfigurationScore > bestOnwardConfigurationScore && !fiftyMoveRuleChecks[i]) {
+            if (onwardConfigurationScore > bestOnwardConfigurationScore
+                    && !fiftyMoveRuleChecks[i]
+                    && !threefoldRepetitionChecks[i]) {
                 bestOnwardConfigurationScore = onwardConfigurationScore;
                 bestOnwardConfigurationIndex = i;
             }
@@ -76,7 +80,7 @@ public class DepthFirstPositionEvaluator {
     }
 
     public static GameEndType deriveGameEndType(PieceConfiguration finalConfiguration) {
-        if (finalConfiguration.isCheck()/* || finalConfiguration.getHalfMoveClock() == NO_CAPTURE_OR_PAWN_MOVE_LIMIT*/) {
+        if (finalConfiguration.isCheck()) {
             return GameEndType.values()[1 - finalConfiguration.getTurnSide()];
         } else {
             return GameEndType.STALEMATE;

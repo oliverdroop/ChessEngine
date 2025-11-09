@@ -42,11 +42,13 @@ public class ConcurrentPositionEvaluator {
         final int onwardConfigurationCount = onwardPieceConfigurations.size();
         final CompletableFuture<Double>[] onwardConfigurationScoreFutures = new CompletableFuture[onwardConfigurationCount];
         final boolean[] fiftyMoveRuleChecks = new boolean[onwardConfigurationCount];
+        final boolean[] threefoldRepetitionChecks = new boolean[onwardConfigurationCount];
 
         for (int i = 0; i < onwardConfigurationCount; i++) {
             PieceConfiguration onwardPieceConfiguration = onwardPieceConfigurations.get(i);
 
             fiftyMoveRuleChecks[i] = DepthFirstPositionEvaluator.isFiftyMoveRuleFailure(onwardPieceConfiguration);
+            threefoldRepetitionChecks[i] = onwardPieceConfiguration.isThreefoldRepetitionFailure();
 
             CompletableFuture<Double> comparisonFuture = CompletableFuture.supplyAsync(
                 getCallableComparison(onwardPieceConfiguration, currentDiff, depth), executorService);
@@ -58,7 +60,9 @@ public class ConcurrentPositionEvaluator {
         double bestOnwardConfigurationScore = -Double.MAX_VALUE;
         for(int i = 0; i < onwardConfigurationCount; i++) {
             double onwardConfigurationScore = onwardConfigurationScoreFutures[i].join() + threatValue;
-            if (onwardConfigurationScore > bestOnwardConfigurationScore && !fiftyMoveRuleChecks[i]) {
+            if (onwardConfigurationScore > bestOnwardConfigurationScore
+                    && !fiftyMoveRuleChecks[i]
+                    && !threefoldRepetitionChecks[i]) {
                 bestOnwardConfigurationScore = onwardConfigurationScore;
                 bestOnwardConfigurationIndex = i;
             }

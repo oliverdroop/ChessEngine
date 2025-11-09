@@ -286,6 +286,16 @@ public abstract class PieceConfiguration {
             Piece.getPosition(previousBitFlag), Piece.getPosition(currentBitFlag), capturing, promotionTo);
     }
 
+    public boolean isThreefoldRepetitionFailure() {
+        if (historicMoves == null || historicMoves.length < 8) {
+            return false;
+        }
+        final int historyLength = historicMoves.length;
+        final short[] lastFourMoves = Arrays.copyOfRange(historicMoves, historyLength - 4, historyLength);
+        final short[] previousFourMoves = Arrays.copyOfRange(historicMoves, historyLength - 8, historyLength - 4);
+        return Arrays.equals(lastFourMoves, previousFourMoves);
+    }
+
     private static PieceConfiguration getPieceConfigurationImplementation(PieceConfiguration previousConfiguration) {
         final PieceConfiguration newConfiguration;
         if (previousConfiguration instanceof IntsPieceConfiguration previousConfigurationImpl) {

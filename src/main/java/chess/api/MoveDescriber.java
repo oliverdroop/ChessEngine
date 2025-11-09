@@ -42,4 +42,12 @@ public class MoveDescriber {
         final int promotionInt = PROMOTION_BIT_FLAGS.getOrDefault(promotionString, 0);
         return describeMove(fromAndToPositions[0], fromAndToPositions[1], promotionInt);
     }
+
+//    public static boolean isReversal(short move1, short move2) {
+//        final int toPos1 = move1 & 0b111111;
+//        final int fromPos1 = (move1 & 0b111111000000) >>> 6;
+//        final int toPos2 = move2 & 0b111111;
+//        final int fromPos2 = (move2 & 0b111111000000) >>> 6;
+//        return toPos2 == fromPos1 && fromPos2 == toPos1;
+//    }
 }
