@@ -170,7 +170,7 @@ public class LongsPieceConfiguration extends PieceConfiguration {
 
     @Override
     public int getValueDifferential() {
-        int diff = 0;
+        int valueDifferential = 0;
         final int turnSide = getTurnSide();
         final int playerColourDataIndex = turnSide + 2;
         final int opponentColourDataIndex = 3 - turnSide;
@@ -179,9 +179,9 @@ public class LongsPieceConfiguration extends PieceConfiguration {
             final int pieceValue = Piece.FAST_VALUE_ARRAY[pieceTypeFlag];
             final long playerData = data[dataIndex] & data[playerColourDataIndex];
             final long opponentData = data[dataIndex] & data[opponentColourDataIndex];
-            diff += (Long.bitCount(playerData) - Long.bitCount(opponentData)) * pieceValue;
+            valueDifferential += (Long.bitCount(playerData) - Long.bitCount(opponentData)) * pieceValue;
         }
-        return diff;
+        return valueDifferential;
     }
 
     @Override

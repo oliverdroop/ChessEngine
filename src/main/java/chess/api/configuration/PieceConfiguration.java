@@ -286,7 +286,22 @@ public abstract class PieceConfiguration {
             Piece.getPosition(previousBitFlag), Piece.getPosition(currentBitFlag), capturing, promotionTo);
     }
 
-    public boolean isThreefoldRepetitionFailure() {
+    public boolean isDraw() {
+        return getHalfMoveClock() > NO_CAPTURE_OR_PAWN_MOVE_LIMIT || isThreefoldRepetitionFailure();
+    }
+
+    public int adjustForDraw(int valueDifferential) {
+        if (isDraw()) {
+            if (Math.abs(valueDifferential) > 3) {
+                valueDifferential -= Math.round(Math.signum(valueDifferential) * Short.MAX_VALUE);
+            } else {
+                valueDifferential += Short.MAX_VALUE;
+            }
+        }
+        return valueDifferential;
+    }
+
+    boolean isThreefoldRepetitionFailure() {
         if (historicMoves == null || historicMoves.length < 8) {
             return false;
         }

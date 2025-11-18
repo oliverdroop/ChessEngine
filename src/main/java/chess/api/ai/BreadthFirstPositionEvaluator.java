@@ -12,7 +12,13 @@ public class BreadthFirstPositionEvaluator {
 
     public static PieceConfiguration getBestMoveRecursively(PieceConfiguration pieceConfiguration, int depth) {
         final InMemoryTrie inMemoryTrie = new InMemoryTrie();
-        final short[] initialHistoricMoves = new short[]{};
+        final short[] initialHistoricMoves;
+        if (pieceConfiguration.getHistoricMoves() != null) {
+            initialHistoricMoves = pieceConfiguration.getHistoricMoves();
+        } else {
+            initialHistoricMoves = new short[]{};
+        }
+        final int initialHistoricMovesLength = initialHistoricMoves.length;
         pieceConfiguration.setHistoricMoves(initialHistoricMoves);
         inMemoryTrie.setScore(initialHistoricMoves, 0.0);
         PieceConfiguration currentConfiguration;
@@ -23,16 +29,20 @@ public class BreadthFirstPositionEvaluator {
             final boolean isMaximumDepth = currentDepth >= depth - 1;
             final Map<short[], Double> trieMapCopy = new TreeMap<>(inMemoryTrie.getTrieMap());
             for(short[] historicMoves : trieMapCopy.keySet()) {
-                if (historicMoves.length != currentDepth) {
+                if (historicMoves.length - initialHistoricMovesLength != currentDepth) {
                     continue;
                 }
                 final int historicMovesLastIndex = historicMoves.length - 1;
-                if (historicMovesLastIndex >= 0) {
-                    final short[] historicMovesExceptFinal = copyOfRange(historicMoves, 0, historicMovesLastIndex);
-                    if (parentConfiguration == null || !Arrays.equals(parentConfiguration.getHistoricMoves(), historicMovesExceptFinal)) {
-                        parentConfiguration = toNewConfigurationFromMoves(pieceConfiguration, historicMovesExceptFinal);
+                if (historicMovesLastIndex >= initialHistoricMovesLength) {
+                    final short[] additionalMovesExceptFinal = copyOfRange(
+                        historicMoves, initialHistoricMovesLength, historicMovesLastIndex);
+                    if (parentConfiguration == null
+                            || !Arrays.equals(parentConfiguration.getHistoricMoves(), additionalMovesExceptFinal)) {
+                        parentConfiguration = toNewConfigurationFromMoves(
+                            pieceConfiguration, additionalMovesExceptFinal);
                     }
-                    currentConfiguration = toNewConfigurationFromMove(parentConfiguration, historicMoves[historicMovesLastIndex]);
+                    currentConfiguration = toNewConfigurationFromMove(
+                        parentConfiguration, historicMoves[historicMovesLastIndex]);
                 } else {
                     currentConfiguration = pieceConfiguration;
                 }
@@ -52,10 +62,8 @@ public class BreadthFirstPositionEvaluator {
         final short bestMove = getBestOnwardMoveScorePair(inMemoryTrie, initialHistoricMoves).move();
         if (bestMove != -1) {
             final PieceConfiguration bestConfiguration = toNewConfigurationFromMove(pieceConfiguration, bestMove);
-            if (bestConfiguration.getHalfMoveClock() <= NO_CAPTURE_OR_PAWN_MOVE_LIMIT) {
-                bestConfiguration.setHigherBitFlags();
-                return bestConfiguration;
-            }
+            bestConfiguration.setHigherBitFlags();
+            return bestConfiguration;
         }
         return null;
     }
@@ -69,8 +77,6 @@ public class BreadthFirstPositionEvaluator {
                 mateValue = -Float.MAX_VALUE;
             }
             return mateValue;
-        } else if (currentConfiguration.getHalfMoveClock() > NO_CAPTURE_OR_PAWN_MOVE_LIMIT) {
-            return (double) -Float.MAX_VALUE;
         }
         return null;
     }
@@ -103,7 +109,7 @@ public class BreadthFirstPositionEvaluator {
 
     private static double getConfigurationScore(PieceConfiguration onwardConfiguration, double currentLesserScore) {
         // Set all the bit flags in the onward configuration
-        final int onwardValueComparison = onwardConfiguration.getValueDifferential();
+        final int onwardValueComparison = onwardConfiguration.adjustForDraw(onwardConfiguration.getValueDifferential());
         return onwardValueComparison + currentLesserScore;
     }
 

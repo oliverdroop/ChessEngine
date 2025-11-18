@@ -48,7 +48,7 @@ public class FENController {
 
             if (outputConfiguration != null) {
                 final String outputFEN = FENWriter.write(outputConfiguration);
-                if (outputConfiguration.getOnwardConfigurations().isEmpty()) {
+                if (outputConfiguration.getOnwardConfigurations().isEmpty() || outputConfiguration.isDraw()) {
                     setAndLogGameEnd(response, outputConfiguration);
                 }
                 response.setFen(outputFEN);

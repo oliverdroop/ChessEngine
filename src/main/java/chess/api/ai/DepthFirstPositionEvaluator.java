@@ -7,11 +7,11 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
+import static chess.api.configuration.PieceConfiguration.NO_CAPTURE_OR_PAWN_MOVE_LIMIT;
+
 public class DepthFirstPositionEvaluator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DepthFirstPositionEvaluator.class);
-
-    private static final int NO_CAPTURE_OR_PAWN_MOVE_LIMIT = 99;
 
     public static PieceConfiguration getBestMoveRecursively(PieceConfiguration pieceConfiguration, int depth) {
         final Optional<ConfigurationScorePair> optionalBestEntry = getBestConfigurationScorePairRecursively(pieceConfiguration, depth);
@@ -31,29 +31,20 @@ public class DepthFirstPositionEvaluator {
         return -Float.MAX_VALUE;
     }
 
-    static boolean isFiftyMoveRuleFailure(PieceConfiguration pieceConfiguration) {
-        return pieceConfiguration.getHalfMoveClock() > NO_CAPTURE_OR_PAWN_MOVE_LIMIT;
-    }
-
     static Optional<ConfigurationScorePair> getBestConfigurationScorePairRecursively(PieceConfiguration pieceConfiguration, int depth) {
-        final double currentDiff = pieceConfiguration.getValueDifferential();
+        final int currentDiff = pieceConfiguration.adjustForDraw(pieceConfiguration.getValueDifferential());
 
         depth--;
         final List<PieceConfiguration> onwardPieceConfigurations = pieceConfiguration.getOnwardConfigurations();
         final int onwardConfigurationCount = onwardPieceConfigurations.size();
         final double[] onwardConfigurationScores = new double[onwardConfigurationCount];
-        final boolean[] fiftyMoveRuleChecks = new boolean[onwardConfigurationCount];
-        final boolean[] threefoldRepetitionChecks = new boolean[onwardConfigurationCount];
         for (int i = 0; i < onwardConfigurationCount; i++) {
-            PieceConfiguration onwardPieceConfiguration = onwardPieceConfigurations.get(i);
+            PieceConfiguration onwardConfiguration = onwardPieceConfigurations.get(i);
 
-            fiftyMoveRuleChecks[i] = isFiftyMoveRuleFailure(onwardPieceConfiguration);
-            threefoldRepetitionChecks[i] = onwardPieceConfiguration.isThreefoldRepetitionFailure();
-
-            double nextDiff = onwardPieceConfiguration.getValueDifferential();
+            int nextDiff = onwardConfiguration.adjustForDraw(onwardConfiguration.getValueDifferential());
             double comparison = currentDiff - nextDiff;
             if (depth > 0) {
-                comparison += getBestScoreDifferentialRecursively(onwardPieceConfiguration, depth) * 0.99; // This modifier adjusts for uncertainty at depth
+                comparison += getBestScoreDifferentialRecursively(onwardConfiguration, depth) * 0.99; // This modifier adjusts for uncertainty at depth
                 // Below is where the position can be evaluated for more than just the value differential (because the position bit flags have been calculated)
             }
             onwardConfigurationScores[i] = comparison;
@@ -64,9 +55,7 @@ public class DepthFirstPositionEvaluator {
         double bestOnwardConfigurationScore = -Double.MAX_VALUE;
         for(int i = 0; i < onwardConfigurationCount; i++) {
             double onwardConfigurationScore = onwardConfigurationScores[i] + threatValue;
-            if (onwardConfigurationScore > bestOnwardConfigurationScore
-                    && !fiftyMoveRuleChecks[i]
-                    && !threefoldRepetitionChecks[i]) {
+            if (onwardConfigurationScore > bestOnwardConfigurationScore) {
                 bestOnwardConfigurationScore = onwardConfigurationScore;
                 bestOnwardConfigurationIndex = i;
             }
@@ -82,6 +71,8 @@ public class DepthFirstPositionEvaluator {
     public static GameEndType deriveGameEndType(PieceConfiguration finalConfiguration) {
         if (finalConfiguration.isCheck()) {
             return GameEndType.values()[1 - finalConfiguration.getTurnSide()];
+        } else if (finalConfiguration.isDraw()) {
+            return GameEndType.DRAW;
         } else {
             return GameEndType.STALEMATE;
         }

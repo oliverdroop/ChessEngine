@@ -35,20 +35,15 @@ public class ConcurrentPositionEvaluator {
     }
 
     private static Optional<ConfigurationScorePair> getBestConfigurationScorePairConcurrently(PieceConfiguration pieceConfiguration, int depth) {
-        final double currentDiff = pieceConfiguration.getValueDifferential();
+        final int currentDiff = pieceConfiguration.adjustForDraw(pieceConfiguration.getValueDifferential());
 
         depth--;
         final List<PieceConfiguration> onwardPieceConfigurations = pieceConfiguration.getOnwardConfigurations();
         final int onwardConfigurationCount = onwardPieceConfigurations.size();
         final CompletableFuture<Double>[] onwardConfigurationScoreFutures = new CompletableFuture[onwardConfigurationCount];
-        final boolean[] fiftyMoveRuleChecks = new boolean[onwardConfigurationCount];
-        final boolean[] threefoldRepetitionChecks = new boolean[onwardConfigurationCount];
 
         for (int i = 0; i < onwardConfigurationCount; i++) {
             PieceConfiguration onwardPieceConfiguration = onwardPieceConfigurations.get(i);
-
-            fiftyMoveRuleChecks[i] = DepthFirstPositionEvaluator.isFiftyMoveRuleFailure(onwardPieceConfiguration);
-            threefoldRepetitionChecks[i] = onwardPieceConfiguration.isThreefoldRepetitionFailure();
 
             CompletableFuture<Double> comparisonFuture = CompletableFuture.supplyAsync(
                 getCallableComparison(onwardPieceConfiguration, currentDiff, depth), executorService);
@@ -60,9 +55,7 @@ public class ConcurrentPositionEvaluator {
         double bestOnwardConfigurationScore = -Double.MAX_VALUE;
         for(int i = 0; i < onwardConfigurationCount; i++) {
             double onwardConfigurationScore = onwardConfigurationScoreFutures[i].join() + threatValue;
-            if (onwardConfigurationScore > bestOnwardConfigurationScore
-                    && !fiftyMoveRuleChecks[i]
-                    && !threefoldRepetitionChecks[i]) {
+            if (onwardConfigurationScore > bestOnwardConfigurationScore) {
                 bestOnwardConfigurationScore = onwardConfigurationScore;
                 bestOnwardConfigurationIndex = i;
             }
@@ -76,11 +69,11 @@ public class ConcurrentPositionEvaluator {
     }
 
     private static Supplier<Double> getCallableComparison(
-        PieceConfiguration onwardPieceConfiguration, double currentDiff, int depth) {
+        PieceConfiguration onwardConfiguration, double currentDiff, int depth) {
         return () -> {
-            final double nextDiff = onwardPieceConfiguration.getValueDifferential();
+            final int nextDiff = onwardConfiguration.adjustForDraw(onwardConfiguration.getValueDifferential());
             final double comparison = currentDiff - nextDiff;
-            final double recursiveDiff = getBestScoreDifferentialRecursively(onwardPieceConfiguration, depth) * 0.99;
+            final double recursiveDiff = getBestScoreDifferentialRecursively(onwardConfiguration, depth) * 0.99;
             return comparison + recursiveDiff;
         };
     }

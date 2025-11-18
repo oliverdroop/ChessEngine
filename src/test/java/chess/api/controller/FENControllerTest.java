@@ -12,8 +12,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
-import static chess.api.GameEndType.STALEMATE;
-import static chess.api.GameEndType.WHITE_VICTORY;
+import static chess.api.GameEndType.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -34,7 +33,7 @@ public class FENControllerTest {
         mockMvc.perform(
             post(AI_MOVE_ENDPOINT)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(OBJECT_MAPPER.writeValueAsString(buildAiMoveRequest(FENWriter.STARTING_POSITION)))
+                .content(OBJECT_MAPPER.writeValueAsString(buildAiMoveRequest(FENWriter.STARTING_POSITION, 3)))
         ).andExpect(status().is2xxSuccessful());
     }
 
@@ -43,7 +42,7 @@ public class FENControllerTest {
         var resolvedException = mockMvc.perform(
             post(AI_MOVE_ENDPOINT)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(OBJECT_MAPPER.writeValueAsString(buildAiMoveRequest("This is not FEN"))))
+                .content(OBJECT_MAPPER.writeValueAsString(buildAiMoveRequest("This is not FEN", 3))))
             .andExpect(status().isBadRequest())
             .andReturn()
             .getResolvedException();
@@ -106,7 +105,7 @@ public class FENControllerTest {
         mockMvc.perform(
                 post(AI_MOVE_ENDPOINT)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(OBJECT_MAPPER.writeValueAsString(buildAiMoveRequest(fen))))
+                    .content(OBJECT_MAPPER.writeValueAsString(buildAiMoveRequest(fen, 3))))
             .andExpect(status().isOk())
             .andExpect(content().string(containsString(WHITE_VICTORY.toString())));
     }
@@ -117,18 +116,29 @@ public class FENControllerTest {
         mockMvc.perform(
                 post(AI_MOVE_ENDPOINT)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(OBJECT_MAPPER.writeValueAsString(buildAiMoveRequest(fen))))
+                    .content(OBJECT_MAPPER.writeValueAsString(buildAiMoveRequest(fen, 3))))
             .andExpect(status().isOk())
             .andExpect(content().string(containsString(WHITE_VICTORY.toString())));
     }
 
     @Test
-    void testGetAiMove_withAiStalemate() throws Exception {
+    void testGetAiMove_withAiDraw() throws Exception {
         String fen = "7K/7P/8/8/8/8/8/k7 w - - 99 50";
         mockMvc.perform(
                 post(AI_MOVE_ENDPOINT)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(OBJECT_MAPPER.writeValueAsString(buildAiMoveRequest(fen))))
+                    .content(OBJECT_MAPPER.writeValueAsString(buildAiMoveRequest(fen, 3))))
+            .andExpect(status().isOk())
+            .andExpect(content().string(containsString(DRAW.toString())));
+    }
+
+    @Test
+    void testGetAiMove_withAiStalemate() throws Exception {
+        String fen = "2Q5/kB1N4/8/8/8/8/8/KR6 b - - 0 50";
+        mockMvc.perform(
+                post(AI_MOVE_ENDPOINT)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(OBJECT_MAPPER.writeValueAsString(buildAiMoveRequest(fen, 5))))
             .andExpect(status().isOk())
             .andExpect(content().string(containsString(STALEMATE.toString())));
     }
@@ -154,15 +164,15 @@ public class FENControllerTest {
             .andExpect(status().isNoContent());
     }
 
-    private AiMoveRequestDto buildAiMoveRequest(String fen) {
+    private AiMoveRequestDto buildAiMoveRequest(String fen, int depth) {
         final AiMoveRequestDto request = new AiMoveRequestDto();
         request.setFen(fen);
-        request.setDepth(3);
+        request.setDepth(depth);
         return request;
     }
 
     private AiMoveRequestDto buildAiMoveRequest(String fen, List<String> moveHistory) {
-        final AiMoveRequestDto request = buildAiMoveRequest(fen);
+        final AiMoveRequestDto request = buildAiMoveRequest(fen, 3);
         request.setMoveHistory(moveHistory);
         return request;
     }

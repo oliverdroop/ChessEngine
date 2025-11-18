@@ -202,13 +202,35 @@ public class AITest {
 
     @ParameterizedTest
     @MethodSource("providePositionEvaluatorArguments")
-    void fiftyMoveRuleTest_stalemateByMovingKing_toExtraDepth(
+    void testAiChoosesDraw_fiftyMoveRuleFailure(
         Class<? extends PieceConfiguration> configurationClass,
         BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
     {
         setupTest("7K/7P/8/8/8/8/8/k7 w - - 99 50", configurationClass);
-        newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH + 1);
-        assertThat(newPieceConfiguration).isNull();
+        newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH);
+        assertThat(newPieceConfiguration)
+            .isNotNull()
+            .extracting(FENWriter::write)
+            .as("Expected white to draw by moving king and failing fifty move rule " +
+                "when the king is the only piece which can move")
+            .isIn("6K1/7P/8/8/8/8/8/k7 b - - 100 50",
+                "8/6KP/8/8/8/8/8/k7 b - - 100 50");
+    }
+
+    @ParameterizedTest
+    @MethodSource("providePositionEvaluatorArguments")
+    void testAiChoosesDraw_fiftyMoveRuleFailureWithPieceDisadvantage(
+        Class<? extends PieceConfiguration> configurationClass,
+        BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
+    {
+        setupTest("7K/7P/8/8/3b4/4P3/8/k2q4 w - - 99 50", configurationClass);
+        newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH);
+        assertThat(newPieceConfiguration)
+            .isNotNull()
+            .extracting(FENWriter::write)
+            .as("Expected white to draw by moving king and failing fifty move rule " +
+                "even when other moves are available")
+            .isEqualTo("6K1/7P/8/8/3b4/4P3/8/k2q4 b - - 100 50");
     }
 
     @ParameterizedTest
@@ -220,7 +242,7 @@ public class AITest {
         setupTest("7K/7P/8/8/7r/2P4k/8/B7 w - - 99 50", configurationClass);
 		newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH);
 		assertThat(FENWriter.write(newPieceConfiguration))
-				.as("Expected white to avoid stalemate by moving a pawn")
+				.as("Expected white to avoid draw by moving a pawn")
 				.isEqualTo("7K/7P/8/8/2P4r/7k/8/B7 b - - 0 50");
 	}
 
@@ -269,7 +291,7 @@ public class AITest {
 
     @ParameterizedTest
     @MethodSource("providePositionEvaluatorArguments")
-    void testAIAvoidsStalemate_threefoldRepetition(
+    void testAIAvoidsDraw_threefoldRepetition(
         Class<? extends PieceConfiguration> configurationClass,
         BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction
     ) {
@@ -331,8 +353,38 @@ public class AITest {
         newPieceConfiguration = aiFunction.apply(pieceConfiguration, 5);
 
         assertThat(FENWriter.write(newPieceConfiguration))
-            .as("AI should avoid repeating the same position three times")
+            .as("AI should avoid repeating the same position three times when at an advantage")
             .doesNotContain("2kr2nr/1bp3p1/ppnpp1q1/5p1p/1PPP4/P3PN1P/2QRBPPB/4R1K1 w - -");
+    }
+
+    @ParameterizedTest
+    @MethodSource("providePositionEvaluatorArguments")
+    void testAiChoosesDraw_threefoldRepetitionWithPieceDisadvantage(
+        Class<? extends PieceConfiguration> configurationClass,
+        BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction
+    ) {
+        pieceConfiguration = loadConfigurationWithHistory(
+            configurationClass,
+            FENWriter.STARTING_POSITION,
+            "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
+            "rnbqkb1r/pppppppp/5n2/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 1 2",
+            "rnbqkb1r/pppppppp/5n2/8/4P1Q1/8/PPPP1PPP/RNB1KBNR b KQkq - 2 2",
+            "rnbqkb1r/pppppppp/8/8/4P1n1/8/PPPP1PPP/RNB1KBNR w KQkq - 0 3",
+            "rnbqkb1r/pppppppp/8/8/4P1n1/P7/1PPP1PPP/RNB1KBNR b KQkq - 0 3",
+            "r1bqkb1r/pppppppp/2n5/8/4P1n1/P7/1PPP1PPP/RNB1KBNR w KQkq - 1 4",
+            "r1bqkb1r/pppppppp/2n5/8/4P1n1/P1N5/1PPP1PPP/R1B1KBNR b KQkq - 2 4",
+            "rnbqkb1r/pppppppp/8/8/4P1n1/P1N5/1PPP1PPP/R1B1KBNR w KQkq - 3 5",
+            "rnbqkb1r/pppppppp/8/8/4P1n1/P7/1PPP1PPP/RNB1KBNR b KQkq - 4 5",
+            "r1bqkb1r/pppppppp/2n5/8/4P1n1/P7/1PPP1PPP/RNB1KBNR w KQkq - 5 6",
+            "r1bqkb1r/pppppppp/2n5/8/4P1n1/P1N5/1PPP1PPP/R1B1KBNR b KQkq - 6 6",
+            "rnbqkb1r/pppppppp/8/8/4P1n1/P1N5/1PPP1PPP/R1B1KBNR w KQkq - 7 7"
+        );
+
+        newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH);
+
+        assertThat(FENWriter.write(newPieceConfiguration))
+            .as("AI should choose draw when at a considerable piece disadvantage")
+            .isEqualTo("rnbqkb1r/pppppppp/8/8/4P1n1/P7/1PPP1PPP/RNB1KBNR b KQkq - 8 7");
     }
 
     @Test
