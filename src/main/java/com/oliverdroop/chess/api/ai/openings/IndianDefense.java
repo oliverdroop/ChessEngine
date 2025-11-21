@@ -1,0 +1,9 @@
+package com.oliverdroop.chess.api.ai.openings;
+
+public class IndianDefense extends D4Opening {
+
+    IndianDefense(String... fens) {
+        super("rnbqkb1r/pppppppp/5n2/8/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 1 2");
+        setFensAndMaxFullMoveNumber(fens);
+    }
+}
