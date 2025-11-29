@@ -350,10 +350,10 @@ public class AITest {
             "2kr2nr/1bp3p1/ppnpp3/5pqp/1PPP3N/P3P2P/2QRBPPB/4R1K1 w - - 8 24",
             "2kr2nr/1bp3p1/ppnpp3/5pqp/1PPP4/P3PN1P/2QRBPPB/4R1K1 b - - 9 24"
         );
-        newPieceConfiguration = aiFunction.apply(pieceConfiguration, 5);
+        newPieceConfiguration = aiFunction.apply(pieceConfiguration, 4);
 
         assertThat(FENWriter.write(newPieceConfiguration))
-            .as("AI should avoid repeating the same position three times when at an advantage")
+            .as("AI should avoid repeating the same position three times when not at a major disadvantage")
             .doesNotContain("2kr2nr/1bp3p1/ppnpp1q1/5p1p/1PPP4/P3PN1P/2QRBPPB/4R1K1 w - -");
     }
 

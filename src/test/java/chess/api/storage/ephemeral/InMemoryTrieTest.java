@@ -12,6 +12,5 @@ public class InMemoryTrieTest {
         assertThatThrownBy(() -> inMemoryTrie.setScore(null, 0.5))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Cannot set the score for a null collection of moves");
-
     }
 }

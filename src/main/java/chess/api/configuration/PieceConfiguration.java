@@ -83,6 +83,8 @@ public abstract class PieceConfiguration {
 
     public static final int NO_CAPTURE_OR_PAWN_MOVE_LIMIT = 99;
 
+    private static final int DRAW_PREFERRED_MATERIAL_DISADVANTAGE_THRESHOLD = 6;
+
     protected static final int[] ALL_DIRECTIONAL_FLAGS = {
             DIRECTION_N,
             DIRECTION_NE,
@@ -292,8 +294,8 @@ public abstract class PieceConfiguration {
 
     public int adjustForDraw(int valueDifferential) {
         if (isDraw()) {
-            if (Math.abs(valueDifferential) > 3) {
-                valueDifferential -= Math.round(Math.signum(valueDifferential) * Short.MAX_VALUE);
+            if (Math.abs(valueDifferential) > DRAW_PREFERRED_MATERIAL_DISADVANTAGE_THRESHOLD) {
+                valueDifferential -= (int) Math.signum(valueDifferential) * Short.MAX_VALUE;
             } else {
                 valueDifferential += Short.MAX_VALUE;
             }
