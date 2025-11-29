@@ -5,7 +5,6 @@ import chess.api.FENWriter;
 import chess.api.configuration.IntsPieceConfiguration;
 import chess.api.configuration.LongsPieceConfiguration;
 import chess.api.configuration.PieceConfiguration;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;

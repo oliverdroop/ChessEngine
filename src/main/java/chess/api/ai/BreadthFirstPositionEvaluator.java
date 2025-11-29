@@ -10,16 +10,16 @@ import static java.util.Arrays.copyOfRange;
 
 public class BreadthFirstPositionEvaluator {
 
-    public static PieceConfiguration getBestMoveRecursively(PieceConfiguration pieceConfiguration, int depth) {
+    public static PieceConfiguration getBestMoveRecursively(PieceConfiguration originalConfiguration, int depth) {
         final InMemoryTrie inMemoryTrie = new InMemoryTrie();
         final short[] initialHistoricMoves;
-        if (pieceConfiguration.getHistoricMoves() != null) {
-            initialHistoricMoves = pieceConfiguration.getHistoricMoves();
+        if (originalConfiguration.getHistoricMoves() != null) {
+            initialHistoricMoves = originalConfiguration.getHistoricMoves();
         } else {
             initialHistoricMoves = new short[]{};
         }
         final int initialHistoricMovesLength = initialHistoricMoves.length;
-        pieceConfiguration.setHistoricMoves(initialHistoricMoves);
+        originalConfiguration.setHistoricMoves(initialHistoricMoves);
         inMemoryTrie.setScore(initialHistoricMoves, 0.0);
         PieceConfiguration currentConfiguration;
         PieceConfiguration parentConfiguration = null;
@@ -33,19 +33,11 @@ public class BreadthFirstPositionEvaluator {
                     continue;
                 }
                 final int historicMovesLastIndex = historicMoves.length - 1;
-                if (historicMovesLastIndex >= initialHistoricMovesLength) {
-                    final short[] additionalMovesExceptFinal = copyOfRange(
-                        historicMoves, initialHistoricMovesLength, historicMovesLastIndex);
-                    if (parentConfiguration == null
-                            || !Arrays.equals(parentConfiguration.getHistoricMoves(), additionalMovesExceptFinal)) {
-                        parentConfiguration = toNewConfigurationFromMoves(
-                            pieceConfiguration, additionalMovesExceptFinal);
-                    }
-                    currentConfiguration = toNewConfigurationFromMove(
-                        parentConfiguration, historicMoves[historicMovesLastIndex]);
-                } else {
-                    currentConfiguration = pieceConfiguration;
-                }
+                final CurrentAndParentConfigurations currentAndParentConfigurations = getCurrentAndParentConfigurations(
+                    historicMovesLastIndex, initialHistoricMovesLength, historicMoves, originalConfiguration,
+                    parentConfiguration);
+                currentConfiguration = currentAndParentConfigurations.currentConfiguration;
+                parentConfiguration = currentAndParentConfigurations.parentConfiguration;
 
                 final List<PieceConfiguration> onwardConfigurations = currentConfiguration.getOnwardConfigurations();
                 final Double gameEndValue = getEndgameValue(onwardConfigurations.size(), currentConfiguration);
@@ -61,11 +53,35 @@ public class BreadthFirstPositionEvaluator {
 
         final short bestMove = getBestOnwardMoveScorePair(inMemoryTrie, initialHistoricMoves).move();
         if (bestMove != -1) {
-            final PieceConfiguration bestConfiguration = toNewConfigurationFromMove(pieceConfiguration, bestMove);
+            final PieceConfiguration bestConfiguration = toNewConfigurationFromMove(originalConfiguration, bestMove);
             bestConfiguration.setHigherBitFlags();
             return bestConfiguration;
         }
         return null;
+    }
+
+    private static CurrentAndParentConfigurations getCurrentAndParentConfigurations(
+        int historicMovesLastIndex,
+        int initialHistoricMovesLength,
+        short[] historicMoves,
+        PieceConfiguration originalConfiguration,
+        PieceConfiguration parentConfiguration
+    ) {
+        PieceConfiguration currentConfiguration;
+        if (historicMovesLastIndex >= initialHistoricMovesLength) {
+            final short[] additionalMovesExceptFinal = copyOfRange(
+                historicMoves, initialHistoricMovesLength, historicMovesLastIndex);
+            if (parentConfiguration == null
+                || !Arrays.equals(parentConfiguration.getHistoricMoves(), additionalMovesExceptFinal)
+            ) {
+                parentConfiguration = toNewConfigurationFromMoves(originalConfiguration, additionalMovesExceptFinal);
+            }
+            currentConfiguration = toNewConfigurationFromMove(
+                parentConfiguration, historicMoves[historicMovesLastIndex]);
+        } else {
+            currentConfiguration = originalConfiguration;
+        }
+        return new CurrentAndParentConfigurations(currentConfiguration, parentConfiguration);
     }
 
     private static Double getEndgameValue(int onwardConfigurationCount, PieceConfiguration currentConfiguration) {
@@ -143,4 +159,7 @@ public class BreadthFirstPositionEvaluator {
         }
         return value;
     }
+
+    private record CurrentAndParentConfigurations(
+        PieceConfiguration currentConfiguration, PieceConfiguration parentConfiguration){}
 }
