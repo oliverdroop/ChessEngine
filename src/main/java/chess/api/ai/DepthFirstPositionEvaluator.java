@@ -7,8 +7,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
-import static chess.api.configuration.PieceConfiguration.NO_CAPTURE_OR_PAWN_MOVE_LIMIT;
-
 public class DepthFirstPositionEvaluator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DepthFirstPositionEvaluator.class);
