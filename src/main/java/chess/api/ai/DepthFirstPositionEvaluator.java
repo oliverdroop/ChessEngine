@@ -12,15 +12,18 @@ public class DepthFirstPositionEvaluator {
     private static final Logger LOGGER = LoggerFactory.getLogger(DepthFirstPositionEvaluator.class);
 
     public static PieceConfiguration getBestMoveRecursively(PieceConfiguration pieceConfiguration, int depth) {
-        final Optional<ConfigurationScorePair> optionalBestEntry = getBestConfigurationScorePairRecursively(pieceConfiguration, depth);
-        return optionalBestEntry.map(ConfigurationScorePair::pieceConfiguration).orElse(null);
+        final ConfigurationScorePair bestEntry = getBestConfigurationScorePairRecursively(pieceConfiguration, depth);
+        if (bestEntry != null) {
+            return bestEntry.pieceConfiguration();
+        }
+        return null;
     }
 
     static double getBestScoreDifferentialRecursively(PieceConfiguration pieceConfiguration, int depth) {
         // The entry object below consists of a PieceConfiguration and a Double representing the score
-        final Optional<ConfigurationScorePair> optionalBestEntry = getBestConfigurationScorePairRecursively(pieceConfiguration, depth);
-        if (optionalBestEntry.isPresent()) {
-            return optionalBestEntry.get().score();
+        final ConfigurationScorePair bestEntry = getBestConfigurationScorePairRecursively(pieceConfiguration, depth);
+        if (bestEntry != null) {
+            return bestEntry.score();
         } else if (pieceConfiguration.isCheck()) {
             // Checkmate
             return Float.MAX_VALUE;
@@ -29,7 +32,7 @@ public class DepthFirstPositionEvaluator {
         return -Float.MAX_VALUE;
     }
 
-    static Optional<ConfigurationScorePair> getBestConfigurationScorePairRecursively(PieceConfiguration pieceConfiguration, int depth) {
+    static ConfigurationScorePair getBestConfigurationScorePairRecursively(PieceConfiguration pieceConfiguration, int depth) {
         final int currentDiff = pieceConfiguration.adjustForDraw(pieceConfiguration.getValueDifferential());
 
         depth--;
@@ -61,9 +64,9 @@ public class DepthFirstPositionEvaluator {
 
         if (bestOnwardConfigurationIndex >= 0) {
             final PieceConfiguration bestOnwardConfiguration = onwardPieceConfigurations.get(bestOnwardConfigurationIndex);
-            return Optional.of(new ConfigurationScorePair(bestOnwardConfiguration, -bestOnwardConfigurationScore));
+            return new ConfigurationScorePair(bestOnwardConfiguration, -bestOnwardConfigurationScore);
         }
-        return Optional.empty();
+        return null;
     }
 
     public static GameEndType deriveGameEndType(PieceConfiguration finalConfiguration) {

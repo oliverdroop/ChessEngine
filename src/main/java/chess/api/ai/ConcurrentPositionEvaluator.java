@@ -22,19 +22,23 @@ public class ConcurrentPositionEvaluator {
     private static final ExecutorService executorService = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
 
     public static PieceConfiguration getBestMoveRecursively(PieceConfiguration pieceConfiguration, int depth) {
-        final Optional<ConfigurationScorePair> optionalBestEntry;
+        final ConfigurationScorePair bestEntry;
         LOGGER.debug("Thread pool size is {}", THREAD_POOL_SIZE);
         if (depth >= CONCURRENCY_DEPTH_THRESHOLD && THREAD_POOL_SIZE > 1) {
             // Use a multithreading method
-            optionalBestEntry = getBestConfigurationScorePairConcurrently(pieceConfiguration, depth);
+            bestEntry = getBestConfigurationScorePairConcurrently(pieceConfiguration, depth);
         } else {
             // Use a single-threaded method
-            optionalBestEntry = DepthFirstPositionEvaluator.getBestConfigurationScorePairRecursively(pieceConfiguration, depth);
+            bestEntry = DepthFirstPositionEvaluator.getBestConfigurationScorePairRecursively(pieceConfiguration, depth);
         }
-        return optionalBestEntry.map(ConfigurationScorePair::pieceConfiguration).orElse(null);
+
+        if (bestEntry != null) {
+            return bestEntry.pieceConfiguration();
+        }
+        return null;
     }
 
-    private static Optional<ConfigurationScorePair> getBestConfigurationScorePairConcurrently(PieceConfiguration pieceConfiguration, int depth) {
+    private static ConfigurationScorePair getBestConfigurationScorePairConcurrently(PieceConfiguration pieceConfiguration, int depth) {
         final int currentDiff = pieceConfiguration.adjustForDraw(pieceConfiguration.getValueDifferential());
 
         depth--;
@@ -63,9 +67,9 @@ public class ConcurrentPositionEvaluator {
 
         if (bestOnwardConfigurationIndex >= 0) {
             final PieceConfiguration bestOnwardConfiguration = onwardPieceConfigurations.get(bestOnwardConfigurationIndex);
-            return Optional.of(new ConfigurationScorePair(bestOnwardConfiguration, -bestOnwardConfigurationScore));
+            return new ConfigurationScorePair(bestOnwardConfiguration, -bestOnwardConfigurationScore);
         }
-        return Optional.empty();
+        return null;
     }
 
     private static Supplier<Double> getCallableComparison(
