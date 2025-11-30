@@ -131,6 +131,8 @@ public abstract class PieceConfiguration {
 
     public abstract double getLesserScore();
 
+    public abstract boolean isDeadPosition();
+
     public abstract boolean isCheck();
 
     public abstract void addPiece(int pieceData);
@@ -289,7 +291,7 @@ public abstract class PieceConfiguration {
     }
 
     public boolean isDraw() {
-        return getHalfMoveClock() > NO_CAPTURE_OR_PAWN_MOVE_LIMIT || isThreefoldRepetitionFailure();
+        return getHalfMoveClock() > NO_CAPTURE_OR_PAWN_MOVE_LIMIT || isThreefoldRepetitionFailure() || isDeadPosition();
     }
 
     public int adjustForDraw(int valueDifferential) {

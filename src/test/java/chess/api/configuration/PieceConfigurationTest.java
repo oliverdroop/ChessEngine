@@ -61,15 +61,6 @@ public class PieceConfigurationTest {
         assertThat(pieceConfiguration.getAuxiliaryData()).isEqualTo(expectedAuxData);
     }
 
-    private static Stream<Arguments> getCastlePositionValues() {
-        return Stream.of(
-                Arguments.of(2, 0b00000000000000000000000000000010),
-                Arguments.of(6, 0b00000000000000000000000000000100),
-                Arguments.of(58, 0b00000000000000000000000000001000),
-                Arguments.of(62, 0b00000000000000000000000000010000)
-        );
-    }
-
     @Test
     void testSetHalfMoveClock_0() {
         pieceConfiguration.setAuxiliaryData(-1);
@@ -219,6 +210,25 @@ public class PieceConfigurationTest {
         assertThat(pieceConfiguration.isThreefoldRepetitionFailure()).isEqualTo(expectedIsFailure);
     }
 
+    @ParameterizedTest
+    @MethodSource("getDeadPositionArguments")
+    void isDeadPosition(Class<? extends PieceConfiguration> configurationClass, String fen, boolean expectedResult) {
+        PieceConfiguration pieceConfiguration = FENReader.read(fen, configurationClass);
+        String negation = expectedResult ? "" : "not ";
+        assertThat(pieceConfiguration.isDeadPosition())
+            .as("Expected \"%s\" %sto be a dead position", fen, negation)
+            .isEqualTo(expectedResult);
+    }
+
+    private static Stream<Arguments> getCastlePositionValues() {
+        return Stream.of(
+            Arguments.of(2, 0b00000000000000000000000000000010),
+            Arguments.of(6, 0b00000000000000000000000000000100),
+            Arguments.of(58, 0b00000000000000000000000000001000),
+            Arguments.of(62, 0b00000000000000000000000000010000)
+        );
+    }
+
     private static Stream<Arguments> getEnPassantSquareValues() {
         return Stream.of(
                 Arguments.of(16, 0b00100001111111111111111111111111),
@@ -314,6 +324,37 @@ public class PieceConfigurationTest {
                     "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 4 6"
                 }
             )
+        );
+    }
+
+    private static Stream<Arguments> getDeadPositionArguments() {
+        return Stream.of(
+            Arguments.of(IntsPieceConfiguration.class, "k7/8/8/8/8/8/8/7K w - - 10 50", true),
+            Arguments.of(IntsPieceConfiguration.class, "k7/n7/8/8/8/8/8/7K w - - 10 50", true),
+            Arguments.of(IntsPieceConfiguration.class, "k7/8/8/8/8/8/7N/7K w - - 10 50", true),
+            Arguments.of(IntsPieceConfiguration.class, "k7/b7/8/8/8/8/8/7K w - - 10 50", true),
+            Arguments.of(IntsPieceConfiguration.class, "k7/8/8/8/8/8/7B/7K w - - 10 50", true),
+            Arguments.of(IntsPieceConfiguration.class, "k7/8/8/8/8/8/7P/7K w - - 10 50", false),
+            Arguments.of(IntsPieceConfiguration.class, "k7/p7/8/8/8/8/8/7K w - - 10 50", false),
+            Arguments.of(IntsPieceConfiguration.class, "k7/bb6/8/8/8/8/8/7K w - - 10 50", false),
+            Arguments.of(IntsPieceConfiguration.class, "k7/8/8/8/8/8/6BB/7K w - - 10 50", false),
+            Arguments.of(IntsPieceConfiguration.class, "k7/bn6/8/8/8/8/8/7K w - - 10 50", false),
+            Arguments.of(IntsPieceConfiguration.class, "k7/8/8/8/8/8/6NB/7K w - - 10 50", false),
+            Arguments.of(IntsPieceConfiguration.class, "k7/8/8/8/8/8/5PPP/7K w - - 10 50", false),
+            Arguments.of(IntsPieceConfiguration.class, "k7/ppp5/8/8/8/8/8/7K w - - 10 50", false),
+            Arguments.of(LongsPieceConfiguration.class, "k7/8/8/8/8/8/8/7K w - - 10 50", true),
+            Arguments.of(LongsPieceConfiguration.class, "k7/n7/8/8/8/8/8/7K w - - 10 50", true),
+            Arguments.of(LongsPieceConfiguration.class, "k7/8/8/8/8/8/7N/7K w - - 10 50", true),
+            Arguments.of(LongsPieceConfiguration.class, "k7/b7/8/8/8/8/8/7K w - - 10 50", true),
+            Arguments.of(LongsPieceConfiguration.class, "k7/8/8/8/8/8/7B/7K w - - 10 50", true),
+            Arguments.of(LongsPieceConfiguration.class, "k7/8/8/8/8/8/7P/7K w - - 10 50", false),
+            Arguments.of(LongsPieceConfiguration.class, "k7/p7/8/8/8/8/8/7K w - - 10 50", false),
+            Arguments.of(LongsPieceConfiguration.class, "k7/bb6/8/8/8/8/8/7K w - - 10 50", false),
+            Arguments.of(LongsPieceConfiguration.class, "k7/8/8/8/8/8/6BB/7K w - - 10 50", false),
+            Arguments.of(LongsPieceConfiguration.class, "k7/bn6/8/8/8/8/8/7K w - - 10 50", false),
+            Arguments.of(LongsPieceConfiguration.class, "k7/8/8/8/8/8/6NB/7K w - - 10 50", false),
+            Arguments.of(LongsPieceConfiguration.class, "k7/8/8/8/8/8/5PPP/7K w - - 10 50", false),
+            Arguments.of(LongsPieceConfiguration.class, "k7/ppp5/8/8/8/8/8/7K w - - 10 50", false)
         );
     }
 }

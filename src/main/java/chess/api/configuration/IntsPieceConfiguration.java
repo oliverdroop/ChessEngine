@@ -8,6 +8,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static chess.api.pieces.Piece.FAST_VALUE_ARRAY;
+
 public class IntsPieceConfiguration extends PieceConfiguration {
 
     private int[] positionBitFlags = Position.POSITIONS.clone();
@@ -153,6 +155,22 @@ public class IntsPieceConfiguration extends PieceConfiguration {
             }
         }
         return lesserScore;
+    }
+
+    @Override
+    public boolean isDeadPosition() {
+        int totalMaterial = 0;
+        for(int positionBitFlag : positionBitFlags) {
+            if (BitUtil.hasBitFlag(positionBitFlag, PAWN_OCCUPIED)) {
+                return false;
+            }
+            final int pieceBitFlag = positionBitFlag & PieceConfiguration.ALL_PIECE_FLAGS_COMBINED;
+            if (pieceBitFlag == 0) {
+                continue;
+            }
+            totalMaterial += Piece.getValue(pieceBitFlag);
+        }
+        return totalMaterial <= 3;
     }
 
     @Override

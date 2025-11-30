@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.function.LongBinaryOperator;
 import java.util.stream.Collectors;
 
+import static chess.api.pieces.Piece.FAST_VALUE_ARRAY;
+
 public class LongsPieceConfiguration extends PieceConfiguration {
 
     private static final int PLAYER_OCCUPATION_DATA_INDEX = 0;
@@ -176,7 +178,7 @@ public class LongsPieceConfiguration extends PieceConfiguration {
         final int opponentColourDataIndex = 3 - turnSide;
         for(int dataIndex : VALUABLE_PIECE_DATA_INDEXES) {
             final int pieceTypeFlag = 1 << (dataIndex - 5);
-            final int pieceValue = Piece.FAST_VALUE_ARRAY[pieceTypeFlag];
+            final int pieceValue = FAST_VALUE_ARRAY[pieceTypeFlag];
             final long playerData = data[dataIndex] & data[playerColourDataIndex];
             final long opponentData = data[dataIndex] & data[opponentColourDataIndex];
             valueDifferential += (Long.bitCount(playerData) - Long.bitCount(opponentData)) * pieceValue;
@@ -200,6 +202,18 @@ public class LongsPieceConfiguration extends PieceConfiguration {
             + (undevelopedOpponentCount * 0.00625)
             + (playerOccupiedCentreCount * 0.025)
             + (opponentOccupiedCentreCount * -0.025);
+    }
+
+    @Override
+    public boolean isDeadPosition() {
+        if (data[PAWN_OCCUPATION_DATA_INDEX] != 0L) {
+            return false;
+        }
+        int totalMaterial = 0;
+        for(int dataIndex : VALUABLE_PIECE_DATA_INDEXES) {
+            totalMaterial += Long.bitCount(data[dataIndex]) * FAST_VALUE_ARRAY[1 << (dataIndex - 5)];
+        }
+        return totalMaterial <= 3;
     }
 
     @Override
