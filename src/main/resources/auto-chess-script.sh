@@ -6,6 +6,7 @@ URL=https://odroop.co.uk:8081/chess
 FEN='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
 FEN_REGEX='(([bknpqrBKNPQR1-8]{1,8})/){7}[bknpqrBKNPQR1-8]{1,8} [bw] (K?Q?k?q?|-) (([a-h][36])|-) [0-9]{1,3} [0-9]{1,4}'
 GAME_END_REGEX='(DRAW|STALEMATE|WHITE_VICTORY|BLACK_VICTORY){1}'
+ALGEBRAIC_NOTATION_FIELD_REGEX='\"algebraicNotation\":\"[a-h][1-8]x?[a-h][1-8][qrbn]?\"'
 ALGEBRAIC_NOTATION_REGEX='[a-h][1-8]x?[a-h][1-8][qrbn]?'
 MOVE_HISTORY=()
 MOVE_HISTORY_STRING=""
@@ -27,11 +28,14 @@ do
 		echo "${BASH_REMATCH[0]}"
 		FEN="${BASH_REMATCH[0]}"
 
-		if [[ "$RESULT" =~ $ALGEBRAIC_NOTATION_REGEX ]]; then
-			MOVE_HISTORY+=("\"${BASH_REMATCH[0]}\"")
-			printf -v joined '%s,' "${MOVE_HISTORY[@]}"
-			#echo "${joined%,}"
-			MOVE_HISTORY_STRING="${joined%,}"
+    if [[ "$RESULT" =~ $ALGEBRAIC_NOTATION_FIELD_REGEX ]]; then
+      algebraicNotation="${BASH_REMATCH[0]}"
+      if [[ $algebraicNotation =~ $ALGEBRAIC_NOTATION_REGEX ]]; then
+        MOVE_HISTORY+=("\"${BASH_REMATCH[0]}\"")
+        printf -v joined '%s,' "${MOVE_HISTORY[@]}"
+#        echo "${joined%,}"
+        MOVE_HISTORY_STRING="${joined%,}"
+      fi
 		fi
 
 		if [[ "$RESULT" =~ $GAME_END_REGEX ]]; then
