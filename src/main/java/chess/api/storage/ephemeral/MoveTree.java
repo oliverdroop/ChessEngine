@@ -34,6 +34,10 @@ public class MoveTree {
             LOGGER.warn("No route to parent configuration exists for {}", moveHistoryToParent);
             return;
         }
+        if (moveHistoryToParent.length > 6) {
+            short[] moveHistoryToPruneTo = Arrays.copyOfRange(moveHistoryToParent, 0, moveHistoryToParent.length - 6);
+            prune(moveHistoryToPruneTo);
+        }
         final List<MoveLink> onwardMoves = onwardConfigurations.stream()
             .map(PieceConfiguration::getHistoricMoves)
             .map(hm -> hm[hm.length - 1])
@@ -66,5 +70,16 @@ public class MoveTree {
             currentLink = onwardLink.get();
         }
         return currentLink;
+    }
+
+    private static void prune(short[] moveHistory) {
+        MoveLink currentLink = getMoveLink(moveHistory);
+        while(currentLink != null) {
+            final MoveLink parentMove = currentLink.getParentMove();
+            if (parentMove != null) {
+                parentMove.setChildMoves(new MoveLink[]{currentLink});
+            }
+            currentLink = parentMove;
+        }
     }
 }

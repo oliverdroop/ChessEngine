@@ -162,7 +162,7 @@ public class LongsPieceConfiguration extends PieceConfiguration {
 
     @Override
     public List<PieceConfiguration> getOnwardConfigurations() {
-        MoveLink moveLink = MoveTree.getMoveLink(getHistoricMoves());
+        final MoveLink moveLink = MoveTree.getMoveLink(getHistoricMoves());
         if (moveLink != null && moveLink.getChildMoves() != null) {
             return Arrays.stream(moveLink.getChildMoves())
                 .map(MoveLink::getMove)
