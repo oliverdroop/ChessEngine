@@ -1,13 +1,11 @@
 package chess.api.configuration;
 
-import chess.api.BitUtil;
-import chess.api.Position;
 import chess.api.pieces.Piece;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.LongBinaryOperator;
-import java.util.stream.Collectors;
 
 import static chess.api.pieces.Piece.FAST_VALUE_ARRAY;
 
@@ -161,11 +159,11 @@ public class LongsPieceConfiguration extends PieceConfiguration {
     @Override
     public List<PieceConfiguration> getOnwardConfigurations() {
         setHigherBitFlags();
-        return Arrays.stream(getPieceBitFlags())
-            .boxed()
-            .filter(p -> BitUtil.hasBitFlag(p, PLAYER_OCCUPIED))
-            .flatMap(p -> getOnwardConfigurationsForPiece(p).stream())
-            .collect(Collectors.toList());
+        final List<PieceConfiguration> onwardConfigurations = new ArrayList<>();
+        for(int pieceBitFlag : getPlayerPieceBitFlags()) {
+            onwardConfigurations.addAll(getOnwardConfigurationsForPiece(pieceBitFlag));
+        }
+        return onwardConfigurations;
     }
 
     @Override
@@ -339,8 +337,16 @@ public class LongsPieceConfiguration extends PieceConfiguration {
         return count;
     }
 
-    private int[] getPieceBitFlags() {
-        final long combined = combineDataWithOr(PIECE_DATA_INDEXES);
+    private int[] getPlayerPieceBitFlags() {
+        return getPieceBitFlags(PLAYER_OCCUPATION_DATA_INDEX);
+    }
+
+    private int[] getOpposingPieceBitFlags() {
+        return getPieceBitFlags(OPPONENT_OCCUPATION_DATA_INDEX);
+    }
+
+    private int[] getPieceBitFlags(int playerDataIndex) {
+        final long combined = combineDataWithOr(PIECE_DATA_INDEXES) & data[playerDataIndex];
         final int[] piecesData = new int[32];
         int pieceIndex = 0;
         for(int position = 0; position < 64; position++) {
@@ -368,10 +374,8 @@ public class LongsPieceConfiguration extends PieceConfiguration {
     }
 
     private void stampThreatData() {
-        for(int pieceBitFlag : getPieceBitFlags()) {
-            if (Piece.getSide(pieceBitFlag) != getTurnSide()) {
-                Piece.stampThreatFlags(pieceBitFlag, this);
-            }
+        for(int pieceBitFlag : getOpposingPieceBitFlags()) {
+            Piece.stampThreatFlags(pieceBitFlag, this);
         }
     }
 
@@ -393,8 +397,11 @@ public class LongsPieceConfiguration extends PieceConfiguration {
 
     private void setCheckNonBlockerData(int kingPositionBitFlag) {
         final int kingPositionDirectionalFlags = Piece.getDirectionalFlags(kingPositionBitFlag);
-        if (Arrays.stream(ALL_DIRECTIONAL_FLAGS).anyMatch(df -> df == kingPositionDirectionalFlags)) {
-            setCheckNonBlockerFlags(kingPositionBitFlag, kingPositionDirectionalFlags);
+        for(int directionalFlag : ALL_DIRECTIONAL_FLAGS) {
+            if (directionalFlag == kingPositionDirectionalFlags) {
+                setCheckNonBlockerFlags(kingPositionBitFlag, kingPositionDirectionalFlags);
+                break;
+            }
         }
 
         // Now reverse the bit DOES_NOT_BLOCK_CHECK data because it's on the squares which can block check
