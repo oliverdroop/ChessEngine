@@ -10,6 +10,15 @@ import java.util.stream.Collectors;
 
 import static chess.api.pieces.Piece.FAST_VALUE_ARRAY;
 
+/**
+ * This class holds board state using an array of 32-bit numbers.
+ * Each element in the data array corresponds to a board position, starting from a1 as the zeroth element in the array.
+ * Bits 0-5 (inclusive) of the 32-bit numbers hold a board position from 0-63.
+ * This is mostly for performance and convenience, as the first six bits match the number's index in the data array.
+ * Each bit of the 32-bit numbers between 6 and 28 (inclusive) corresponds to a separate property
+ * which squares can have, such as piece types and threatened status.
+ */
+@Deprecated
 public class IntsPieceConfiguration extends PieceConfiguration {
 
     private int[] positionBitFlags = Position.POSITIONS.clone();

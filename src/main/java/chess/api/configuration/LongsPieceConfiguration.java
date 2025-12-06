@@ -11,6 +11,12 @@ import java.util.stream.Collectors;
 
 import static chess.api.pieces.Piece.FAST_VALUE_ARRAY;
 
+/**
+ * This class holds board state using an array of 64-bit numbers.
+ * Each bit of those 64-bit numbers corresponds to a board position, starting from a1 as the least-significant bit.
+ * Each element in the data array corresponds to a separate property which squares can have,
+ * such as piece types and threatened status.
+ */
 public class LongsPieceConfiguration extends PieceConfiguration {
 
     private static final int PLAYER_OCCUPATION_DATA_INDEX = 0;
@@ -348,11 +354,9 @@ public class LongsPieceConfiguration extends PieceConfiguration {
 
     private void stampOccupationData() {
         final int turnSide = getTurnSide();
-        final long pieceTypeData = combineDataWithOr(PIECE_DATA_INDEXES);
         for(int playerIndex : PLAYER_DATA_INDEXES) {
             final int colourIndex = (turnSide ^ playerIndex) + 2;
-            final long colourData = data[colourIndex];
-            data[playerIndex] = pieceTypeData & colourData;
+            data[playerIndex] = data[colourIndex];
         }
         final int enPassantSquare = getEnPassantSquare();
         if (enPassantSquare >= 0) {
