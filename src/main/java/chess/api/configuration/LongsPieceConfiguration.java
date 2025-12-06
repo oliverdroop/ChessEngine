@@ -3,6 +3,8 @@ package chess.api.configuration;
 import chess.api.BitUtil;
 import chess.api.Position;
 import chess.api.pieces.Piece;
+import chess.api.storage.ephemeral.MoveLink;
+import chess.api.storage.ephemeral.MoveTree;
 
 import java.util.Arrays;
 import java.util.List;
@@ -160,12 +162,21 @@ public class LongsPieceConfiguration extends PieceConfiguration {
 
     @Override
     public List<PieceConfiguration> getOnwardConfigurations() {
+        MoveLink moveLink = MoveTree.getMoveLink(getHistoricMoves());
+        if (moveLink != null && moveLink.getChildMoves() != null) {
+            return Arrays.stream(moveLink.getChildMoves())
+                .map(MoveLink::getMove)
+                .map(m -> toNewConfigurationFromMove(this, m))
+                .toList();
+        }
         setHigherBitFlags();
-        return Arrays.stream(getPieceBitFlags())
+        final List<PieceConfiguration> onwardConfigurations = Arrays.stream(getPieceBitFlags())
             .boxed()
             .filter(p -> BitUtil.hasBitFlag(p, PLAYER_OCCUPIED))
             .flatMap(p -> getOnwardConfigurationsForPiece(p).stream())
             .collect(Collectors.toList());
+        MoveTree.addChildMoveLinks(getHistoricMoves(), onwardConfigurations);
+        return onwardConfigurations;
     }
 
     @Override
