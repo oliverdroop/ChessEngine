@@ -1,7 +1,6 @@
 package chess.api.configuration;
 
 import chess.api.FENReader;
-import chess.api.FENWriter;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;

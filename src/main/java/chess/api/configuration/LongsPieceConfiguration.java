@@ -87,17 +87,6 @@ public class LongsPieceConfiguration extends PieceConfiguration {
         PAWN_OCCUPATION_DATA_INDEX
     };
 
-    private static final int[] PIECE_AND_COLOUR_DATA_INDEXES = new int[]{
-        WHITE_OCCUPATION_DATA_INDEX,
-        BLACK_OCCUPATION_DATA_INDEX,
-        KING_OCCUPATION_DATA_INDEX,
-        KNIGHT_OCCUPATION_DATA_INDEX,
-        BISHOP_OCCUPATION_DATA_INDEX,
-        ROOK_OCCUPATION_DATA_INDEX,
-        QUEEN_OCCUPATION_DATA_INDEX,
-        PAWN_OCCUPATION_DATA_INDEX
-    };
-
     private static final int[] PLAYER_CHECK_DATA_INDEXES = new int[]{
         PLAYER_OCCUPATION_DATA_INDEX,
         KING_OCCUPATION_DATA_INDEX,
@@ -141,14 +130,9 @@ public class LongsPieceConfiguration extends PieceConfiguration {
 
     public LongsPieceConfiguration(){}
 
-    public LongsPieceConfiguration(LongsPieceConfiguration copiedConfiguration, boolean copyPieces) {
+    public LongsPieceConfiguration(LongsPieceConfiguration copiedConfiguration) {
         auxiliaryData = copiedConfiguration.auxiliaryData;
-
-        if (copyPieces) {
-            for(int dataIndex : PIECE_AND_COLOUR_DATA_INDEXES) {
-                data[dataIndex] = copiedConfiguration.data[dataIndex];
-            }
-        }
+        System.arraycopy(copiedConfiguration.data, WHITE_OCCUPATION_DATA_INDEX, data, WHITE_OCCUPATION_DATA_INDEX, 8);
     }
 
     @Override

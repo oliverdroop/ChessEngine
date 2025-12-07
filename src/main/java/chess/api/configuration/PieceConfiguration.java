@@ -318,9 +318,9 @@ public abstract class PieceConfiguration {
     private static PieceConfiguration getPieceConfigurationImplementation(PieceConfiguration previousConfiguration) {
         final PieceConfiguration newConfiguration;
         if (previousConfiguration instanceof IntsPieceConfiguration previousConfigurationImpl) {
-            newConfiguration = new IntsPieceConfiguration(previousConfigurationImpl, true);
+            newConfiguration = new IntsPieceConfiguration(previousConfigurationImpl);
         } else if (previousConfiguration instanceof LongsPieceConfiguration previousConfigurationImpl) {
-            newConfiguration = new LongsPieceConfiguration(previousConfigurationImpl, true);
+            newConfiguration = new LongsPieceConfiguration(previousConfigurationImpl);
         } else {
             throw new IllegalArgumentException("Input PieceConfiguration was not a usable implementation");
         }

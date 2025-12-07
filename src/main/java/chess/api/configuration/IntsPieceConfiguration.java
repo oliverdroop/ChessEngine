@@ -25,14 +25,11 @@ public class IntsPieceConfiguration extends PieceConfiguration {
 
     public IntsPieceConfiguration() {}
 
-    public IntsPieceConfiguration(IntsPieceConfiguration copiedConfiguration, boolean copyPieces) {
+    public IntsPieceConfiguration(IntsPieceConfiguration copiedConfiguration) {
         auxiliaryData = copiedConfiguration.auxiliaryData;
-
-        if (copyPieces) {
-            Arrays.stream(Position.POSITIONS)
-                .forEach(pos -> positionBitFlags[pos] = BitUtil.applyBitFlag(positionBitFlags[pos],
-                    copiedConfiguration.positionBitFlags[pos] & ALL_PIECE_AND_COLOUR_FLAGS_COMBINED));
-        }
+        Arrays.stream(Position.POSITIONS)
+            .forEach(pos -> positionBitFlags[pos] = BitUtil.applyBitFlag(positionBitFlags[pos],
+                copiedConfiguration.positionBitFlags[pos] & ALL_PIECE_AND_COLOUR_FLAGS_COMBINED));
     }
 
     @Override
