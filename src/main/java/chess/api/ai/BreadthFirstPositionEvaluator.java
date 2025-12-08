@@ -105,7 +105,7 @@ public class BreadthFirstPositionEvaluator {
         PieceConfiguration bestOnwardConfiguration = null;
         double bestOnwardScore = -Double.MAX_VALUE;
         for(PieceConfiguration onwardConfiguration : onwardConfigurations) {
-            final double onwardScore = getConfigurationScore(onwardConfiguration, currentLesserScore);
+            final double onwardScore = getConfigurationScore(onwardConfiguration, currentLesserScore, isMaximumDepth);
             if (!isMaximumDepth) {
                 // Store all the onward scores because we are not yet at the maximum depth
                 final short[] key = onwardConfiguration.getHistoricMoves();
@@ -123,9 +123,9 @@ public class BreadthFirstPositionEvaluator {
         }
     }
 
-    private static double getConfigurationScore(PieceConfiguration onwardConfiguration, double currentLesserScore) {
+    private static double getConfigurationScore(PieceConfiguration onwardConfiguration, double currentLesserScore, boolean isMaximumDepth) {
         // Set all the bit flags in the onward configuration
-        final int onwardValueComparison = onwardConfiguration.adjustForDraw(onwardConfiguration.getValueDifferential());
+        final int onwardValueComparison = onwardConfiguration.adjustForDraw(onwardConfiguration.getValueDifferential(), !isMaximumDepth);
         return onwardValueComparison + currentLesserScore;
     }
 

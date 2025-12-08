@@ -5,7 +5,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.*;
 import java.util.function.Supplier;
 
@@ -29,7 +28,7 @@ public class ConcurrentPositionEvaluator {
             bestEntry = getBestConfigurationScorePairConcurrently(pieceConfiguration, depth);
         } else {
             // Use a single-threaded method
-            bestEntry = DepthFirstPositionEvaluator.getBestConfigurationScorePairRecursively(pieceConfiguration, depth);
+            bestEntry = DepthFirstPositionEvaluator.getBestConfigurationScorePairRecursively(pieceConfiguration, depth, true);
         }
 
         if (bestEntry != null) {
@@ -39,7 +38,7 @@ public class ConcurrentPositionEvaluator {
     }
 
     private static ConfigurationScorePair getBestConfigurationScorePairConcurrently(PieceConfiguration pieceConfiguration, int depth) {
-        final int currentDiff = pieceConfiguration.adjustForDraw(pieceConfiguration.getValueDifferential());
+        final int currentDiff = pieceConfiguration.adjustForDraw(pieceConfiguration.getValueDifferential(), false);
 
         depth--;
         final List<PieceConfiguration> onwardPieceConfigurations = pieceConfiguration.getOnwardConfigurations();
@@ -75,7 +74,7 @@ public class ConcurrentPositionEvaluator {
     private static Supplier<Double> getCallableComparison(
         PieceConfiguration onwardConfiguration, double currentDiff, int depth) {
         return () -> {
-            final int nextDiff = onwardConfiguration.adjustForDraw(onwardConfiguration.getValueDifferential());
+            final int nextDiff = onwardConfiguration.adjustForDraw(onwardConfiguration.getValueDifferential(), false);
             final double comparison = currentDiff - nextDiff;
             final double recursiveDiff = getBestScoreDifferentialRecursively(onwardConfiguration, depth) * 0.99;
             return comparison + recursiveDiff;

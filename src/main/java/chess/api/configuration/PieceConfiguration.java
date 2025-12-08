@@ -300,12 +300,12 @@ public abstract class PieceConfiguration {
             Piece.getPosition(previousBitFlag), Piece.getPosition(currentBitFlag), capturing, promotionTo);
     }
 
-    public boolean isDraw() {
-        return getHalfMoveClock() > NO_CAPTURE_OR_PAWN_MOVE_LIMIT || isThreefoldRepetitionFailure() || isDeadPosition();
+    public boolean isDraw(boolean assessThreefoldRepetition) {
+        return getHalfMoveClock() > NO_CAPTURE_OR_PAWN_MOVE_LIMIT || isThreefoldRepetitionFailure(assessThreefoldRepetition) || isDeadPosition();
     }
 
-    public int adjustForDraw(int valueDifferential) {
-        if (isDraw()) {
+    public int adjustForDraw(int valueDifferential, boolean assessThreefoldRepetition) {
+        if (isDraw(assessThreefoldRepetition)) {
             if (Math.abs(valueDifferential) > DRAW_PREFERRED_MATERIAL_DISADVANTAGE_THRESHOLD) {
                 valueDifferential -= (int) Math.signum(valueDifferential) * Short.MAX_VALUE;
             } else {
@@ -315,8 +315,8 @@ public abstract class PieceConfiguration {
         return valueDifferential;
     }
 
-    boolean isThreefoldRepetitionFailure() {
-        if (parentConfiguration == null) {
+    boolean isThreefoldRepetitionFailure(boolean doNotSkip) {
+        if (!doNotSkip || parentConfiguration == null) {
             return false;
         }
         PieceConfiguration historicConfiguration = parentConfiguration;
