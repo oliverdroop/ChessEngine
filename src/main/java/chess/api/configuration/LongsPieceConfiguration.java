@@ -302,8 +302,15 @@ public class LongsPieceConfiguration extends PieceConfiguration {
         stampCheckNonBlockerData();
     }
 
+    @Override
     protected void setDoesNotBlockCheck(int position) {
         data[DOES_NOT_BLOCK_CHECK_DATA_INDEX] |= 1L << position;
+    }
+
+    @Override
+    protected int[] getAllPieceBitFlags() {
+        final long combined = combineDataWithOr(PIECE_DATA_INDEXES);
+        return getPieceBitFlags(combined);
     }
 
     int countUndevelopedPiecesBySide(int turnSide) {
@@ -322,19 +329,23 @@ public class LongsPieceConfiguration extends PieceConfiguration {
     }
 
     private int[] getPlayerPieceBitFlags() {
-        return getPieceBitFlags(PLAYER_OCCUPATION_DATA_INDEX);
+        return getPieceBitFlagsForPlayer(PLAYER_OCCUPATION_DATA_INDEX);
     }
 
     private int[] getOpposingPieceBitFlags() {
-        return getPieceBitFlags(OPPONENT_OCCUPATION_DATA_INDEX);
+        return getPieceBitFlagsForPlayer(OPPONENT_OCCUPATION_DATA_INDEX);
     }
 
-    private int[] getPieceBitFlags(int playerDataIndex) {
+    private int[] getPieceBitFlagsForPlayer(int playerDataIndex) {
         final long combined = combineDataWithOr(PIECE_DATA_INDEXES) & data[playerDataIndex];
+        return getPieceBitFlags(combined);
+    }
+
+    private int[] getPieceBitFlags(long mask) {
         final int[] piecesData = new int[32];
         int pieceIndex = 0;
         for(int position = 0; position < 64; position++) {
-            if (((1L << position) & combined) != 0) {
+            if (((1L << position) & mask) != 0) {
                 piecesData[pieceIndex] = getPieceAtPosition(position);
                 pieceIndex++;
             }

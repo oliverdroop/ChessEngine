@@ -1,6 +1,7 @@
 package chess.api.configuration;
 
 import chess.api.BitUtil;
+import chess.api.FENReader;
 import chess.api.FENWriter;
 import chess.api.Position;
 import chess.api.pieces.Knight;
@@ -63,6 +64,8 @@ public abstract class PieceConfiguration {
     public static final int CASTLE_AVAILABLE = 134217728; // 27
 
     public static final int EN_PASSANT_SQUARE = 268435456; // 28
+
+    protected static final int REPETITION_AUX_DATA_MASK = 0b11111110000000000000000000011111;
     
     public static final int ALL_DIRECTIONAL_FLAGS_COMBINED = DIRECTION_N | DIRECTION_NE | DIRECTION_E | DIRECTION_SE
             | DIRECTION_S | DIRECTION_SW | DIRECTION_W | DIRECTION_NW | DIRECTION_ANY_KNIGHT;
@@ -121,6 +124,8 @@ public abstract class PieceConfiguration {
 
     private short[] historicMoves;
 
+    private PieceConfiguration parentConfiguration;
+
     public abstract Class<? extends PieceConfiguration> getConfigurationClass();
 
     public abstract List<PieceConfiguration> getOnwardConfigurations();
@@ -169,6 +174,8 @@ public abstract class PieceConfiguration {
 
     public abstract void setHigherBitFlags();
 
+    protected abstract int[] getAllPieceBitFlags();
+
     public static PieceConfiguration toNewConfigurationFromMoves(PieceConfiguration originalConfiguration, short[] historicMoves) {
         PieceConfiguration currentConfiguration = originalConfiguration;
         for (short historicMove : historicMoves) {
@@ -180,6 +187,7 @@ public abstract class PieceConfiguration {
     public static PieceConfiguration toNewConfigurationFromMove(PieceConfiguration previousConfiguration, short moveDescription) {
         final PieceConfiguration newConfiguration = getPieceConfigurationImplementation(previousConfiguration);
         newConfiguration.addHistoricMove(previousConfiguration, moveDescription);
+        newConfiguration.setParentConfiguration(previousConfiguration);
         final int fromPos = (moveDescription & 0b0000111111000000) >> 6;
         final int toPos = moveDescription & 0b0000000000111111;
         final int promotionBitFlag = (moveDescription & 0b1111000000000000) >>> 1;
@@ -306,13 +314,32 @@ public abstract class PieceConfiguration {
     }
 
     boolean isThreefoldRepetitionFailure() {
-        if (historicMoves == null || historicMoves.length < 8) {
+        if (parentConfiguration == null) {
             return false;
         }
-        final int historyLength = historicMoves.length;
-        final short[] lastFourMoves = Arrays.copyOfRange(historicMoves, historyLength - 4, historyLength);
-        final short[] previousFourMoves = Arrays.copyOfRange(historicMoves, historyLength - 8, historyLength - 4);
-        return Arrays.equals(lastFourMoves, previousFourMoves);
+        PieceConfiguration historicConfiguration = parentConfiguration;
+        int timesVisited = 1;
+        while(historicConfiguration != null) {
+            if (isRepetitionOf(historicConfiguration)) {
+                timesVisited++;
+            }
+            if (timesVisited >= 3) {
+                return true;
+            }
+            historicConfiguration = historicConfiguration.getParentConfiguration();
+        }
+        return false;
+    }
+
+    private boolean isRepetitionOf(PieceConfiguration otherConfiguration) {
+        final int thisAuxData = auxiliaryData & REPETITION_AUX_DATA_MASK;
+        final int otherAuxData = otherConfiguration.auxiliaryData & REPETITION_AUX_DATA_MASK;
+        if (thisAuxData != otherAuxData) {
+            return false;
+        }
+        final int[] thisConfigurationPieces = getAllPieceBitFlags();
+        final int[] otherConfigurationPieces = otherConfiguration.getAllPieceBitFlags();
+        return Arrays.equals(thisConfigurationPieces, otherConfigurationPieces);
     }
 
     private static PieceConfiguration getPieceConfigurationImplementation(PieceConfiguration previousConfiguration) {
@@ -432,5 +459,13 @@ public abstract class PieceConfiguration {
 
     void setAuxiliaryData(int auxiliaryData) {
         this.auxiliaryData = auxiliaryData;
+    }
+
+    public PieceConfiguration getParentConfiguration() {
+        return parentConfiguration;
+    }
+
+    public void setParentConfiguration(PieceConfiguration parentConfiguration) {
+        this.parentConfiguration = parentConfiguration;
     }
 }

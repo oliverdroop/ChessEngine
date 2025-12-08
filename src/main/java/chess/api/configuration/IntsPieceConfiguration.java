@@ -8,8 +8,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static chess.api.pieces.Piece.FAST_VALUE_ARRAY;
-
 /**
  * This class holds board state using an array of 32-bit numbers.
  * Each element in the data array corresponds to a board position, starting from a1 as the zeroth element in the array.
@@ -108,7 +106,7 @@ public class IntsPieceConfiguration extends PieceConfiguration {
     @Override
     public List<PieceConfiguration> getOnwardConfigurations() {
         setHigherBitFlags();
-        return Arrays.stream(getPieceBitFlags())
+        return Arrays.stream(getAllPieceBitFlags())
             .boxed()
             .filter(p -> BitUtil.hasBitFlag(p, PLAYER_OCCUPIED))
             .flatMap(p -> getOnwardConfigurationsForPiece(p).stream())
@@ -208,12 +206,25 @@ public class IntsPieceConfiguration extends PieceConfiguration {
         positionBitFlags[position] = positionBitFlags[position] & (~ALL_PIECE_COLOUR_AND_OCCUPATION_FLAGS_COMBINED);
     }
 
+    @Override
+    protected int[] getAllPieceBitFlags() {
+        final int[] piecesData = new int[32];
+        int pieceIndex = 0;
+        for(int position = 0; position < 64; position++) {
+            if (getPieceTypeBitFlag(positionBitFlags[position]) != 0) {
+                piecesData[pieceIndex] = getPieceAtPosition(position);
+                pieceIndex++;
+            }
+        }
+        return Arrays.copyOfRange(piecesData, 0, pieceIndex);
+    }
+
     private void clearNonPieceFlags() {
         Arrays.stream(Position.POSITIONS).forEach(pos -> positionBitFlags[pos] = BitUtil.clearBits(positionBitFlags[pos], ~(63 | ALL_PIECE_AND_COLOUR_FLAGS_COMBINED)));
     }
 
     private void stampOccupationFlags() {
-        for(int pieceBitFlag : getPieceBitFlags()) {
+        for(int pieceBitFlag : getAllPieceBitFlags()) {
             int occupationFlag = Piece.getSide(pieceBitFlag) == getTurnSide() ? PLAYER_OCCUPIED : OPPONENT_OCCUPIED;
             int position = Position.getPosition(pieceBitFlag);
             positionBitFlags[position] = BitUtil.applyBitFlag(positionBitFlags[position], occupationFlag);
@@ -228,7 +239,7 @@ public class IntsPieceConfiguration extends PieceConfiguration {
     }
 
     private void stampThreatFlags() {
-        for(int pieceBitFlag : getPieceBitFlags()) {
+        for(int pieceBitFlag : getAllPieceBitFlags()) {
             if (Piece.getSide(pieceBitFlag) != getTurnSide()) {
                 Piece.stampThreatFlags(pieceBitFlag, this);
             }
@@ -263,17 +274,5 @@ public class IntsPieceConfiguration extends PieceConfiguration {
             .filter(pbf -> BitUtil.hasBitFlag(pbf, CHECK_FLAGS_COMBINED))
             .findFirst()
             .orElse(-1);
-    }
-
-    private int[] getPieceBitFlags() {
-        final int[] piecesData = new int[32];
-        int pieceIndex = 0;
-        for(int position = 0; position < 64; position++) {
-            if (getPieceTypeBitFlag(positionBitFlags[position]) != 0) {
-                piecesData[pieceIndex] = getPieceAtPosition(position);
-                pieceIndex++;
-            }
-        }
-        return Arrays.copyOfRange(piecesData, 0, pieceIndex);
     }
 }

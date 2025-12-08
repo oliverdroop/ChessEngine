@@ -2,7 +2,7 @@ package chess.api.validation;
 
 import chess.api.FENReader;
 import chess.api.FENWriter;
-import chess.api.configuration.IntsPieceConfiguration;
+import chess.api.configuration.LongsPieceConfiguration;
 import chess.api.configuration.PieceConfiguration;
 import chess.api.dto.AiMoveRequestDto;
 import jakarta.validation.ConstraintValidator;
@@ -36,7 +36,7 @@ public class AiMoveRequestValidator implements ConstraintValidator<AiMoveRequest
             return false;
         }
         PieceConfiguration currentConfiguration = FENReader.read(
-            FENWriter.STARTING_POSITION, IntsPieceConfiguration.class);
+            FENWriter.STARTING_POSITION, LongsPieceConfiguration.class);
         for (final String moveAlgebraicNotation : moveHistory) {
             final short moveDescription = getMoveFromAlgebraicNotation(moveAlgebraicNotation);
             currentConfiguration = toNewConfigurationFromMove(currentConfiguration, moveDescription);

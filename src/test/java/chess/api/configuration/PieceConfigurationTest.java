@@ -205,7 +205,7 @@ public class PieceConfigurationTest {
 
     @ParameterizedTest
     @MethodSource("getMoveRepetitionArguments")
-    void countLoopsInHistory(boolean expectedIsFailure, String[] fens) {
+    void isThreefoldRepetitionFailure(boolean expectedIsFailure, String[] fens) {
         PieceConfiguration pieceConfiguration = loadConfigurationWithHistory(LongsPieceConfiguration.class, fens);
         assertThat(pieceConfiguration.isThreefoldRepetitionFailure()).isEqualTo(expectedIsFailure);
     }

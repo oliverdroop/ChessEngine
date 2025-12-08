@@ -17,6 +17,7 @@ public class TestUtils {
             final String fen = fens[fenIndex];
             final PieceConfiguration nextConfiguration = FENReader.read(fen, configurationClass);
             final String algebraicNotation = nextConfiguration.getAlgebraicNotation(historicalConfiguration);
+            nextConfiguration.setParentConfiguration(historicalConfiguration);
             historicalConfiguration = nextConfiguration;
             moves[fenIndex - 1] = MoveDescriber.getMoveFromAlgebraicNotation(algebraicNotation);
         }
