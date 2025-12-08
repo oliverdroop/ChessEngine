@@ -219,6 +219,11 @@ public class IntsPieceConfiguration extends PieceConfiguration {
         return Arrays.copyOfRange(piecesData, 0, pieceIndex);
     }
 
+    @Override
+    protected int countPieces() {
+        return getAllPieceBitFlags().length;
+    }
+
     private void clearNonPieceFlags() {
         Arrays.stream(Position.POSITIONS).forEach(pos -> positionBitFlags[pos] = BitUtil.clearBits(positionBitFlags[pos], ~(63 | ALL_PIECE_AND_COLOUR_FLAGS_COMBINED)));
     }

@@ -176,6 +176,8 @@ public abstract class PieceConfiguration {
 
     protected abstract int[] getAllPieceBitFlags();
 
+    protected abstract int countPieces();
+
     public static PieceConfiguration toNewConfigurationFromMoves(PieceConfiguration originalConfiguration, short[] historicMoves) {
         PieceConfiguration currentConfiguration = originalConfiguration;
         for (short historicMove : historicMoves) {
@@ -318,9 +320,20 @@ public abstract class PieceConfiguration {
             return false;
         }
         PieceConfiguration historicConfiguration = parentConfiguration;
+        final int thisAuxData = auxiliaryData & REPETITION_AUX_DATA_MASK;
+        final int[] thisConfigurationPieces = getAllPieceBitFlags();
         int timesVisited = 1;
         while(historicConfiguration != null) {
-            if (isRepetitionOf(historicConfiguration)) {
+            final int otherAuxData = historicConfiguration.auxiliaryData & REPETITION_AUX_DATA_MASK;
+            if (thisAuxData != otherAuxData) {
+                historicConfiguration = historicConfiguration.getParentConfiguration();
+                continue;
+            }
+            final int[] historicConfigurationPieces = historicConfiguration.getAllPieceBitFlags();
+            if (historicConfigurationPieces.length < thisConfigurationPieces.length) {
+                break;
+            }
+            if (Arrays.equals(thisConfigurationPieces, historicConfigurationPieces)) {
                 timesVisited++;
             }
             if (timesVisited >= 3) {
@@ -329,17 +342,6 @@ public abstract class PieceConfiguration {
             historicConfiguration = historicConfiguration.getParentConfiguration();
         }
         return false;
-    }
-
-    private boolean isRepetitionOf(PieceConfiguration otherConfiguration) {
-        final int thisAuxData = auxiliaryData & REPETITION_AUX_DATA_MASK;
-        final int otherAuxData = otherConfiguration.auxiliaryData & REPETITION_AUX_DATA_MASK;
-        if (thisAuxData != otherAuxData) {
-            return false;
-        }
-        final int[] thisConfigurationPieces = getAllPieceBitFlags();
-        final int[] otherConfigurationPieces = otherConfiguration.getAllPieceBitFlags();
-        return Arrays.equals(thisConfigurationPieces, otherConfigurationPieces);
     }
 
     private static PieceConfiguration getPieceConfigurationImplementation(PieceConfiguration previousConfiguration) {

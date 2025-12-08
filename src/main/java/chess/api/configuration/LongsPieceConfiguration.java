@@ -313,6 +313,11 @@ public class LongsPieceConfiguration extends PieceConfiguration {
         return getPieceBitFlags(combined);
     }
 
+    @Override
+    protected int countPieces() {
+        return Long.bitCount(data[WHITE_OCCUPATION_DATA_INDEX] | data[BLACK_OCCUPATION_DATA_INDEX]);
+    }
+
     int countUndevelopedPiecesBySide(int turnSide) {
         final int colourDataIndex = turnSide + 2;
         final long colourData = data[colourDataIndex];
