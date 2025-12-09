@@ -1,7 +1,6 @@
 package chess.api.configuration;
 
 import chess.api.BitUtil;
-import chess.api.FENReader;
 import chess.api.FENWriter;
 import chess.api.Position;
 import chess.api.pieces.Knight;
@@ -174,7 +173,7 @@ public abstract class PieceConfiguration {
 
     public abstract void setHigherBitFlags();
 
-    protected abstract int[] getAllPieceBitFlags();
+    protected abstract int[] getSimplePieceBitFlags();
 
     protected abstract int countPieces();
 
@@ -317,25 +316,29 @@ public abstract class PieceConfiguration {
         return valueDifferential;
     }
 
+    protected int getPieceAndColourWithPosition(int position) {
+        return getPieceAndColourFlags(position) | position;
+    }
+
     boolean isThreefoldRepetitionFailure() {
         if (parentConfiguration == null) {
             return false;
         }
         PieceConfiguration historicConfiguration = parentConfiguration;
         final int latestAuxiliaryData = auxiliaryData & REPETITION_AUX_DATA_MASK;
-        final int[] thisConfigurationPieces = getAllPieceBitFlags();
+        final int[] latestConfigurationPieces = getSimplePieceBitFlags();
         int timesVisited = 1;
         while(historicConfiguration != null) {
             final int historicAuxiliaryData = historicConfiguration.auxiliaryData & REPETITION_AUX_DATA_MASK;
-            if (latestAuxiliaryData != historicAuxiliaryData) {
+            if (historicAuxiliaryData != latestAuxiliaryData) {
                 historicConfiguration = historicConfiguration.getParentConfiguration();
                 continue;
             }
-            final int[] historicConfigurationPieces = historicConfiguration.getAllPieceBitFlags();
-            if (historicConfigurationPieces.length < thisConfigurationPieces.length) {
+            final int[] historicConfigurationPieces = historicConfiguration.getSimplePieceBitFlags();
+            if (historicConfigurationPieces.length < latestConfigurationPieces.length) {
                 break;
             }
-            if (Arrays.equals(thisConfigurationPieces, historicConfigurationPieces)) {
+            if (Arrays.equals(latestConfigurationPieces, historicConfigurationPieces)) {
                 timesVisited++;
             }
             if (timesVisited >= 3) {

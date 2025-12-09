@@ -5,7 +5,9 @@ import chess.api.pieces.Piece;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.IntFunction;
 import java.util.function.LongBinaryOperator;
+import java.util.function.ToIntFunction;
 
 import static chess.api.pieces.Piece.FAST_VALUE_ARRAY;
 
@@ -308,9 +310,9 @@ public class LongsPieceConfiguration extends PieceConfiguration {
     }
 
     @Override
-    protected int[] getAllPieceBitFlags() {
+    protected int[] getSimplePieceBitFlags() {
         final long combined = combineDataWithOr(PIECE_DATA_INDEXES);
-        return getPieceBitFlags(combined);
+        return getPieceBitFlags(combined, this::getPieceAndColourWithPosition);
     }
 
     @Override
@@ -343,15 +345,15 @@ public class LongsPieceConfiguration extends PieceConfiguration {
 
     private int[] getPieceBitFlagsForPlayer(int playerDataIndex) {
         final long combined = combineDataWithOr(PIECE_DATA_INDEXES) & data[playerDataIndex];
-        return getPieceBitFlags(combined);
+        return getPieceBitFlags(combined, this::getPieceAtPosition);
     }
 
-    private int[] getPieceBitFlags(long mask) {
+    private int[] getPieceBitFlags(long mask, ToIntFunction<Integer> intFunction) {
         final int[] piecesData = new int[32];
         int pieceIndex = 0;
         for(int position = 0; position < 64; position++) {
             if (((1L << position) & mask) != 0) {
-                piecesData[pieceIndex] = getPieceAtPosition(position);
+                piecesData[pieceIndex] = intFunction.applyAsInt(position);
                 pieceIndex++;
             }
         }

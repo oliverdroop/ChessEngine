@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 import static chess.api.ai.openings.OpeningBook.getOpeningResponse;
 import static chess.api.ai.DepthFirstPositionEvaluator.deriveGameEndType;
 import static chess.api.ai.ConcurrentPositionEvaluator.getBestMoveRecursively;
+import static chess.api.configuration.PieceConfiguration.toNewConfigurationFromMove;
 
 @RestController
 public class FENController {
@@ -98,17 +99,22 @@ public class FENController {
     }
 
     private PieceConfiguration getInputConfiguration(AiMoveRequestDto aiMoveRequestDto) {
-        final PieceConfiguration inputConfiguration = FENReader.read(aiMoveRequestDto.getFen(), CONFIGURATION_CLASS);
         final List<String> moveHistory = aiMoveRequestDto.getMoveHistory();
-        if (moveHistory != null) {
-            final List<Short> historicMoveList = moveHistory.stream().map(MoveDescriber::getMoveFromAlgebraicNotation).toList();
-            short[] historicMoves = new short[historicMoveList.size()];
-            for(int index = 0; index < historicMoves.length; index++) {
-                historicMoves[index] = historicMoveList.get(index);
-            }
-            inputConfiguration.setHistoricMoves(historicMoves);
+        if (moveHistory == null) {
+            return FENReader.read(aiMoveRequestDto.getFen(), CONFIGURATION_CLASS);
         }
-        return inputConfiguration;
+        final List<Short> historicMoveList = moveHistory.stream().map(MoveDescriber::getMoveFromAlgebraicNotation).toList();
+        final short[] historicMoves = new short[historicMoveList.size()];
+        PieceConfiguration pieceConfiguration = FENReader.read(FENWriter.STARTING_POSITION, CONFIGURATION_CLASS);
+        for(int index = 0; index < historicMoves.length; index++) {
+            final short move = historicMoveList.get(index);
+            historicMoves[index] = move;
+            final PieceConfiguration subsequentConfiguration = toNewConfigurationFromMove(pieceConfiguration, move);
+            subsequentConfiguration.setParentConfiguration(pieceConfiguration);
+            pieceConfiguration = subsequentConfiguration;
+        }
+        pieceConfiguration.setHistoricMoves(historicMoves);
+        return pieceConfiguration;
     }
 
     private void setAndLogGameEnd(AiMoveResponseDto response, PieceConfiguration pieceConfiguration) {

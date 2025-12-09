@@ -6,6 +6,7 @@ import chess.api.pieces.Piece;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
 /**
@@ -106,7 +107,7 @@ public class IntsPieceConfiguration extends PieceConfiguration {
     @Override
     public List<PieceConfiguration> getOnwardConfigurations() {
         setHigherBitFlags();
-        return Arrays.stream(getAllPieceBitFlags())
+        return Arrays.stream(getPieceBitFlags())
             .boxed()
             .filter(p -> BitUtil.hasBitFlag(p, PLAYER_OCCUPIED))
             .flatMap(p -> getOnwardConfigurationsForPiece(p).stream())
@@ -207,21 +208,29 @@ public class IntsPieceConfiguration extends PieceConfiguration {
     }
 
     @Override
-    protected int[] getAllPieceBitFlags() {
-        final int[] piecesData = new int[32];
-        int pieceIndex = 0;
-        for(int position = 0; position < 64; position++) {
-            if (getPieceTypeBitFlag(positionBitFlags[position]) != 0) {
-                piecesData[pieceIndex] = getPieceAtPosition(position);
-                pieceIndex++;
-            }
-        }
-        return Arrays.copyOfRange(piecesData, 0, pieceIndex);
+    protected int[] getSimplePieceBitFlags() {
+        return getPieceBitFlags(this::getPieceAndColourFlags);
     }
 
     @Override
     protected int countPieces() {
-        return getAllPieceBitFlags().length;
+        return getSimplePieceBitFlags().length;
+    }
+
+    private int[] getPieceBitFlags() {
+        return getPieceBitFlags(this::getPieceAtPosition);
+    }
+
+    private int[] getPieceBitFlags(ToIntFunction<Integer> intFunction) {
+        final int[] piecesData = new int[32];
+        int pieceIndex = 0;
+        for(int position = 0; position < 64; position++) {
+            if (getPieceTypeBitFlag(positionBitFlags[position]) != 0) {
+                piecesData[pieceIndex] = intFunction.applyAsInt(position);
+                pieceIndex++;
+            }
+        }
+        return Arrays.copyOfRange(piecesData, 0, pieceIndex);
     }
 
     private void clearNonPieceFlags() {
@@ -229,7 +238,7 @@ public class IntsPieceConfiguration extends PieceConfiguration {
     }
 
     private void stampOccupationFlags() {
-        for(int pieceBitFlag : getAllPieceBitFlags()) {
+        for(int pieceBitFlag : getPieceBitFlags()) {
             int occupationFlag = Piece.getSide(pieceBitFlag) == getTurnSide() ? PLAYER_OCCUPIED : OPPONENT_OCCUPIED;
             int position = Position.getPosition(pieceBitFlag);
             positionBitFlags[position] = BitUtil.applyBitFlag(positionBitFlags[position], occupationFlag);
@@ -244,7 +253,7 @@ public class IntsPieceConfiguration extends PieceConfiguration {
     }
 
     private void stampThreatFlags() {
-        for(int pieceBitFlag : getAllPieceBitFlags()) {
+        for(int pieceBitFlag : getPieceBitFlags()) {
             if (Piece.getSide(pieceBitFlag) != getTurnSide()) {
                 Piece.stampThreatFlags(pieceBitFlag, this);
             }

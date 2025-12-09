@@ -108,9 +108,20 @@ public class FENControllerTest {
     }
 
     @Test
-    void testGetAiMove_withAiDraw() throws Exception {
+    void testGetAiMove_withAiDeadPosition() throws Exception {
         String fen = "7K/7P/8/8/8/8/8/k7 w - - 99 50";
         performAiMoveRequest(buildAiMoveRequest(fen, 3))
+            .andExpect(status().isOk())
+            .andExpect(content().string(containsString(DRAW.toString())));
+    }
+
+    @Test
+    void testGetAiMove_withAiThreefoldRepetition() throws Exception {
+        String fen = "rnbqkb1r/pppppppp/8/8/4P1n1/P1N5/1PPP1PPP/R1B1KBNR w KQkq - 7 7";
+        List<String> moveHistory = List.of(
+            "e2e4", "g8f6", "d1g4", "f6xg4", "a2a3", "b8c6", "b1c3", "c6b8", "c3b1", "b8c6", "b1c3", "c6b8"
+        );
+        performAiMoveRequest(buildAiMoveRequest(fen, moveHistory))
             .andExpect(status().isOk())
             .andExpect(content().string(containsString(DRAW.toString())));
     }
