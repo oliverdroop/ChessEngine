@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>oliverdroop</groupId>
 	<artifactId>ChessEngine</artifactId>
-	<version>1.2.5</version>
+	<version>1.2.6</version>
 	<!-- Inherit defaults from Spring Boot -->
 	<parent>
 		<groupId>org.springframework.boot</groupId>
