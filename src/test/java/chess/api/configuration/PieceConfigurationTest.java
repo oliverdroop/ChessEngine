@@ -207,7 +207,7 @@ public class PieceConfigurationTest {
     @MethodSource("getMoveRepetitionArguments")
     void isThreefoldRepetitionFailure(boolean expectedIsFailure, String[] fens) {
         PieceConfiguration pieceConfiguration = loadConfigurationWithHistory(LongsPieceConfiguration.class, fens);
-        assertThat(pieceConfiguration.isThreefoldRepetitionFailure(true)).isEqualTo(expectedIsFailure);
+        assertThat(pieceConfiguration.isThreefoldRepetitionFailure()).isEqualTo(expectedIsFailure);
     }
 
     @ParameterizedTest
@@ -304,6 +304,20 @@ public class PieceConfigurationTest {
                     "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 4 3",
                     "rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 5 3",
                     "r1bqkbnr/pppppppp/2n5/8/8/5N2/PPPPPPPP/RNBQKB1R w KQkq - 6 4",
+                    "r1bqkbnr/pppppppp/2n5/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 7 4",
+                    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 8 5"
+                }
+            ),
+            Arguments.of(
+                true,
+                new String[]{
+                    FENWriter.STARTING_POSITION,
+                    "rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 1 1",
+                    "r1bqkbnr/pppppppp/2n5/8/8/5N2/PPPPPPPP/RNBQKB1R w KQkq - 2 2",
+                    "r1bqkbnr/pppppppp/2n5/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 3 2",
+                    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 4 3",
+                    "rnbqkbnr/pppppppp/8/8/8/2N5/PPPPPPPP/R1BQKBNR b KQkq - 5 3",
+                    "r1bqkbnr/pppppppp/2n5/8/8/2N5/PPPPPPPP/R1BQKBNR w KQkq - 6 4",
                     "r1bqkbnr/pppppppp/2n5/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 7 4",
                     "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 8 5"
                 }

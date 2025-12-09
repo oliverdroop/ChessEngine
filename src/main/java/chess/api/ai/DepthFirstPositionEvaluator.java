@@ -33,7 +33,7 @@ public class DepthFirstPositionEvaluator {
     }
 
     static ConfigurationScorePair getBestConfigurationScorePairRecursively(PieceConfiguration pieceConfiguration, int depth, boolean isInitialDepth) {
-        final int currentDiff = pieceConfiguration.adjustForDraw(pieceConfiguration.getValueDifferential(), false);
+        final int currentDiff = pieceConfiguration.adjustForDraw(pieceConfiguration.getValueDifferential(), isInitialDepth);
 
         depth--;
         final List<PieceConfiguration> onwardPieceConfigurations = pieceConfiguration.getOnwardConfigurations();

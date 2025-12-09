@@ -300,12 +300,14 @@ public abstract class PieceConfiguration {
             Piece.getPosition(previousBitFlag), Piece.getPosition(currentBitFlag), capturing, promotionTo);
     }
 
-    public boolean isDraw(boolean assessThreefoldRepetition) {
-        return getHalfMoveClock() > NO_CAPTURE_OR_PAWN_MOVE_LIMIT || isThreefoldRepetitionFailure(assessThreefoldRepetition) || isDeadPosition();
+    public boolean isDraw(boolean checkForThreefoldRepetition) {
+        return getHalfMoveClock() > NO_CAPTURE_OR_PAWN_MOVE_LIMIT
+            || (checkForThreefoldRepetition && isThreefoldRepetitionFailure())
+            || isDeadPosition();
     }
 
-    public int adjustForDraw(int valueDifferential, boolean assessThreefoldRepetition) {
-        if (isDraw(assessThreefoldRepetition)) {
+    public int adjustForDraw(int valueDifferential, boolean checkForThreefoldRepetition) {
+        if (isDraw(checkForThreefoldRepetition)) {
             if (Math.abs(valueDifferential) > DRAW_PREFERRED_MATERIAL_DISADVANTAGE_THRESHOLD) {
                 valueDifferential -= (int) Math.signum(valueDifferential) * Short.MAX_VALUE;
             } else {
@@ -315,17 +317,17 @@ public abstract class PieceConfiguration {
         return valueDifferential;
     }
 
-    boolean isThreefoldRepetitionFailure(boolean doNotSkip) {
-        if (!doNotSkip || parentConfiguration == null) {
+    boolean isThreefoldRepetitionFailure() {
+        if (parentConfiguration == null) {
             return false;
         }
         PieceConfiguration historicConfiguration = parentConfiguration;
-        final int thisAuxData = auxiliaryData & REPETITION_AUX_DATA_MASK;
+        final int latestAuxiliaryData = auxiliaryData & REPETITION_AUX_DATA_MASK;
         final int[] thisConfigurationPieces = getAllPieceBitFlags();
         int timesVisited = 1;
         while(historicConfiguration != null) {
-            final int otherAuxData = historicConfiguration.auxiliaryData & REPETITION_AUX_DATA_MASK;
-            if (thisAuxData != otherAuxData) {
+            final int historicAuxiliaryData = historicConfiguration.auxiliaryData & REPETITION_AUX_DATA_MASK;
+            if (latestAuxiliaryData != historicAuxiliaryData) {
                 historicConfiguration = historicConfiguration.getParentConfiguration();
                 continue;
             }
