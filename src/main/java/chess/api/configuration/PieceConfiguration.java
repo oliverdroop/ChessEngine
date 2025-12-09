@@ -2,6 +2,7 @@ package chess.api.configuration;
 
 import chess.api.BitUtil;
 import chess.api.FENWriter;
+import chess.api.GameEndType;
 import chess.api.Position;
 import chess.api.pieces.Knight;
 import chess.api.pieces.Piece;
@@ -303,6 +304,19 @@ public abstract class PieceConfiguration {
         return getHalfMoveClock() > NO_CAPTURE_OR_PAWN_MOVE_LIMIT
             || (checkForThreefoldRepetition && isThreefoldRepetitionFailure())
             || isDeadPosition();
+    }
+
+    public GameEndType getDrawGameEndType() {
+        if (getHalfMoveClock() > NO_CAPTURE_OR_PAWN_MOVE_LIMIT) {
+            return GameEndType.DRAW_BY_FIFTY_MOVE_RULE;
+        }
+        if (isThreefoldRepetitionFailure()) {
+            return GameEndType.DRAW_BY_THREEFOLD_REPETITION_RULE;
+        }
+        if (isDeadPosition()) {
+            return GameEndType.DRAW_BY_DEAD_POSITION;
+        }
+        return null;
     }
 
     public int adjustForDraw(int valueDifferential, boolean checkForThreefoldRepetition) {

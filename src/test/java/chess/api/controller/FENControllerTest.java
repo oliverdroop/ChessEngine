@@ -109,10 +109,10 @@ public class FENControllerTest {
 
     @Test
     void testGetAiMove_withAiDeadPosition() throws Exception {
-        String fen = "7K/7P/8/8/8/8/8/k7 w - - 99 50";
+        String fen = "7K/7N/8/8/8/8/8/k7 w - - 0 50";
         performAiMoveRequest(buildAiMoveRequest(fen, 3))
             .andExpect(status().isOk())
-            .andExpect(content().string(containsString(DRAW.toString())));
+            .andExpect(content().string(containsString(DRAW_BY_DEAD_POSITION.toString())));
     }
 
     @Test
@@ -123,7 +123,7 @@ public class FENControllerTest {
         );
         performAiMoveRequest(buildAiMoveRequest(fen, moveHistory))
             .andExpect(status().isOk())
-            .andExpect(content().string(containsString(DRAW.toString())));
+            .andExpect(content().string(containsString(DRAW_BY_THREEFOLD_REPETITION_RULE.toString())));
     }
 
     @Test
@@ -139,7 +139,7 @@ public class FENControllerTest {
         String fen = "8/8/8/3K4/3Q4/8/2k5/8 w - - 99 155";
         performAiMoveRequest(buildAiMoveRequest(fen, 3))
             .andExpect(status().isOk())
-            .andExpect(content().string(containsString(DRAW.toString())))
+            .andExpect(content().string(containsString(DRAW_BY_FIFTY_MOVE_RULE.toString())))
             .andExpect(content().string(containsString("\"isCheck\":true")));
     }
     

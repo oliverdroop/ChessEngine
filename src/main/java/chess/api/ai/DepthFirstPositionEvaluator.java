@@ -70,12 +70,13 @@ public class DepthFirstPositionEvaluator {
     }
 
     public static GameEndType deriveGameEndType(PieceConfiguration finalConfiguration) {
-        if (finalConfiguration.isDraw(true)) {
-            return GameEndType.DRAW;
-        } else if (finalConfiguration.isCheck()) {
-            return GameEndType.values()[1 - finalConfiguration.getTurnSide()];
-        } else {
-            return GameEndType.STALEMATE;
+        final GameEndType drawGameEndType = finalConfiguration.getDrawGameEndType();
+        if (drawGameEndType != null) {
+            return drawGameEndType;
         }
+        if (finalConfiguration.isCheck()) {
+            return GameEndType.values()[1 - finalConfiguration.getTurnSide()];
+        }
+        return GameEndType.STALEMATE;
     }
 }
