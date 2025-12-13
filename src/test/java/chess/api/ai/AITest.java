@@ -285,7 +285,7 @@ public class AITest {
         setupTest("r3q1nN/ppp4p/8/kb5R/1N1Q4/6P1/PP1BB3/R3K3 b Q - 6 20", configurationClass);
         newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH);
         assertThat(newPieceConfiguration.isCheck()).isTrue();
-        assertThat(DepthFirstPositionEvaluator.deriveGameEndType(newPieceConfiguration))
+        assertThat(newPieceConfiguration.deriveGameEndType())
             .isEqualTo(GameEndType.BLACK_VICTORY);
     }
 
@@ -415,8 +415,8 @@ public class AITest {
             intsPieceConfiguration = newIntsConfiguration;
             longsPieceConfiguration = newLongsConfiguration;
         }
-        LOGGER.info(DepthFirstPositionEvaluator.deriveGameEndType(previousIntsConfiguration).toString());
-        LOGGER.info(DepthFirstPositionEvaluator.deriveGameEndType(previousLongsConfiguration).toString());
+        LOGGER.info(previousIntsConfiguration.deriveGameEndType().toString());
+        LOGGER.info(previousLongsConfiguration.deriveGameEndType().toString());
     }
 
     @Test
@@ -440,7 +440,7 @@ public class AITest {
                 .isEqualTo(depthFirstFen);
             pieceConfiguration = depthFirstEvaluatorConfiguration;
         }
-        LOGGER.info(DepthFirstPositionEvaluator.deriveGameEndType(previousConfiguration).toString());
+        LOGGER.info(previousConfiguration.deriveGameEndType().toString());
     }
 
     private static Stream<Arguments> providePositionEvaluatorArguments() {

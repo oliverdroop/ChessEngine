@@ -1,6 +1,5 @@
 package chess.api.ai;
 
-import chess.api.GameEndType;
 import chess.api.configuration.PieceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,16 +66,5 @@ public class DepthFirstPositionEvaluator {
             return new ConfigurationScorePair(bestOnwardConfiguration, -bestOnwardConfigurationScore);
         }
         return null;
-    }
-
-    public static GameEndType deriveGameEndType(PieceConfiguration finalConfiguration) {
-        final GameEndType drawGameEndType = finalConfiguration.getDrawGameEndType();
-        if (drawGameEndType != null) {
-            return drawGameEndType;
-        }
-        if (finalConfiguration.isCheck()) {
-            return GameEndType.values()[1 - finalConfiguration.getTurnSide()];
-        }
-        return GameEndType.STALEMATE;
     }
 }

@@ -14,7 +14,10 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
-@Disabled
+import static chess.api.ai.DepthFirstPositionEvaluator.getBestMoveRecursively;
+import static org.assertj.core.api.Assertions.assertThat;
+
+
 public class DepthFirstPositionEvaluatorTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DepthFirstPositionEvaluatorTest.class);
@@ -24,17 +27,31 @@ public class DepthFirstPositionEvaluatorTest {
     void testGetBestMoveRecursively(Class<? extends PieceConfiguration> configurationClass) {
         PieceConfiguration pieceConfiguration = FENReader.read(FENWriter.STARTING_POSITION, configurationClass);
 
-        LOGGER.info(DepthFirstPositionEvaluator.getBestMoveRecursively(pieceConfiguration, 2).toString());
+        PieceConfiguration newConfiguration = getBestMoveRecursively(pieceConfiguration, 2);
+
+        assertThat(newConfiguration).isNotNull();
     }
 
+    @ParameterizedTest
+    @ValueSource(classes = {IntsPieceConfiguration.class, LongsPieceConfiguration.class})
+    void testGetBestMoveRecursively_returnsNull(Class<? extends PieceConfiguration> configurationClass) {
+        PieceConfiguration pieceConfiguration = FENReader.read("k7/7R/8/8/8/8/8/1R5K b - - 0 50", configurationClass);
+
+        PieceConfiguration newConfiguration = getBestMoveRecursively(pieceConfiguration, 2);
+
+        assertThat(newConfiguration).isNull();
+    }
+
+    @Disabled
     @ParameterizedTest
     @ValueSource(classes = {IntsPieceConfiguration.class, LongsPieceConfiguration.class})
     void testGetBestMoveRecursively_choosesCentre(Class<? extends PieceConfiguration> configurationClass) {
         PieceConfiguration pieceConfiguration = FENReader.read("rnbqkbnr/pppppppp/8/8/P7/8/1PPPPPPP/RNBQKBNR b KQkq - 0 1", configurationClass);
 
-        LOGGER.info(DepthFirstPositionEvaluator.getBestMoveRecursively(pieceConfiguration, 4).toString());
+        LOGGER.info(getBestMoveRecursively(pieceConfiguration, 4).toString());
     }
 
+    @Disabled
     @ParameterizedTest
     @ValueSource(classes = {IntsPieceConfiguration.class, LongsPieceConfiguration.class})
     void testPlayAIGame_DepthFirstVsBreadthFirst(Class<? extends PieceConfiguration> configurationClass) {
@@ -45,14 +62,15 @@ public class DepthFirstPositionEvaluatorTest {
             LOGGER.info(pieceConfiguration.toString());
             previousConfiguration = pieceConfiguration;
             if (pieceConfiguration.getTurnSide() == 0) {
-                pieceConfiguration = DepthFirstPositionEvaluator.getBestMoveRecursively(pieceConfiguration, 4);
+                pieceConfiguration = getBestMoveRecursively(pieceConfiguration, 4);
             } else {
                 pieceConfiguration = BreadthFirstPositionEvaluator.getBestMoveRecursively(pieceConfiguration, 4);
             }
         }
-        LOGGER.info(DepthFirstPositionEvaluator.deriveGameEndType(previousConfiguration).toString());
+        LOGGER.info(previousConfiguration.deriveGameEndType().toString());
     }
 
+    @Disabled
     @Test
     void testPlayAIGame_IntsVsLongs() {
         PieceConfiguration pieceConfiguration = FENReader.read(FENWriter.STARTING_POSITION, IntsPieceConfiguration.class);
@@ -63,15 +81,16 @@ public class DepthFirstPositionEvaluatorTest {
             previousConfiguration = pieceConfiguration;
             if (pieceConfiguration.getTurnSide() == 0) {
                 PieceConfiguration input = FENReader.read(FENWriter.write(pieceConfiguration), IntsPieceConfiguration.class);
-                pieceConfiguration = DepthFirstPositionEvaluator.getBestMoveRecursively(input, 4);
+                pieceConfiguration = getBestMoveRecursively(input, 4);
             } else {
                 PieceConfiguration input = FENReader.read(FENWriter.write(pieceConfiguration), LongsPieceConfiguration.class);
-                pieceConfiguration = DepthFirstPositionEvaluator.getBestMoveRecursively(input, 4);
+                pieceConfiguration = getBestMoveRecursively(input, 4);
             }
         }
-        LOGGER.info(DepthFirstPositionEvaluator.deriveGameEndType(previousConfiguration).toString());
+        LOGGER.info(previousConfiguration.deriveGameEndType().toString());
     }
 
+    @Disabled
     @ParameterizedTest
     @ValueSource(classes = {IntsPieceConfiguration.class, LongsPieceConfiguration.class})
     void testRandomGame(Class<? extends PieceConfiguration> configurationClass) {

@@ -300,17 +300,26 @@ public abstract class PieceConfiguration {
             Piece.getPosition(previousBitFlag), Piece.getPosition(currentBitFlag), capturing, promotionTo);
     }
 
-    public boolean isDraw(boolean checkForThreefoldRepetition) {
-        return getHalfMoveClock() > NO_CAPTURE_OR_PAWN_MOVE_LIMIT
-            || (checkForThreefoldRepetition && isThreefoldRepetitionFailure())
-            || isDeadPosition();
+    public GameEndType deriveGameEndType() {
+        final GameEndType drawGameEndType = getDrawGameEndType(true);
+        if (drawGameEndType != null) {
+            return drawGameEndType;
+        }
+        if (isCheck()) {
+            return GameEndType.values()[1 - getTurnSide()];
+        }
+        return GameEndType.STALEMATE;
     }
 
-    public GameEndType getDrawGameEndType() {
+    public boolean isDraw(boolean checkForThreefoldRepetition) {
+        return getDrawGameEndType(checkForThreefoldRepetition) != null;
+    }
+
+    public GameEndType getDrawGameEndType(boolean checkForThreefoldRepetition) {
         if (getHalfMoveClock() > NO_CAPTURE_OR_PAWN_MOVE_LIMIT) {
             return GameEndType.DRAW_BY_FIFTY_MOVE_RULE;
         }
-        if (isThreefoldRepetitionFailure()) {
+        if (checkForThreefoldRepetition && isThreefoldRepetitionFailure()) {
             return GameEndType.DRAW_BY_THREEFOLD_REPETITION_RULE;
         }
         if (isDeadPosition()) {

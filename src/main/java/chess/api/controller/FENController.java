@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static chess.api.ai.openings.OpeningBook.getOpeningResponse;
-import static chess.api.ai.DepthFirstPositionEvaluator.deriveGameEndType;
 import static chess.api.ai.ConcurrentPositionEvaluator.getBestMoveRecursively;
 import static chess.api.configuration.PieceConfiguration.toNewConfigurationFromMove;
 
@@ -118,7 +117,7 @@ public class FENController {
     }
 
     private void setAndLogGameEnd(AiMoveResponseDto response, PieceConfiguration pieceConfiguration) {
-        final GameEndType gameEndType = deriveGameEndType(pieceConfiguration);
+        final GameEndType gameEndType = pieceConfiguration.deriveGameEndType();
         response.setGameResult(gameEndType.toString());
         LOGGER.info("{}: {}", gameEndType, pieceConfiguration);
     }
