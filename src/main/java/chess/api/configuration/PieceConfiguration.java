@@ -458,6 +458,7 @@ public abstract class PieceConfiguration {
                     && isOpponentKnightOccupied(possibleCheckingKnightPosition)) {
                     // Stamp the checking knight's position so it becomes a movable position
                     setDoesNotBlockCheck(possibleCheckingKnightPosition);
+                    break;
                 }
             }
         }
