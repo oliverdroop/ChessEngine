@@ -16,14 +16,11 @@ public class ConcurrentPositionEvaluator {
 
     private static final int CONCURRENCY_DEPTH_THRESHOLD = 5;
 
-    private static final int THREAD_POOL_SIZE = Runtime.getRuntime().availableProcessors();
-
-    private static final ExecutorService executorService = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
+    private static final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
 
     public static PieceConfiguration getBestMoveRecursively(PieceConfiguration pieceConfiguration, int depth) {
         final ConfigurationScorePair bestEntry;
-        LOGGER.debug("Thread pool size is {}", THREAD_POOL_SIZE);
-        if (depth >= CONCURRENCY_DEPTH_THRESHOLD && THREAD_POOL_SIZE > 1) {
+        if (depth >= CONCURRENCY_DEPTH_THRESHOLD) {
             // Use a multithreading method
             bestEntry = getBestConfigurationScorePairConcurrently(pieceConfiguration, depth);
         } else {

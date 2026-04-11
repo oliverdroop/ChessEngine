@@ -25,7 +25,7 @@ public class AITest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AITest.class);
 
-	private static final int DEPTH = 4;
+	private static final int DEPTH = 5;
 
 	private PieceConfiguration pieceConfiguration;
 

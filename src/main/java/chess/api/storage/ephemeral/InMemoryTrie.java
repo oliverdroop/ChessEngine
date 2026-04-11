@@ -4,6 +4,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.function.BinaryOperator;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -16,13 +18,13 @@ public class InMemoryTrie {
 
     private static final BinaryOperator<Double> MERGE_FUNCTION = (d1, d2) -> d2;
 
-    private static final Supplier<TreeMap<short[], Double>> TREE_MAP_SUPPLIER = () -> new TreeMap<>(SHORT_ARRAY_COMPARATOR);
+    private static final Supplier<NavigableMap<short[], Double>> TREE_MAP_SUPPLIER = () -> new ConcurrentSkipListMap<>(SHORT_ARRAY_COMPARATOR);
 
-    private final TreeMap<short[], Double> trieMap = TREE_MAP_SUPPLIER.get();
+    private final NavigableMap<short[], Double> trieMap = TREE_MAP_SUPPLIER.get();
 
     public InMemoryTrie() {}
 
-    public TreeMap<short[], Double> getTrieMap() {
+    public NavigableMap<short[], Double> getTrieMap() {
         return trieMap;
     }
 
@@ -37,7 +39,7 @@ public class InMemoryTrie {
         trieMap.put(moveHistory, score);
     }
 
-    public TreeMap<short[], Double> getChildren(short[] moveHistory) {
+    public Map<short[], Double> getChildren(short[] moveHistory) {
         return getDescendants(moveHistory)
             .entrySet()
             .stream()
