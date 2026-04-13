@@ -36,10 +36,13 @@ public class BreadthFirstPositionEvaluator {
                 }
                 final Runnable runnable = () -> calculateAndScoreOnwardConfigurations(
                     historicMoves, initialHistoricMovesLength, originalConfiguration, inMemoryTrie, isMaximumDepth);
-                CompletableFuture<Void> future = CompletableFuture.runAsync(runnable, executorService);
+                final CompletableFuture<Void> future = CompletableFuture.runAsync(runnable, executorService);
                 futures.add(future);
             }
             futures.forEach(CompletableFuture::join);
+            if (currentDepth >= depth / 2) {
+                inMemoryTrie.prune(currentDepth);
+            }
             currentDepth++;
         }
 
@@ -81,7 +84,7 @@ public class BreadthFirstPositionEvaluator {
             } else {
                 mateValue = -Float.MAX_VALUE;
             }
-            return (Double) mateValue;
+            return mateValue;
         }
         return null;
     }

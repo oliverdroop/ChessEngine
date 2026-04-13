@@ -25,7 +25,7 @@ public class AITest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AITest.class);
 
-	private static final int DEPTH = 5;
+	private static final int DEPTH = 6;
 
 	private PieceConfiguration pieceConfiguration;
 
@@ -385,6 +385,20 @@ public class AITest {
         assertThat(FENWriter.write(newPieceConfiguration))
             .as("AI should choose draw when at a considerable piece disadvantage")
             .isEqualTo("rnbqkb1r/pppppppp/8/8/4P1n1/P7/1PPP1PPP/RNB1KBNR b KQkq - 8 7");
+    }
+
+    @Disabled
+    @ParameterizedTest
+    @MethodSource("providePositionEvaluatorArguments")
+    void testAiSacrificesQueen_goldCoinsGame(
+        Class<? extends PieceConfiguration> configurationClass,
+        BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction
+    ) {
+        setupTest("5rk1/pp4pp/4p3/2R3Q1/3n4/2q4r/P1P2PPP/5RK1 b - - 1 1", configurationClass);
+        newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH);
+        assertThat(FENWriter.write(newPieceConfiguration))
+            .as("Expected black to sacrifice its queen")
+            .isEqualTo("5rk1/pp4pp/4p3/2R3Q1/3n4/6qr/P1P2PPP/5RK1 w - - 2 2");
     }
 
     @Test
