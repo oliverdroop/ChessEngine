@@ -40,7 +40,7 @@ public class BreadthFirstPositionEvaluator {
                 futures.add(future);
             }
             futures.forEach(CompletableFuture::join);
-            if (currentDepth >= depth / 2) {
+            if (currentDepth > 2) {
                 inMemoryTrie.prune(currentDepth);
             }
             currentDepth++;

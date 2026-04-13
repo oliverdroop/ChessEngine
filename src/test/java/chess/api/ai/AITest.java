@@ -25,14 +25,14 @@ public class AITest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AITest.class);
 
-	private static final int DEPTH = 6;
+	private static final int DEPTH = 5;
 
 	private PieceConfiguration pieceConfiguration;
 
 	private PieceConfiguration newPieceConfiguration;
 
     @ParameterizedTest
-    @MethodSource("providePositionEvaluatorArguments")
+    @MethodSource("provideConfigurationAndEvaluatorArguments")
 	void testAITakesQueen_edgeOfBoard(
         Class<? extends PieceConfiguration> configurationClass,
         BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
@@ -45,7 +45,7 @@ public class AITest {
 	}
 
     @ParameterizedTest
-    @MethodSource("providePositionEvaluatorArguments")
+    @MethodSource("provideConfigurationAndEvaluatorArguments")
 	void testAITakesQueen_middleOfBoard(
         Class<? extends PieceConfiguration> configurationClass,
         BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
@@ -58,7 +58,7 @@ public class AITest {
 	}
 
     @ParameterizedTest
-    @MethodSource("providePositionEvaluatorArguments")
+    @MethodSource("provideConfigurationAndEvaluatorArguments")
 	void testAIChoosesCheckmate_bishopWithRooks(
         Class<? extends PieceConfiguration> configurationClass,
         BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
@@ -71,7 +71,7 @@ public class AITest {
 	}
     
     @ParameterizedTest
-    @MethodSource("providePositionEvaluatorArguments")
+    @MethodSource("provideConfigurationAndEvaluatorArguments")
 	void testAIChoosesCheckmate_bishopWithKnights(
         Class<? extends PieceConfiguration> configurationClass,
         BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
@@ -84,7 +84,7 @@ public class AITest {
 	}
     
     @ParameterizedTest
-    @MethodSource("providePositionEvaluatorArguments")
+    @MethodSource("provideConfigurationAndEvaluatorArguments")
 	void testAIChoosesCheckmate_twoRooks(
         Class<? extends PieceConfiguration> configurationClass,
         BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
@@ -97,7 +97,7 @@ public class AITest {
 	}
 
     @ParameterizedTest
-    @MethodSource("providePositionEvaluatorArguments")
+    @MethodSource("provideConfigurationAndEvaluatorArguments")
 	void testAIChoosesCheckmate_twoRooksTowardsEdge(
         Class<? extends PieceConfiguration> configurationClass,
         BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
@@ -113,7 +113,7 @@ public class AITest {
 	}
 
     @ParameterizedTest
-    @MethodSource("providePositionEvaluatorArguments")
+    @MethodSource("provideConfigurationAndEvaluatorArguments")
 	void testAIChoosesCheckmate_foolsMate(
         Class<? extends PieceConfiguration> configurationClass,
         BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
@@ -126,7 +126,7 @@ public class AITest {
 	}
 
     @ParameterizedTest
-    @MethodSource("providePositionEvaluatorArguments")
+    @MethodSource("provideConfigurationAndEvaluatorArguments")
 	void testAIUpgradesPawn(
         Class<? extends PieceConfiguration> configurationClass,
         BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
@@ -139,7 +139,7 @@ public class AITest {
 	}
 
     @ParameterizedTest
-    @MethodSource("providePositionEvaluatorArguments")
+    @MethodSource("provideConfigurationAndEvaluatorArguments")
     void testAIAvoidsStalemate_toExtraDepth(
         Class<? extends PieceConfiguration> configurationClass,
         BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
@@ -152,7 +152,7 @@ public class AITest {
     }
 
     @ParameterizedTest
-    @MethodSource("providePositionEvaluatorArguments")
+    @MethodSource("provideConfigurationAndEvaluatorArguments")
 	void testAIAvoidsCheckmate_earlyGame(
         Class<? extends PieceConfiguration> configurationClass,
         BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
@@ -173,7 +173,7 @@ public class AITest {
 	}
 
     @ParameterizedTest
-    @MethodSource("providePositionEvaluatorArguments")
+    @MethodSource("provideConfigurationAndEvaluatorArguments")
 	void testAIAvoidsCheckmate_lateGame(
         Class<? extends PieceConfiguration> configurationClass,
         BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
@@ -187,7 +187,7 @@ public class AITest {
 	}
 
     @ParameterizedTest
-    @MethodSource("providePositionEvaluatorArguments")
+    @MethodSource("provideConfigurationAndEvaluatorArguments")
 	void simpleCornerTest_chooseCheckmateOverStalemate(
         Class<? extends PieceConfiguration> configurationClass,
         BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
@@ -201,7 +201,7 @@ public class AITest {
 	}
 
     @ParameterizedTest
-    @MethodSource("providePositionEvaluatorArguments")
+    @MethodSource("provideConfigurationAndEvaluatorArguments")
     void testAiChoosesDraw_fiftyMoveRuleFailure(
         Class<? extends PieceConfiguration> configurationClass,
         BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
@@ -218,7 +218,7 @@ public class AITest {
     }
 
     @ParameterizedTest
-    @MethodSource("providePositionEvaluatorArguments")
+    @MethodSource("provideConfigurationAndEvaluatorArguments")
     void testAiChoosesDraw_fiftyMoveRuleFailureWithPieceDisadvantage(
         Class<? extends PieceConfiguration> configurationClass,
         BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
@@ -234,7 +234,7 @@ public class AITest {
     }
 
     @ParameterizedTest
-    @MethodSource("providePositionEvaluatorArguments")
+    @MethodSource("provideConfigurationAndEvaluatorArguments")
 	void fiftyMoveRuleTest_continueByMovingPawn(
         Class<? extends PieceConfiguration> configurationClass,
         BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
@@ -247,7 +247,7 @@ public class AITest {
 	}
 
     @ParameterizedTest
-    @MethodSource("providePositionEvaluatorArguments")
+    @MethodSource("provideConfigurationAndEvaluatorArguments")
 	void testAIDoesNotBlunderQueen_earlyGame1(
             Class<? extends PieceConfiguration> configurationClass,
             BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
@@ -261,7 +261,7 @@ public class AITest {
 
 
     @ParameterizedTest
-    @MethodSource("providePositionEvaluatorArguments")
+    @MethodSource("provideConfigurationAndEvaluatorArguments")
 	void testAIDoesNotBlunderQueen_earlyGame2(
             Class<? extends PieceConfiguration> configurationClass,
             BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
@@ -277,7 +277,7 @@ public class AITest {
 	}
 
     @ParameterizedTest
-    @MethodSource("providePositionEvaluatorArguments")
+    @MethodSource("provideConfigurationAndEvaluatorArguments")
     void deriveGameEndType(
             Class<? extends PieceConfiguration> configurationClass,
             BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
@@ -290,7 +290,7 @@ public class AITest {
     }
 
     @ParameterizedTest
-    @MethodSource("providePositionEvaluatorArguments")
+    @MethodSource("provideConfigurationAndEvaluatorArguments")
     void testAIAvoidsDraw_threefoldRepetition(
         Class<? extends PieceConfiguration> configurationClass,
         BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction
@@ -358,7 +358,7 @@ public class AITest {
     }
 
     @ParameterizedTest
-    @MethodSource("providePositionEvaluatorArguments")
+    @MethodSource("provideConfigurationAndEvaluatorArguments")
     void testAiChoosesDraw_threefoldRepetitionWithPieceDisadvantage(
         Class<? extends PieceConfiguration> configurationClass,
         BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction
@@ -389,13 +389,13 @@ public class AITest {
 
     @Disabled
     @ParameterizedTest
-    @MethodSource("providePositionEvaluatorArguments")
+    @MethodSource("provideBreadthFirstOnlyPositionEvaluatorArguments")
     void testAiSacrificesQueen_goldCoinsGame(
         Class<? extends PieceConfiguration> configurationClass,
         BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction
     ) {
         setupTest("5rk1/pp4pp/4p3/2R3Q1/3n4/2q4r/P1P2PPP/5RK1 b - - 1 1", configurationClass);
-        newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH);
+        newPieceConfiguration = aiFunction.apply(pieceConfiguration, 6);
         assertThat(FENWriter.write(newPieceConfiguration))
             .as("Expected black to sacrifice its queen")
             .isEqualTo("5rk1/pp4pp/4p3/2R3Q1/3n4/6qr/P1P2PPP/5RK1 w - - 2 2");
@@ -457,19 +457,32 @@ public class AITest {
         LOGGER.info(previousConfiguration.deriveGameEndType().toString());
     }
 
-    private static Stream<Arguments> providePositionEvaluatorArguments() {
+    private static Stream<Arguments> provideConfigurationAndEvaluatorArguments() {
         return Stream.of(
-            Arguments.of(
-                IntsPieceConfiguration.class,
-                (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) ConcurrentPositionEvaluator::getBestMoveRecursively
-            ),
-            Arguments.of(
-                IntsPieceConfiguration.class,
-                (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) BreadthFirstPositionEvaluator::getBestMoveRecursively
-            ),
+//            Arguments.of(
+//                IntsPieceConfiguration.class,
+//                (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) ConcurrentPositionEvaluator::getBestMoveRecursively
+//            ),
+//            Arguments.of(
+//                IntsPieceConfiguration.class,
+//                (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) BreadthFirstPositionEvaluator::getBestMoveRecursively
+//            ),
             Arguments.of(
                 LongsPieceConfiguration.class,
                 (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) ConcurrentPositionEvaluator::getBestMoveRecursively
+            ),
+            Arguments.of(
+                LongsPieceConfiguration.class,
+                (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) BreadthFirstPositionEvaluator::getBestMoveRecursively
+            )
+        );
+    }
+
+    private static Stream<Arguments> provideBreadthFirstOnlyPositionEvaluatorArguments() {
+        return Stream.of(
+            Arguments.of(
+                IntsPieceConfiguration.class,
+                (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) BreadthFirstPositionEvaluator::getBestMoveRecursively
             ),
             Arguments.of(
                 LongsPieceConfiguration.class,

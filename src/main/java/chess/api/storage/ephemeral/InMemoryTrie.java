@@ -1,11 +1,11 @@
 package chess.api.storage.ephemeral;
 
 import com.google.common.collect.TreeMultimap;
+import org.apache.commons.math3.stat.regression.SimpleRegression;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.function.BinaryOperator;
 import java.util.function.Supplier;
@@ -58,42 +58,38 @@ public class InMemoryTrie {
 
         for(Map.Entry<short[], Double> entry : trieMap.entrySet()) {
             final short[] key = entry.getKey();
-            if (key.length < maxDepth) {
+            if (key.length != maxDepth) {
                 continue;
             }
             final double[] values = new double[currentDepth];
-            for(int moveIndex = 1; moveIndex < maxDepth - startingDepth; moveIndex++) {
+            for(int moveIndex = 1; moveIndex < currentDepth; moveIndex++) {
                 short[] moveHistory = Arrays.copyOfRange(key, 0, startingDepth + moveIndex);
                 values[moveIndex - 1] = trieMap.get(moveHistory);
             }
             final double value = entry.getValue();
-            values[maxDepth - startingDepth - 1] = value;
-
-            final double branchValue = getBranchValue(values);
-
-            multimap.put(branchValue, key);
+            values[currentDepth - 1] = value;
+            multimap.put(getBranchGradient(values), key);
         }
 
         // Prune the uninteresting branches
-        final int cutoffIndex = (int) Math.floor(multimap.size() * 0.9);
+        final double cutoffProportion = 1 - (1 / Math.pow(10, currentDepth));
+        final int cutoffIndex = (int) Math.floor(multimap.size() * cutoffProportion);
         final double cutoffKey = multimap.entries().stream().map(Map.Entry::getKey).toList().get(cutoffIndex);
-        for(double branchValue : multimap.keySet().headSet(cutoffKey)) {
-            NavigableSet<short[]> moveHistories = multimap.get(branchValue);
-            for(short[] moveHistory : moveHistories) {
-                trieMap.remove(moveHistory);
-            }
-        }
+        multimap
+            .asMap()
+            .headMap(cutoffKey)
+            .values()
+            .stream()
+            .flatMap(Collection::stream)
+            .forEach(trieMap::remove);
     }
 
-    private double getBranchValue(double[] values) {
-        // Calculate the standard deviation from the mean
-        final int currentDepth = values.length;
-        final double meanValue = Arrays.stream(values).sum() / currentDepth;
-        return Math.sqrt(
-            Arrays.stream(values)
-                .map(v -> Math.pow(v - meanValue, 2))
-                .sum()
-                / currentDepth);
+    private double getBranchGradient(double[] values) {
+        final SimpleRegression simpleRegression = new SimpleRegression();
+        for(int valueIndex = 0; valueIndex < values.length; valueIndex++) {
+            simpleRegression.addData(valueIndex, values[valueIndex]);
+        }
+        return simpleRegression.getSlope();
     }
 
     private NavigableMap<short[], Double> getDescendants(short[] moveHistory) {
