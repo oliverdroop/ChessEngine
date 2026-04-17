@@ -1,5 +1,6 @@
 package chess.api.storage.ephemeral;
 
+import chess.api.ai.BreadthFirstPositionEvaluator;
 import com.google.common.collect.TreeMultimap;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
 import org.slf4j.Logger;
@@ -7,6 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BinaryOperator;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -63,33 +65,42 @@ public class InMemoryTrie {
             }
             final double[] values = new double[currentDepth];
             for(int moveIndex = 1; moveIndex < currentDepth; moveIndex++) {
-                short[] moveHistory = Arrays.copyOfRange(key, 0, startingDepth + moveIndex);
-                values[moveIndex - 1] = trieMap.get(moveHistory);
+                final short[] moveHistory = Arrays.copyOfRange(key, 0, startingDepth + moveIndex);
+                values[moveIndex - 1] = trieMap.getOrDefault(moveHistory, 0.0); // Only null at end of game
             }
             final double value = entry.getValue();
             values[currentDepth - 1] = value;
-            multimap.put(getBranchGradient(values), key);
+            multimap.put(getBranchValue(values), key);
         }
 
-        // Prune the uninteresting branches
-        final double cutoffProportion = 1 - (1 / Math.pow(10, currentDepth));
-        final int cutoffIndex = (int) Math.floor(multimap.size() * cutoffProportion);
+        // Prune the branches with the most pronounced downward trend in values
+//        final double cutoffProportion = 1 - (1 / Math.pow(10, currentDepth));
+//        final int cutoffIndex = (int) Math.floor(multimap.size() * cutoffProportion);
+        final int cutoffIndex = Math.max(multimap.size() - 1024, 0);
         final double cutoffKey = multimap.entries().stream().map(Map.Entry::getKey).toList().get(cutoffIndex);
+        final AtomicInteger pruneCount = new AtomicInteger(0);
         multimap
             .asMap()
             .headMap(cutoffKey)
             .values()
             .stream()
             .flatMap(Collection::stream)
-            .forEach(trieMap::remove);
+            .forEach(moveHistory -> {
+                pruneCount.incrementAndGet();
+                trieMap.remove(moveHistory);
+            });
+        LOGGER.info("Pruned {} values with depth {}", pruneCount.get(), currentDepth);
     }
 
-    private double getBranchGradient(double[] values) {
+    private double getBranchValue(double[] values) {
         final SimpleRegression simpleRegression = new SimpleRegression();
-        for(int valueIndex = 0; valueIndex < values.length; valueIndex++) {
-            simpleRegression.addData(valueIndex, values[valueIndex]);
+        simpleRegression.addData(0, values[0]);
+        for(int valueIndex = 1; valueIndex < values.length; valueIndex++) {
+            final double parentValue = values[valueIndex - 1];
+            final double childValue = values[valueIndex];
+            simpleRegression.addData(valueIndex, BreadthFirstPositionEvaluator.accumulate(parentValue, childValue));
         }
-        return simpleRegression.getSlope();
+        return simpleRegression.predict(values.length);
     }
 
     private NavigableMap<short[], Double> getDescendants(short[] moveHistory) {

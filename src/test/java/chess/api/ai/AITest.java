@@ -459,14 +459,14 @@ public class AITest {
 
     private static Stream<Arguments> provideConfigurationAndEvaluatorArguments() {
         return Stream.of(
-//            Arguments.of(
-//                IntsPieceConfiguration.class,
-//                (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) ConcurrentPositionEvaluator::getBestMoveRecursively
-//            ),
-//            Arguments.of(
-//                IntsPieceConfiguration.class,
-//                (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) BreadthFirstPositionEvaluator::getBestMoveRecursively
-//            ),
+            Arguments.of(
+                IntsPieceConfiguration.class,
+                (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) ConcurrentPositionEvaluator::getBestMoveRecursively
+            ),
+            Arguments.of(
+                IntsPieceConfiguration.class,
+                (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) BreadthFirstPositionEvaluator::getBestMoveRecursively
+            ),
             Arguments.of(
                 LongsPieceConfiguration.class,
                 (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) ConcurrentPositionEvaluator::getBestMoveRecursively

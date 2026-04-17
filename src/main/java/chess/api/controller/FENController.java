@@ -1,6 +1,8 @@
 package chess.api.controller;
 
 import chess.api.*;
+import chess.api.ai.BreadthFirstPositionEvaluator;
+import chess.api.ai.ConcurrentPositionEvaluator;
 import chess.api.configuration.LongsPieceConfiguration;
 import chess.api.configuration.PieceConfiguration;
 import chess.api.dto.AvailableMovesRequestDto;
@@ -20,7 +22,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static chess.api.ai.openings.OpeningBook.getOpeningResponse;
-import static chess.api.ai.ConcurrentPositionEvaluator.getBestMoveRecursively;
 import static chess.api.configuration.PieceConfiguration.toNewConfigurationFromMove;
 
 @RestController
@@ -35,13 +36,18 @@ public class FENController {
         LOGGER.info("Received AI move request FEN: {}", aiMoveRequestDto.getFen());
         final AiMoveResponseDto response = new AiMoveResponseDto();
         try {
+            final int depth = aiMoveRequestDto.getDepth();
             LOGGER.debug("FEN: {}", aiMoveRequestDto.getFen());
-            LOGGER.debug("Depth: {}", aiMoveRequestDto.getDepth());
+            LOGGER.debug("Depth: {}", depth);
             final PieceConfiguration inputConfiguration = getInputConfiguration(aiMoveRequestDto);
 
             PieceConfiguration outputConfiguration = getOpeningResponse(inputConfiguration);
             if (outputConfiguration == null) {
-                outputConfiguration = getBestMoveRecursively(inputConfiguration, aiMoveRequestDto.getDepth());
+                if (depth < 6) {
+                    outputConfiguration = ConcurrentPositionEvaluator.getBestMoveRecursively(inputConfiguration, depth);
+                } else {
+                    outputConfiguration = BreadthFirstPositionEvaluator.getBestMoveRecursively(inputConfiguration, depth);
+                }
             } else {
                 Thread.sleep(250); // Wait a bit to simulate some thinking time
             }

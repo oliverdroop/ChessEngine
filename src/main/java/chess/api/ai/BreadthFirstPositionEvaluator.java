@@ -2,6 +2,8 @@ package chess.api.ai;
 
 import chess.api.configuration.PieceConfiguration;
 import chess.api.storage.ephemeral.InMemoryTrie;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -11,6 +13,8 @@ import java.util.concurrent.Executors;
 import static chess.api.configuration.PieceConfiguration.*;
 
 public class BreadthFirstPositionEvaluator {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(BreadthFirstPositionEvaluator.class);
 
     private static final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
 
@@ -40,7 +44,7 @@ public class BreadthFirstPositionEvaluator {
                 futures.add(future);
             }
             futures.forEach(CompletableFuture::join);
-            if (currentDepth > 2) {
+            if (currentDepth > 1) {
                 inMemoryTrie.prune(currentDepth);
             }
             currentDepth++;
@@ -53,6 +57,10 @@ public class BreadthFirstPositionEvaluator {
             return bestConfiguration;
         }
         return null;
+    }
+
+    public static double accumulate(double parentValue, double childValue) {
+        return -(childValue * 0.99) - parentValue;
     }
 
     private static void calculateAndScoreOnwardConfigurations(
@@ -153,11 +161,8 @@ public class BreadthFirstPositionEvaluator {
         }
         final MoveScorePair bestChildMove = getBestMoveScorePair(inMemoryTrie, children);
         if (bestChildMove.move() != -1) {
-            return -(bestChildMove.score() * 0.99) - value;
+            return accumulate(value, bestChildMove.score());
         }
         return value;
     }
-
-    private record CurrentAndParentConfigurations(
-        PieceConfiguration currentConfiguration, PieceConfiguration parentConfiguration){}
 }
