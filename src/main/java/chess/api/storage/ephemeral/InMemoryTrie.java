@@ -76,7 +76,7 @@ public class InMemoryTrie {
         // Prune the branches with the most pronounced downward trend in values
 //        final double cutoffProportion = 1 - (1 / Math.pow(10, currentDepth));
 //        final int cutoffIndex = (int) Math.floor(multimap.size() * cutoffProportion);
-        final int cutoffIndex = Math.max(multimap.size() - 1024, 0);
+        final int cutoffIndex = Math.max(multimap.size() - 32768, 0);
         final double cutoffKey = multimap.entries().stream().map(Map.Entry::getKey).toList().get(cutoffIndex);
         final AtomicInteger pruneCount = new AtomicInteger(0);
         multimap
@@ -94,11 +94,12 @@ public class InMemoryTrie {
 
     private double getBranchValue(double[] values) {
         final SimpleRegression simpleRegression = new SimpleRegression();
+        double accumulatedValue = values[0];
         simpleRegression.addData(0, values[0]);
         for(int valueIndex = 1; valueIndex < values.length; valueIndex++) {
-            final double parentValue = values[valueIndex - 1];
             final double childValue = values[valueIndex];
-            simpleRegression.addData(valueIndex, BreadthFirstPositionEvaluator.accumulate(parentValue, childValue));
+            accumulatedValue = BreadthFirstPositionEvaluator.accumulate(accumulatedValue, childValue);
+            simpleRegression.addData(valueIndex, accumulatedValue);
         }
         return simpleRegression.predict(values.length);
     }

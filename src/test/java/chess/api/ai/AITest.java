@@ -395,7 +395,7 @@ public class AITest {
         BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction
     ) {
         setupTest("5rk1/pp4pp/4p3/2R3Q1/3n4/2q4r/P1P2PPP/5RK1 b - - 1 1", configurationClass);
-        newPieceConfiguration = aiFunction.apply(pieceConfiguration, 6);
+        newPieceConfiguration = aiFunction.apply(pieceConfiguration, 7);
         assertThat(FENWriter.write(newPieceConfiguration))
             .as("Expected black to sacrifice its queen")
             .isEqualTo("5rk1/pp4pp/4p3/2R3Q1/3n4/6qr/P1P2PPP/5RK1 w - - 2 2");
