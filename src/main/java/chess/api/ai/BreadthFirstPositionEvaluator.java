@@ -28,7 +28,7 @@ public class BreadthFirstPositionEvaluator {
             originalConfiguration.setHistoricMoves(initialHistoricMoves);
         }
         final int initialHistoricMovesLength = initialHistoricMoves.length;
-        inMemoryTrie.setScore(initialHistoricMoves, 0.0);
+        inMemoryTrie.setScore(initialHistoricMoves, originalConfiguration.getValueDifferential());
         int currentDepth = 0;
 
         while(currentDepth < depth) {

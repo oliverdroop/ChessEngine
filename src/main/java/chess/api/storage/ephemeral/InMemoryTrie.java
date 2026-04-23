@@ -51,32 +51,37 @@ public class InMemoryTrie {
     }
 
     public void prune(int currentDepth) {
-        final int maxDepth = trieMap.keySet().stream()
+        final int maxStoredDepth = trieMap.keySet().stream()
             .map(k -> k.length)
             .max(Comparator.naturalOrder())
             .orElse(0);
-        final int startingDepth = maxDepth - currentDepth;
+        final int startingDepth = maxStoredDepth - currentDepth;
+        if (startingDepth < 1) {
+            return;
+        }
         final TreeMultimap<Double, short[]> multimap = TreeMultimap.create(Comparator.naturalOrder(), SHORT_ARRAY_COMPARATOR);
 
         for(Map.Entry<short[], Double> entry : trieMap.entrySet()) {
             final short[] key = entry.getKey();
-            if (key.length != maxDepth) {
+            if (key.length != maxStoredDepth) {
                 continue;
             }
-            final double[] values = new double[currentDepth];
+            final double[] values = new double[currentDepth + 1];
+            values[0] = trieMap.getOrDefault(new short[]{}, 0.0);
             for(int moveIndex = 1; moveIndex < currentDepth; moveIndex++) {
                 final short[] moveHistory = Arrays.copyOfRange(key, 0, startingDepth + moveIndex);
-                values[moveIndex - 1] = trieMap.getOrDefault(moveHistory, 0.0); // Only null at end of game
+                values[moveIndex] = trieMap.getOrDefault(moveHistory, 0.0); // Only null at end of game
             }
             final double value = entry.getValue();
-            values[currentDepth - 1] = value;
+            values[currentDepth] = value;
             multimap.put(getBranchValue(values), key);
         }
 
         // Prune the branches with the most pronounced downward trend in values
-//        final double cutoffProportion = 1 - (1 / Math.pow(10, currentDepth));
-//        final int cutoffIndex = (int) Math.floor(multimap.size() * cutoffProportion);
-        final int cutoffIndex = Math.max(multimap.size() - 32768, 0);
+        final double cutoffProportion = 1 - (1 / Math.pow(10, currentDepth - 2));
+        final int cutoffIndex = (int) Math.floor(multimap.size() * cutoffProportion);
+//        final int cutoffIndex = Math.max(multimap.size() - 32768, 0);
+//        final int cutoffIndex = Math.max(multimap.size() - 128, 0);
         final double cutoffKey = multimap.entries().stream().map(Map.Entry::getKey).toList().get(cutoffIndex);
         final AtomicInteger pruneCount = new AtomicInteger(0);
         multimap
@@ -94,14 +99,12 @@ public class InMemoryTrie {
 
     private double getBranchValue(double[] values) {
         final SimpleRegression simpleRegression = new SimpleRegression();
-        double accumulatedValue = values[0];
-        simpleRegression.addData(0, values[0]);
-        for(int valueIndex = 1; valueIndex < values.length; valueIndex++) {
-            final double childValue = values[valueIndex];
-            accumulatedValue = BreadthFirstPositionEvaluator.accumulate(accumulatedValue, childValue);
-            simpleRegression.addData(valueIndex, accumulatedValue);
+        for(int valueIndex = 0; valueIndex < values.length; valueIndex++) {
+            final int sign = 1 - ((valueIndex % 2) * 2);
+            final double turnSideAdjustedValue = values[valueIndex] * sign;
+            simpleRegression.addData(valueIndex, turnSideAdjustedValue);
         }
-        return simpleRegression.predict(values.length);
+        return simpleRegression.getSignificance() * simpleRegression.predict(values.length);
     }
 
     private NavigableMap<short[], Double> getDescendants(short[] moveHistory) {

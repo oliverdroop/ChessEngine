@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
+import static chess.api.ai.DepthFirstPositionEvaluator.getBestMoveRecursively;
 import static chess.api.utils.TestUtils.loadConfigurationWithHistory;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -453,6 +454,27 @@ public class AITest {
                 .as("Depth first and breadth first evaluators output different moves for same input")
                 .isEqualTo(depthFirstFen);
             pieceConfiguration = depthFirstEvaluatorConfiguration;
+        }
+        LOGGER.info(previousConfiguration.deriveGameEndType().toString());
+    }
+
+    @Disabled
+    @Test
+    void testPlayAIGame_DepthVsBreadth() {
+        Class<? extends PieceConfiguration> clazz = LongsPieceConfiguration.class;
+        PieceConfiguration pieceConfiguration = FENReader.read(FENWriter.STARTING_POSITION, clazz);
+        PieceConfiguration previousConfiguration = null;
+
+        while(pieceConfiguration != null) {
+            LOGGER.info(pieceConfiguration.toString());
+            previousConfiguration = pieceConfiguration;
+            if (pieceConfiguration.getTurnSide() == 0) {
+                PieceConfiguration input = FENReader.read(FENWriter.write(pieceConfiguration), clazz);
+                pieceConfiguration = DepthFirstPositionEvaluator.getBestMoveRecursively(input, 4);
+            } else {
+                PieceConfiguration input = FENReader.read(FENWriter.write(pieceConfiguration), clazz);
+                pieceConfiguration = BreadthFirstPositionEvaluator.getBestMoveRecursively(input, 6);
+            }
         }
         LOGGER.info(previousConfiguration.deriveGameEndType().toString());
     }
