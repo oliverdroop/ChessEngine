@@ -1,6 +1,7 @@
 package chess.api.controller;
 
 import chess.api.*;
+import chess.api.ai.AlphaBetaPositionEvaluator;
 import chess.api.ai.BreadthFirstPositionEvaluator;
 import chess.api.ai.ConcurrentPositionEvaluator;
 import chess.api.configuration.LongsPieceConfiguration;
@@ -44,7 +45,7 @@ public class FENController {
             PieceConfiguration outputConfiguration = getOpeningResponse(inputConfiguration);
             if (outputConfiguration == null) {
                 if (depth < 6) {
-                    outputConfiguration = ConcurrentPositionEvaluator.getBestMoveRecursively(inputConfiguration, depth);
+                    outputConfiguration = AlphaBetaPositionEvaluator.getBestMoveRecursively(inputConfiguration, depth);
                 } else {
                     outputConfiguration = BreadthFirstPositionEvaluator.getBestMoveRecursively(inputConfiguration, depth);
                 }

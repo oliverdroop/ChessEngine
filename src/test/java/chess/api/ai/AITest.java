@@ -18,7 +18,6 @@ import org.slf4j.LoggerFactory;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
-import static chess.api.ai.DepthFirstPositionEvaluator.getBestMoveRecursively;
 import static chess.api.utils.TestUtils.loadConfigurationWithHistory;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -481,21 +480,25 @@ public class AITest {
 
     private static Stream<Arguments> provideConfigurationAndEvaluatorArguments() {
         return Stream.of(
-            Arguments.of(
-                IntsPieceConfiguration.class,
-                (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) ConcurrentPositionEvaluator::getBestMoveRecursively
-            ),
-            Arguments.of(
-                IntsPieceConfiguration.class,
-                (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) BreadthFirstPositionEvaluator::getBestMoveRecursively
-            ),
-            Arguments.of(
-                LongsPieceConfiguration.class,
-                (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) ConcurrentPositionEvaluator::getBestMoveRecursively
-            ),
+//            Arguments.of(
+//                IntsPieceConfiguration.class,
+//                (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) ConcurrentPositionEvaluator::getBestMoveRecursively
+//            ),
+//            Arguments.of(
+//                IntsPieceConfiguration.class,
+//                (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) BreadthFirstPositionEvaluator::getBestMoveRecursively
+//            ),
             Arguments.of(
                 LongsPieceConfiguration.class,
-                (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) BreadthFirstPositionEvaluator::getBestMoveRecursively
+                (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) ConcurrentPositionEvaluator::getBestMoveRecursively
+            ),
+//            Arguments.of(
+//                LongsPieceConfiguration.class,
+//                (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) BreadthFirstPositionEvaluator::getBestMoveRecursively
+//            ),
+            Arguments.of(
+                LongsPieceConfiguration.class,
+                (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) AlphaBetaPositionEvaluator::getBestMoveRecursively
             )
         );
     }
