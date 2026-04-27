@@ -2,40 +2,45 @@ package chess.api.ai;
 
 import chess.api.configuration.PieceConfiguration;
 import chess.api.storage.ephemeral.SawtoothShortArrayComparator;
-import com.google.common.collect.TreeMultimap;
 
-import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Supplier;
-
-import static chess.api.configuration.PieceConfiguration.toNewConfigurationFromMove;
-import static chess.api.configuration.PieceConfiguration.toNewConfigurationFromMoves;
 
 public class AlphaBetaPositionEvaluator {
 
     private static final Comparator<short[]> SHORT_ARRAY_COMPARATOR = new SawtoothShortArrayComparator();
     private static final Comparator<PieceConfiguration> PIECE_CONFIGURATION_COMPARATOR = (pc1, pc2) -> SHORT_ARRAY_COMPARATOR.compare(pc1.getHistoricMoves(), pc2.getHistoricMoves());
-
-//    private static final Supplier<TreeMap<Double, PieceConfiguration>> TREE_MAP_SUPPLIER = () -> new TreeMap<>(Comparator.reverseOrder());
-    private static final Supplier<TreeMultimap<Double, PieceConfiguration>> TREE_MAP_SUPPLIER = () -> TreeMultimap.create(Comparator.reverseOrder(), PIECE_CONFIGURATION_COMPARATOR);
-
+    private static final Supplier<SortedMap<Double, SortedSet<PieceConfiguration>>> TREE_MAP_SUPPLIER = () -> new ConcurrentSkipListMap<>(Comparator.reverseOrder());
+    private static final ExecutorService EXECUTOR_SERVICE = Executors.newVirtualThreadPerTaskExecutor();
 
     public static PieceConfiguration getBestMoveRecursively(PieceConfiguration originalConfiguration, int depth) {
-//        final TreeMultimap<Double, PieceConfiguration> treeMap = originalConfiguration.getOnwardConfigurations()
-//            .stream()
-//            .collect(Collectors.toMap(
-//                pc -> -alphaBetaMax(pc, -Double.MAX_VALUE, Double.MAX_VALUE, depth - 1),
-//                Function.identity(),
-//                (d1, d2) -> d1,
-//                TREE_MAP_SUPPLIER));
-        final TreeMultimap<Double, PieceConfiguration> treeMap = TREE_MAP_SUPPLIER.get();
+        final SortedMap<Double, SortedSet<PieceConfiguration>> treeMap = TREE_MAP_SUPPLIER.get();
+        final List<CompletableFuture<Void>> futures = new ArrayList<>();
         for(PieceConfiguration childConfiguration : originalConfiguration.getOnwardConfigurations()) {
-            treeMap.put(-alphaBetaMax(childConfiguration, -Double.MAX_VALUE, Double.MAX_VALUE, depth - 1), childConfiguration);
+            final CompletableFuture<Void> future = CompletableFuture.runAsync(
+                () -> {
+                    final double score = -alphaBetaMax(childConfiguration, -Double.MAX_VALUE, Double.MAX_VALUE, depth - 1);
+                    final SortedSet<PieceConfiguration> singletonSet = new TreeSet<>(PIECE_CONFIGURATION_COMPARATOR);
+                    singletonSet.add(childConfiguration);
+                    treeMap.merge(score, singletonSet, (set1, set2) -> {
+                        set1.addAll(set2);
+                        return set1;
+                    });
+                },
+                EXECUTOR_SERVICE
+            );
+            futures.add(future);
         }
+        futures.forEach(CompletableFuture::join);
         return treeMap
             .values()
             .stream()
             .findFirst()
+            .map(SortedSet::first)
             .orElse(null);
     }
 
@@ -67,11 +72,11 @@ public class AlphaBetaPositionEvaluator {
             if (score > bestValue) {
                 bestValue = score;
                 if(score > alpha) {
-                    alpha = score; // alpha acts like max in MiniMax
+                    alpha = score;
                 }
             }
             if (score >= beta) {
-                return score;   // fail soft beta-cutoff
+                return score;
             }
         }
         return bestValue;
@@ -92,11 +97,11 @@ public class AlphaBetaPositionEvaluator {
             if (score < bestValue) {
                 bestValue = score;
                 if (score < beta) {
-                    beta = score; // beta acts like min in MiniMax
+                    beta = score;
                 }
             }
             if (score <= alpha) {
-                return score; // fail soft alpha-cutoff, break can also be used here
+                return score;
             }
         }
         return bestValue;
@@ -105,57 +110,56 @@ public class AlphaBetaPositionEvaluator {
     private static double evaluate(PieceConfiguration configuration) {
         final int valueDifferential = configuration.getValueDifferential();
         return configuration.adjustForDraw(valueDifferential, true);
-//        return configuration.getValueDifferential() + configuration.getLesserScore();
     }
 
-    public static PieceConfiguration getBestMoveRecursively2(PieceConfiguration originalConfiguration, int depth) {
-        final long startTime = Instant.now().toEpochMilli();
-        final long endTime = startTime + (depth * 100L);
-        final TreeMultimap<Double, short[]> multimap = TreeMultimap.create(Comparator.reverseOrder(), SHORT_ARRAY_COMPARATOR);
-        final Optional<short[]> optionalHistoricMoves = Optional.ofNullable(originalConfiguration.getHistoricMoves());
-        final short[] originalHistoricMoves = optionalHistoricMoves.orElse(new short[]{});
-        final double originalValue = originalConfiguration.getValueDifferential() + originalConfiguration.getLesserScore();
-        originalConfiguration.setHistoricMoves(originalHistoricMoves);
-        multimap.put(originalValue, originalHistoricMoves);
-
-//        double bestScore = -Double.MAX_VALUE;
-//        short[] bestMoveHistory = null;
-        while(Instant.now().toEpochMilli() < endTime) {
-            final TreeMultimap<Double, short[]> additionsMap = TreeMultimap.create(Comparator.reverseOrder(), SHORT_ARRAY_COMPARATOR);
-            final TreeMultimap<Double, short[]> removalsMap = TreeMultimap.create(Comparator.reverseOrder(), SHORT_ARRAY_COMPARATOR);
-            for(Map.Entry<Double, short[]> entry : multimap.entries()) {
-                final double score = entry.getKey();
-                final short[] moveHistory = entry.getValue();
-                final PieceConfiguration currentConfiguration = toNewConfigurationFromMoves(originalConfiguration, moveHistory);
-                final List<PieceConfiguration> childConfigurations = currentConfiguration.getOnwardConfigurations();
-
-                final Double gameEndValue = getEndgameValue(childConfigurations.size(), currentConfiguration);
-                if (gameEndValue != null) {
-                    additionsMap.put(gameEndValue, moveHistory);
-                    continue;
-                }
-
-//                final double currentLesserScore = currentConfiguration.getLesserScore();
-                for(PieceConfiguration childConfiguration : childConfigurations) {
-                    final short[] moveHistoryPlusChildMove = childConfiguration.getHistoricMoves();
-                    final int turnAdjustment = 1 - ((moveHistoryPlusChildMove.length % 2) * 2);
-//                    final int turnAdjustment = 1;
-//                    final short move = moveHistoryPlusChildMove[moveHistoryPlusChildMove.length - 1];
-                    final double childScore = (childConfiguration.getValueDifferential() + childConfiguration.getLesserScore()) * -turnAdjustment;
-                    additionsMap.put(childScore, moveHistoryPlusChildMove);
-                }
-                removalsMap.put(score, moveHistory);
-            }
-            for(Map.Entry<Double, short[]> entry : removalsMap.entries()) {
-                multimap.remove(entry.getKey(), entry.getValue());
-            }
-            multimap.putAll(additionsMap);
-        }
-        final short[] bestMoveHistory = multimap.get(multimap.keySet().first()).first();
-        if (bestMoveHistory.length > 0) {
-            final short bestMove = bestMoveHistory[0];
-            return toNewConfigurationFromMove(originalConfiguration, bestMove);
-        }
-        return null;
-    }
+//    public static PieceConfiguration getBestMoveRecursively2(PieceConfiguration originalConfiguration, int depth) {
+//        final long startTime = Instant.now().toEpochMilli();
+//        final long endTime = startTime + (depth * 100L);
+//        final TreeMultimap<Double, short[]> multimap = TreeMultimap.create(Comparator.reverseOrder(), SHORT_ARRAY_COMPARATOR);
+//        final Optional<short[]> optionalHistoricMoves = Optional.ofNullable(originalConfiguration.getHistoricMoves());
+//        final short[] originalHistoricMoves = optionalHistoricMoves.orElse(new short[]{});
+//        final double originalValue = originalConfiguration.getValueDifferential() + originalConfiguration.getLesserScore();
+//        originalConfiguration.setHistoricMoves(originalHistoricMoves);
+//        multimap.put(originalValue, originalHistoricMoves);
+//
+////        double bestScore = -Double.MAX_VALUE;
+////        short[] bestMoveHistory = null;
+//        while(Instant.now().toEpochMilli() < endTime) {
+//            final TreeMultimap<Double, short[]> additionsMap = TreeMultimap.create(Comparator.reverseOrder(), SHORT_ARRAY_COMPARATOR);
+//            final TreeMultimap<Double, short[]> removalsMap = TreeMultimap.create(Comparator.reverseOrder(), SHORT_ARRAY_COMPARATOR);
+//            for(Map.Entry<Double, short[]> entry : multimap.entries()) {
+//                final double score = entry.getKey();
+//                final short[] moveHistory = entry.getValue();
+//                final PieceConfiguration currentConfiguration = toNewConfigurationFromMoves(originalConfiguration, moveHistory);
+//                final List<PieceConfiguration> childConfigurations = currentConfiguration.getOnwardConfigurations();
+//
+//                final Double gameEndValue = getEndgameValue(childConfigurations.size(), currentConfiguration);
+//                if (gameEndValue != null) {
+//                    additionsMap.put(gameEndValue, moveHistory);
+//                    continue;
+//                }
+//
+////                final double currentLesserScore = currentConfiguration.getLesserScore();
+//                for(PieceConfiguration childConfiguration : childConfigurations) {
+//                    final short[] moveHistoryPlusChildMove = childConfiguration.getHistoricMoves();
+//                    final int turnAdjustment = 1 - ((moveHistoryPlusChildMove.length % 2) * 2);
+////                    final int turnAdjustment = 1;
+////                    final short move = moveHistoryPlusChildMove[moveHistoryPlusChildMove.length - 1];
+//                    final double childScore = (childConfiguration.getValueDifferential() + childConfiguration.getLesserScore()) * -turnAdjustment;
+//                    additionsMap.put(childScore, moveHistoryPlusChildMove);
+//                }
+//                removalsMap.put(score, moveHistory);
+//            }
+//            for(Map.Entry<Double, short[]> entry : removalsMap.entries()) {
+//                multimap.remove(entry.getKey(), entry.getValue());
+//            }
+//            multimap.putAll(additionsMap);
+//        }
+//        final short[] bestMoveHistory = multimap.get(multimap.keySet().first()).first();
+//        if (bestMoveHistory.length > 0) {
+//            final short bestMove = bestMoveHistory[0];
+//            return toNewConfigurationFromMove(originalConfiguration, bestMove);
+//        }
+//        return null;
+//    }
 }
