@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static chess.api.BitUtil.*;
 import static chess.api.pieces.King.CASTLE_POSITION_MAPPINGS;
@@ -348,26 +349,28 @@ public abstract class PieceConfiguration {
             return false;
         }
         PieceConfiguration historicConfiguration = parentConfiguration;
-        final int latestAuxiliaryData = auxiliaryData & REPETITION_AUX_DATA_MASK;
-        final int[] latestConfigurationPieces = getSimplePieceBitFlags();
-        int timesVisited = 1;
-        while(historicConfiguration != null) {
-            final int historicAuxiliaryData = historicConfiguration.auxiliaryData & REPETITION_AUX_DATA_MASK;
-            if (historicAuxiliaryData != latestAuxiliaryData) {
-                historicConfiguration = historicConfiguration.getParentConfiguration();
-                continue;
-            }
-            final int[] historicConfigurationPieces = historicConfiguration.getSimplePieceBitFlags();
-            if (historicConfigurationPieces.length < latestConfigurationPieces.length) {
-                break;
-            }
-            if (Arrays.equals(latestConfigurationPieces, historicConfigurationPieces)) {
-                timesVisited++;
-            }
-            if (timesVisited >= 3) {
+        final int pieceCount = getSimplePieceBitFlags().length;
+        final List<PieceConfiguration> reversedConfigurations = new ArrayList<>();
+        reversedConfigurations.add(this);
+        while(historicConfiguration != null && historicConfiguration.getSimplePieceBitFlags().length == pieceCount) {
+            reversedConfigurations.add(historicConfiguration);
+            historicConfiguration = historicConfiguration.getParentConfiguration();
+        }
+        final Map<Integer, Long> auxDataToCountMap = reversedConfigurations
+            .stream()
+            .collect(
+                Collectors.groupingBy(
+                    rc -> rc.getAuxiliaryData() & REPETITION_AUX_DATA_MASK, Collectors.counting()));
+        if (auxDataToCountMap.values().stream().noneMatch(l -> l >= 3)) {
+            return false;
+        }
+        final Map<int[], Long> piecesToCountMap = new TreeMap<>(Arrays::compare);
+        for(PieceConfiguration rc : reversedConfigurations) {
+            int[] pieces = rc.getSimplePieceBitFlags();
+            long mergedValue = piecesToCountMap.merge(pieces, 1L, Long::sum);
+            if (mergedValue > 2) {
                 return true;
             }
-            historicConfiguration = historicConfiguration.getParentConfiguration();
         }
         return false;
     }
