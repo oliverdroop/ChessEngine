@@ -44,11 +44,7 @@ public class FENController {
 
             PieceConfiguration outputConfiguration = getOpeningResponse(inputConfiguration);
             if (outputConfiguration == null) {
-                if (depth < 6) {
-                    outputConfiguration = AlphaBetaPositionEvaluator.getBestMoveRecursively(inputConfiguration, depth);
-                } else {
-                    outputConfiguration = BreadthFirstPositionEvaluator.getBestMoveRecursively(inputConfiguration, depth);
-                }
+                outputConfiguration = AlphaBetaPositionEvaluator.getBestMoveRecursively(inputConfiguration, depth);
             } else {
                 Thread.sleep(250); // Wait a bit to simulate some thinking time
             }

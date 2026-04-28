@@ -478,6 +478,27 @@ public class AITest {
         LOGGER.info(previousConfiguration.deriveGameEndType().toString());
     }
 
+    @Disabled
+    @Test
+    void testPlayAIGame_DepthVsAlphaBeta() {
+        Class<? extends PieceConfiguration> clazz = LongsPieceConfiguration.class;
+        PieceConfiguration pieceConfiguration = FENReader.read(FENWriter.STARTING_POSITION, clazz);
+        PieceConfiguration previousConfiguration = null;
+
+        while(pieceConfiguration != null) {
+            LOGGER.info(pieceConfiguration.toString());
+            previousConfiguration = pieceConfiguration;
+            if (pieceConfiguration.getTurnSide() == 0) {
+                PieceConfiguration input = FENReader.read(FENWriter.write(pieceConfiguration), clazz);
+                pieceConfiguration = AlphaBetaPositionEvaluator.getBestMoveRecursively(input, 4);
+            } else {
+                PieceConfiguration input = FENReader.read(FENWriter.write(pieceConfiguration), clazz);
+                pieceConfiguration = DepthFirstPositionEvaluator.getBestMoveRecursively(input, 4);
+            }
+        }
+        LOGGER.info(previousConfiguration.deriveGameEndType().toString());
+    }
+
     private static Stream<Arguments> provideConfigurationAndEvaluatorArguments() {
         return Stream.of(
 //            Arguments.of(

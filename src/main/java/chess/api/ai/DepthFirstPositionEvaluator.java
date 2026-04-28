@@ -32,7 +32,7 @@ public class DepthFirstPositionEvaluator {
     }
 
     static ConfigurationScorePair getBestConfigurationScorePairRecursively(PieceConfiguration pieceConfiguration, int depth, boolean isInitialDepth) {
-        final int currentDiff = pieceConfiguration.adjustForDraw(pieceConfiguration.getValueDifferential(), isInitialDepth);
+        final int currentDiff = pieceConfiguration.adjustForDraw(pieceConfiguration.getValueDifferential(), isInitialDepth).score();
 
         depth--;
         final List<PieceConfiguration> onwardPieceConfigurations = pieceConfiguration.getOnwardConfigurations();
@@ -41,7 +41,7 @@ public class DepthFirstPositionEvaluator {
         for (int i = 0; i < onwardConfigurationCount; i++) {
             PieceConfiguration onwardConfiguration = onwardPieceConfigurations.get(i);
 
-            int nextDiff = onwardConfiguration.adjustForDraw(onwardConfiguration.getValueDifferential(), isInitialDepth);
+            int nextDiff = onwardConfiguration.adjustForDraw(onwardConfiguration.getValueDifferential(), isInitialDepth).score();
             double comparison = currentDiff - nextDiff;
             if (depth > 0) {
                 comparison += getBestScoreDifferentialRecursively(onwardConfiguration, depth) * 0.99; // This modifier adjusts for uncertainty at depth

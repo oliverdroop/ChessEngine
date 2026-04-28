@@ -35,7 +35,7 @@ public class ConcurrentPositionEvaluator {
     }
 
     private static ConfigurationScorePair getBestConfigurationScorePairConcurrently(PieceConfiguration pieceConfiguration, int depth) {
-        final int currentDiff = pieceConfiguration.adjustForDraw(pieceConfiguration.getValueDifferential(), true);
+        final int currentDiff = pieceConfiguration.adjustForDraw(pieceConfiguration.getValueDifferential(), true).score();
 
         depth--;
         final List<PieceConfiguration> onwardPieceConfigurations = pieceConfiguration.getOnwardConfigurations();
@@ -71,7 +71,7 @@ public class ConcurrentPositionEvaluator {
     private static Supplier<Double> getCallableComparison(
         PieceConfiguration onwardConfiguration, double currentDiff, int depth) {
         return () -> {
-            final int nextDiff = onwardConfiguration.adjustForDraw(onwardConfiguration.getValueDifferential(), true);
+            final int nextDiff = onwardConfiguration.adjustForDraw(onwardConfiguration.getValueDifferential(), true).score();
             final double comparison = currentDiff - nextDiff;
             final double recursiveDiff = getBestScoreDifferentialRecursively(onwardConfiguration, depth) * 0.99;
             return comparison + recursiveDiff;

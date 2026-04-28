@@ -23,7 +23,8 @@ public class AlphaBetaPositionEvaluator {
         for(PieceConfiguration childConfiguration : originalConfiguration.getOnwardConfigurations()) {
             final CompletableFuture<Void> future = CompletableFuture.runAsync(
                 () -> {
-                    final double score = -alphaBetaMax(childConfiguration, -Double.MAX_VALUE, Double.MAX_VALUE, depth - 1);
+                    final DrawResult drawResult = childConfiguration.adjustForDraw(childConfiguration.getValueDifferential(), true);
+                    final double score = drawResult.isDraw() ? -drawResult.score() : -alphaBetaMax(childConfiguration, -Double.MAX_VALUE, Double.MAX_VALUE, depth - 1);
                     final SortedSet<PieceConfiguration> singletonSet = new TreeSet<>(PIECE_CONFIGURATION_COMPARATOR);
                     singletonSet.add(childConfiguration);
                     treeMap.merge(score, singletonSet, (set1, set2) -> {
@@ -68,7 +69,8 @@ public class AlphaBetaPositionEvaluator {
         }
         double bestValue = -Double.MAX_VALUE;
         for (PieceConfiguration childConfiguration : childConfigurations) {
-            final double score = alphaBetaMin(childConfiguration, alpha, beta, depthLeft - 1);
+            final DrawResult drawResult = childConfiguration.adjustForDraw(childConfiguration.getValueDifferential(), true);
+            final double score = drawResult.isDraw() ? drawResult.score() : alphaBetaMin(childConfiguration, alpha, beta, depthLeft - 1);
             if (score > bestValue) {
                 bestValue = score;
                 if(score > alpha) {
@@ -93,7 +95,8 @@ public class AlphaBetaPositionEvaluator {
         }
         double bestValue = Double.MAX_VALUE;
         for (PieceConfiguration childConfiguration : childConfigurations) {
-            final double score = alphaBetaMax(childConfiguration, alpha, beta, depthLeft - 1);
+            final DrawResult drawResult = childConfiguration.adjustForDraw(childConfiguration.getValueDifferential(), true);
+            final double score = drawResult.isDraw() ? drawResult.score() : alphaBetaMax(childConfiguration, alpha, beta, depthLeft - 1);
             if (score < bestValue) {
                 bestValue = score;
                 if (score < beta) {
@@ -109,7 +112,8 @@ public class AlphaBetaPositionEvaluator {
 
     private static double evaluate(PieceConfiguration configuration) {
         final int valueDifferential = configuration.getValueDifferential();
-        return configuration.adjustForDraw(valueDifferential, true);
+        final DrawResult drawResult = configuration.adjustForDraw(valueDifferential, true);
+        return drawResult.score();
     }
 
 //    public static PieceConfiguration getBestMoveRecursively2(PieceConfiguration originalConfiguration, int depth) {

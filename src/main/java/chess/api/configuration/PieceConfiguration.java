@@ -4,6 +4,7 @@ import chess.api.BitUtil;
 import chess.api.FENWriter;
 import chess.api.GameEndType;
 import chess.api.Position;
+import chess.api.ai.DrawResult;
 import chess.api.pieces.Knight;
 import chess.api.pieces.Piece;
 import org.slf4j.Logger;
@@ -329,15 +330,17 @@ public abstract class PieceConfiguration {
         return null;
     }
 
-    public int adjustForDraw(int valueDifferential, boolean checkForThreefoldRepetition) {
+    public DrawResult adjustForDraw(int valueDifferential, boolean checkForThreefoldRepetition) {
+        boolean isDraw = false;
         if (isDraw(checkForThreefoldRepetition)) {
+            isDraw = true;
             if (Math.abs(valueDifferential) > DRAW_PREFERRED_MATERIAL_DISADVANTAGE_THRESHOLD) {
                 valueDifferential -= (int) Math.signum(valueDifferential) * Short.MAX_VALUE;
             } else {
                 valueDifferential += Short.MAX_VALUE;
             }
         }
-        return valueDifferential;
+        return new DrawResult(isDraw, valueDifferential);
     }
 
     protected int getPieceAndColourWithPosition(int position) {
