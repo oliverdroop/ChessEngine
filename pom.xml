@@ -2,18 +2,18 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>oliverdroop</groupId>
 	<artifactId>ChessEngine</artifactId>
-	<version>1.2.6</version>
+	<version>1.3.0</version>
 	<!-- Inherit defaults from Spring Boot -->
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.8</version>
+		<version>3.5.14</version>
 	</parent>
 
 	<properties>
-		<spring.boot.version>3.5.8</spring.boot.version>
+		<spring.boot.version>3.5.14</spring.boot.version>
 		<maven.surefire.plugin.version>3.5.3</maven.surefire.plugin.version>
-		<log4j.version>2.24.3</log4j.version>
+		<log4j.version>2.25.4</log4j.version>
 	</properties>
 
 	<build>
@@ -141,14 +141,14 @@
 		<dependency>
 		    <groupId>org.assertj</groupId>
 		    <artifactId>assertj-core</artifactId>
-		    <version>3.14.0</version>
+		    <version>3.27.7</version>
 		    <scope>test</scope>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core -->
 		<dependency>
-			<groupId>com.fasterxml.jackson.core</groupId>
+			<groupId>tools.jackson.core</groupId>
 			<artifactId>jackson-core</artifactId>
-			<version>2.18.2</version>
+			<version>3.1.2</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-web -->
 		<dependency>
