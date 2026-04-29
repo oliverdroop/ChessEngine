@@ -130,7 +130,7 @@ public class BreadthFirstPositionEvaluator {
         boolean isMaximumDepth)
     {
         // Set all the bit flags in the onward configuration
-        final int onwardValueComparison = onwardConfiguration.adjustForDraw(
+        final int onwardValueComparison = onwardConfiguration.getDrawResult(
             onwardConfiguration.getValueDifferential(), !isMaximumDepth).score();
         return onwardValueComparison + currentLesserScore;
     }

@@ -330,7 +330,7 @@ public abstract class PieceConfiguration {
         return null;
     }
 
-    public DrawResult adjustForDraw(int valueDifferential, boolean checkForThreefoldRepetition) {
+    public DrawResult getDrawResult(int valueDifferential, boolean checkForThreefoldRepetition) {
         boolean isDraw = false;
         if (isDraw(checkForThreefoldRepetition)) {
             isDraw = true;
@@ -369,8 +369,8 @@ public abstract class PieceConfiguration {
         }
         final Map<int[], Long> piecesToCountMap = new TreeMap<>(Arrays::compare);
         for(PieceConfiguration rc : reversedConfigurations) {
-            int[] pieces = rc.getSimplePieceBitFlags();
-            long mergedValue = piecesToCountMap.merge(pieces, 1L, Long::sum);
+            final int[] pieces = rc.getSimplePieceBitFlags();
+            final long mergedValue = piecesToCountMap.merge(pieces, 1L, Long::sum);
             if (mergedValue > 2) {
                 return true;
             }
