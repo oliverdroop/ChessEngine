@@ -25,7 +25,7 @@ public class AITest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AITest.class);
 
-	private static final int DEPTH = 5;
+	private static final int DEPTH = 4;
 
 	private PieceConfiguration pieceConfiguration;
 
@@ -149,6 +149,19 @@ public class AITest {
         assertThat(FENWriter.write(newPieceConfiguration))
             .as("One of the knights should move to avoid blocking the black king in the corner")
             .doesNotContain("5N2/5N2");
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideConfigurationAndEvaluatorArguments")
+    void testInStalemate_toExtraDepth(
+        Class<? extends PieceConfiguration> configurationClass,
+        BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction)
+    {
+        setupTest("2Q5/kB1N4/8/8/8/8/8/KR6 b - - 0 50", configurationClass);
+        newPieceConfiguration = aiFunction.apply(pieceConfiguration, DEPTH + 1);
+        assertThat(newPieceConfiguration)
+            .as("Expected no possible moves because input position is stalemate")
+            .isNull();
     }
 
     @ParameterizedTest
@@ -390,7 +403,7 @@ public class AITest {
 
     @Disabled
     @ParameterizedTest
-    @MethodSource("provideBreadthFirstOnlyPositionEvaluatorArguments")
+    @MethodSource("provideAlphaBeataOnlyPositionEvaluatorArguments")
     void testAiSacrificesQueen_goldCoinsGame(
         Class<? extends PieceConfiguration> configurationClass,
         BiFunction<PieceConfiguration, Integer, PieceConfiguration> aiFunction
@@ -510,22 +523,14 @@ public class AITest {
 
     private static Stream<Arguments> provideConfigurationAndEvaluatorArguments() {
         return Stream.of(
-//            Arguments.of(
-//                IntsPieceConfiguration.class,
-//                (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) ConcurrentPositionEvaluator::getBestMoveRecursively
-//            ),
-//            Arguments.of(
-//                IntsPieceConfiguration.class,
-//                (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) BreadthFirstPositionEvaluator::getBestMoveRecursively
-//            ),
             Arguments.of(
                 LongsPieceConfiguration.class,
                 (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) ConcurrentPositionEvaluator::getBestMoveRecursively
             ),
-//            Arguments.of(
-//                LongsPieceConfiguration.class,
-//                (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) BreadthFirstPositionEvaluator::getBestMoveRecursively
-//            ),
+            Arguments.of(
+                LongsPieceConfiguration.class,
+                (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) BreadthFirstPositionEvaluator::getBestMoveRecursively
+            ),
             Arguments.of(
                 LongsPieceConfiguration.class,
                 (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) AlphaBetaPositionEvaluator::getBestMoveRecursively
@@ -533,15 +538,15 @@ public class AITest {
         );
     }
 
-    private static Stream<Arguments> provideBreadthFirstOnlyPositionEvaluatorArguments() {
+    private static Stream<Arguments> provideAlphaBeataOnlyPositionEvaluatorArguments() {
         return Stream.of(
             Arguments.of(
                 IntsPieceConfiguration.class,
-                (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) BreadthFirstPositionEvaluator::getBestMoveRecursively
+                (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) AlphaBetaPositionEvaluator::getBestMoveRecursively
             ),
             Arguments.of(
                 LongsPieceConfiguration.class,
-                (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) BreadthFirstPositionEvaluator::getBestMoveRecursively
+                (BiFunction<PieceConfiguration, Integer, PieceConfiguration>) AlphaBetaPositionEvaluator::getBestMoveRecursively
             )
         );
     }

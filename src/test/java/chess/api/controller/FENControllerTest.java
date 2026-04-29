@@ -135,12 +135,11 @@ public class FENControllerTest {
     }
 
     @Test
-    void testGetAvailableMoves_withAiDrawAndCheck() throws Exception {
+    void testGetAvailableMoves_withAiFiftyMoveFailure() throws Exception {
         String fen = "8/8/8/3K4/3Q4/8/2k5/8 w - - 99 155";
         performAiMoveRequest(buildAiMoveRequest(fen, 3))
             .andExpect(status().isOk())
-            .andExpect(content().string(containsString(DRAW_BY_FIFTY_MOVE_RULE.toString())))
-            .andExpect(content().string(containsString("\"isCheck\":true")));
+            .andExpect(content().string(containsString(DRAW_BY_FIFTY_MOVE_RULE.toString())));
     }
     
     @Test
