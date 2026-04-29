@@ -351,6 +351,9 @@ public abstract class PieceConfiguration {
         if (parentConfiguration == null) {
             return false;
         }
+        if (this.getHalfMoveClock() < 8) {
+            return false;
+        }
         PieceConfiguration historicConfiguration = parentConfiguration;
         final int pieceCount = getSimplePieceBitFlags().length;
         final List<PieceConfiguration> reversedConfigurations = new ArrayList<>();
@@ -358,6 +361,9 @@ public abstract class PieceConfiguration {
         while(historicConfiguration != null && historicConfiguration.getSimplePieceBitFlags().length == pieceCount) {
             reversedConfigurations.add(historicConfiguration);
             historicConfiguration = historicConfiguration.getParentConfiguration();
+        }
+        if (reversedConfigurations.size() < 9) {
+            return false;
         }
         final Map<Integer, Long> auxDataToCountMap = reversedConfigurations
             .stream()
@@ -370,7 +376,10 @@ public abstract class PieceConfiguration {
         final Map<int[], Long> piecesToCountMap = new TreeMap<>(Arrays::compare);
         for(PieceConfiguration rc : reversedConfigurations) {
             final int[] pieces = rc.getSimplePieceBitFlags();
-            final long mergedValue = piecesToCountMap.merge(pieces, 1L, Long::sum);
+            final int[] piecesAndRelevantAuxData = new int[pieces.length + 1];
+            piecesAndRelevantAuxData[0] = rc.getAuxiliaryData() & REPETITION_AUX_DATA_MASK;
+            System.arraycopy(pieces, 0, piecesAndRelevantAuxData, 1, pieces.length);
+            final long mergedValue = piecesToCountMap.merge(piecesAndRelevantAuxData, 1L, Long::sum);
             if (mergedValue > 2) {
                 return true;
             }

@@ -273,7 +273,8 @@ public class AITest {
 				.isIn("r1b1k1nr/pppp1ppp/2n1pq2/8/1b1PP3/2PB2P1/PP3P1P/RNBQK1NR w KQkq - 8 6",
 						"r1b1k1nr/pppp1ppp/2n1p3/8/1b1PP3/2PB2P1/PP3P1P/RNBQK1NR w KQkq - 8 6",
 						"r1bqk1nr/pppp1ppp/2n1p3/8/1b1PP3/2PB2P1/PP3P1P/RNBQK1NR w KQkq - 8 6",
-						"r1b1k1nr/pppp1ppp/2n1p3/8/3PP2q/2bB2P1/PP3P1P/RNBQK1NR w KQkq - 0 6");
+						"r1b1k1nr/pppp1ppp/2n1p3/8/3PP2q/2bB2P1/PP3P1P/RNBQK1NR w KQkq - 0 6",
+                        "r1b1k1nr/ppppqppp/2n1p3/8/1b1PP3/2PB2P1/PP3P1P/RNBQK1NR w KQkq - 8 6");
 	}
 
     @ParameterizedTest
@@ -462,20 +463,24 @@ public class AITest {
     void testPlayAIGame_DepthVsBreadth() {
         Class<? extends PieceConfiguration> clazz = LongsPieceConfiguration.class;
         PieceConfiguration pieceConfiguration = FENReader.read(FENWriter.STARTING_POSITION, clazz);
+        pieceConfiguration.setHistoricMoves(new short[]{});
         PieceConfiguration previousConfiguration = null;
 
-        while(pieceConfiguration != null) {
+        while(pieceConfiguration != null && !pieceConfiguration.isDraw(true)) {
             LOGGER.info(pieceConfiguration.toString());
             previousConfiguration = pieceConfiguration;
             if (pieceConfiguration.getTurnSide() == 0) {
-                PieceConfiguration input = FENReader.read(FENWriter.write(pieceConfiguration), clazz);
-                pieceConfiguration = DepthFirstPositionEvaluator.getBestMoveRecursively(input, 4);
+                pieceConfiguration = DepthFirstPositionEvaluator.getBestMoveRecursively(pieceConfiguration, DEPTH);
             } else {
-                PieceConfiguration input = FENReader.read(FENWriter.write(pieceConfiguration), clazz);
-                pieceConfiguration = BreadthFirstPositionEvaluator.getBestMoveRecursively(input, 6);
+                pieceConfiguration = BreadthFirstPositionEvaluator.getBestMoveRecursively(pieceConfiguration, DEPTH);
             }
         }
-        LOGGER.info(previousConfiguration.deriveGameEndType().toString());
+        if (pieceConfiguration == null) {
+            LOGGER.info(previousConfiguration.deriveGameEndType().toString());
+        } else {
+            LOGGER.info(pieceConfiguration.toString());
+            LOGGER.info(pieceConfiguration.deriveGameEndType().toString());
+        }
     }
 
     @Disabled
@@ -483,20 +488,24 @@ public class AITest {
     void testPlayAIGame_DepthVsAlphaBeta() {
         Class<? extends PieceConfiguration> clazz = LongsPieceConfiguration.class;
         PieceConfiguration pieceConfiguration = FENReader.read(FENWriter.STARTING_POSITION, clazz);
+        pieceConfiguration.setHistoricMoves(new short[]{});
         PieceConfiguration previousConfiguration = null;
 
-        while(pieceConfiguration != null) {
+        while(pieceConfiguration != null && !pieceConfiguration.isDraw(true)) {
             LOGGER.info(pieceConfiguration.toString());
             previousConfiguration = pieceConfiguration;
             if (pieceConfiguration.getTurnSide() == 0) {
-                PieceConfiguration input = FENReader.read(FENWriter.write(pieceConfiguration), clazz);
-                pieceConfiguration = AlphaBetaPositionEvaluator.getBestMoveRecursively(input, 4);
+                pieceConfiguration = ConcurrentPositionEvaluator.getBestMoveRecursively(pieceConfiguration, DEPTH);
             } else {
-                PieceConfiguration input = FENReader.read(FENWriter.write(pieceConfiguration), clazz);
-                pieceConfiguration = DepthFirstPositionEvaluator.getBestMoveRecursively(input, 4);
+                pieceConfiguration = AlphaBetaPositionEvaluator.getBestMoveRecursively(pieceConfiguration, DEPTH);
             }
         }
-        LOGGER.info(previousConfiguration.deriveGameEndType().toString());
+        if (pieceConfiguration == null) {
+            LOGGER.info(previousConfiguration.deriveGameEndType().toString());
+        } else {
+            LOGGER.info(pieceConfiguration.toString());
+            LOGGER.info(pieceConfiguration.deriveGameEndType().toString());
+        }
     }
 
     private static Stream<Arguments> provideConfigurationAndEvaluatorArguments() {

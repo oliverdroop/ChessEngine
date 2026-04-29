@@ -17,7 +17,7 @@ public class AlphaBetaPositionEvaluator {
     private static final Comparator<PieceConfiguration> PIECE_CONFIGURATION_COMPARATOR = (pc1, pc2) -> SHORT_ARRAY_COMPARATOR.compare(pc1.getHistoricMoves(), pc2.getHistoricMoves());
     private static final Supplier<SortedMap<Double, SortedSet<PieceConfiguration>>> TREE_MAP_SUPPLIER = () -> new ConcurrentSkipListMap<>(Comparator.reverseOrder());
     private static final ExecutorService EXECUTOR_SERVICE = Executors.newVirtualThreadPerTaskExecutor();
-    private static final IntToDoubleFunction DEPTH_DECAY_FUNCTION = depth -> Math.pow(1.01, depth);
+    private static final IntToDoubleFunction DEPTH_DECAY_FUNCTION = depthLeft -> Math.pow(1.01, depthLeft);
 
     public static PieceConfiguration getBestMoveRecursively(PieceConfiguration originalConfiguration, int depth) {
         final SortedMap<Double, SortedSet<PieceConfiguration>> treeMap = TREE_MAP_SUPPLIER.get();
@@ -72,13 +72,13 @@ public class AlphaBetaPositionEvaluator {
     }
 
     private static double alphaBetaMax(PieceConfiguration configuration, double alpha, double beta, int depthLeft) {
+        if (depthLeft == 0) {
+            return evaluate(configuration);
+        }
         final List<PieceConfiguration> childConfigurations = configuration.getOnwardConfigurations();
         final Double gameEndValue = getEndgameValue(childConfigurations.size(), configuration);
         if (gameEndValue != null) {
             return -gameEndValue * DEPTH_DECAY_FUNCTION.applyAsDouble(depthLeft);
-        }
-        if (depthLeft == 0) {
-            return evaluate(configuration);
         }
         double bestValue = -Double.MAX_VALUE;
         for (PieceConfiguration childConfiguration : childConfigurations) {
@@ -98,13 +98,13 @@ public class AlphaBetaPositionEvaluator {
     }
 
     private static double alphaBetaMin(PieceConfiguration configuration, double alpha, double beta, int depthLeft) {
+        if (depthLeft == 0) {
+            return -evaluate(configuration);
+        }
         final List<PieceConfiguration> childConfigurations = configuration.getOnwardConfigurations();
         final Double gameEndValue = getEndgameValue(childConfigurations.size(), configuration);
         if (gameEndValue != null) {
             return gameEndValue * DEPTH_DECAY_FUNCTION.applyAsDouble(depthLeft);
-        }
-        if (depthLeft == 0) {
-            return -evaluate(configuration);
         }
         double bestValue = Double.MAX_VALUE;
         for (PieceConfiguration childConfiguration : childConfigurations) {
