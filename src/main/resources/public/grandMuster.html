@@ -17,16 +17,27 @@
         div.moveHistoryDiv{
             color: rgb(0,0,0);
         }
-        canvas{
-            background-color: rgb(80,80,80);
-            width: 800px;
+        div.takenPiecesDiv{
+            position: absolute;
+            width: 200px;
             height: 800px;
+            left: calc(50% + 450px);
+            top: calc(50vh - 400px);
+        }
+        canvas.boardCanvas{
+            background-color: rgb(80,80,80);
+        }
+        canvas.takenPiecesCanv{
+            background-color: rgb(127,127,127);
         }
     </style>
 </head>
 <body>
 <div class="canvasDiv" id="canvasDiv">
-    <canvas id="canv" name="canv"/>
+    <canvas class="boardCanvas" id="canv" width="800" height="800"></canvas>
+</div>
+<div class="takenPiecesDiv" id="takenPiecesDiv">
+    <canvas class="takenPiecesCanv" id="takenPiecesCanv" width="200" height="800"></canvas>
 </div>
 <input type="range" name="AI Depth" min="1" max="6" value="4" class="slider" id="difficultySlider" />
 <input type="button" value="Play as Black" onclick="switchSide()" id="switchSideButton" />
@@ -36,6 +47,8 @@
 <script>
     var canv = document.getElementById("canv");
     var ctx = canv.getContext('2d');
+    var takenPiecesCanv = document.getElementById("takenPiecesCanv");
+    var takenPiecesCanvasContext = takenPiecesCanv.getContext('2d');
     // var hostAddress = "https://localhost:8081/chess";
     var hostAddress = "/chess";
     var board = {
@@ -60,6 +73,19 @@
     var imgCog3 = loadImage("Cog3.bmp");
     var imgCog4 = loadImage("Cog4.bmp");
     var cogs = [imgCog1, imgCog2, imgCog3, imgCog4];
+    var pieceImagesMap = new Map();
+    pieceImagesMap.set('p', imgBlackPawn);
+    pieceImagesMap.set('P', imgWhitePawn);
+    pieceImagesMap.set('r', imgBlackRook);
+    pieceImagesMap.set('R', imgWhiteRook);
+    pieceImagesMap.set('n', imgBlackKnight);
+    pieceImagesMap.set('N', imgWhiteKnight);
+    pieceImagesMap.set('b', imgBlackBishop);
+    pieceImagesMap.set('B', imgWhiteBishop);
+    pieceImagesMap.set('q', imgBlackQueen);
+    pieceImagesMap.set('Q', imgWhiteQueen);
+    pieceImagesMap.set('k', imgBlackKing);
+    pieceImagesMap.set('K', imgWhiteKing);
     var destinationRegex = /[a-h][1-8][qnbr]{0,1}$/;
     createSquares();
     createPieces();
@@ -67,6 +93,8 @@
     var enPassantSquare = null;
     var availableMoves = [];
     var moveHistory = [];
+    var takenOpponentPieces = [];
+    var takenPlayerPieces = [];
     var turnTeam = 0;
     var playerTeam = 0;
     var halfmoveClock = 0;
@@ -145,6 +173,7 @@
         }
         // Remove the taken piece if it exists
         if (takenPieceIndex >= 0) {
+            updateTakenPieces(getPieceCharacter(board.pieces[takenPieceIndex]), true);
             board.pieces.splice(takenPieceIndex, 1);
             halfmoveClock = 0;
         }
@@ -341,6 +370,11 @@
         moveHistoryDiv.innerHTML = moveHistoryString;
     }
 
+    function updateTakenPieces(takenPieceChar, isOpponentPiece) {
+        var takenPieces = isOpponentPiece ? takenOpponentPieces : takenPlayerPieces;
+        takenPieces.push(takenPieceChar);
+    }
+
     function getCoordinateString(x, y) {
         return String.fromCharCode((7 - x) + 97) + y;
     }
@@ -452,6 +486,7 @@
     function setBoardState(fen){
         var fields = fen.split(" ");
         var ranks = fields[0].split("/");
+        var previousBoardPieces = board.pieces;
         board.pieces = [];
         for(var y = 0; y < 8; y++) {
             var rank = ranks[7 - y];
@@ -469,6 +504,12 @@
                 else {
                     x += Number(c);
                 }
+            }
+        }
+        if (board.pieces.length < previousBoardPieces.length) {
+            var takenPieceChar = identifyTakenPieceChar(previousBoardPieces, board.pieces);
+            if (takenPieceChar !== null) {
+                updateTakenPieces(takenPieceChar, false);
             }
         }
 
@@ -513,6 +554,26 @@
 
         halfmoveClock = fields[4];
         fullmoveNumber = fields[5];
+    }
+
+    function identifyTakenPieceChar(previousPieces, currentPieces) {
+        var previousPieceChars = previousPieces.map(piece => getPieceCharacter(piece)).reduce((c1, c2) => c1 + c2);
+        var currentPieceChars = currentPieces.map(piece => getPieceCharacter(piece)).reduce((c1, c2) => c1 + c2);
+        const possiblePieceChars = ['p', 'P', 'r', 'R', 'n', 'N', 'b', 'B', 'q', 'Q', 'k', 'K'];
+        var previousPieceCountMap = new Map(possiblePieceChars.map(possibleChar => ([possibleChar, previousPieceChars.split(possibleChar).length - 1])));
+        var currentPieceCountMap = new Map(possiblePieceChars.map(possibleChar => ([possibleChar, currentPieceChars.split(possibleChar).length - 1])));
+        var lowerCountChar = null;
+        for(var key of previousPieceCountMap.keys()) {
+            var value = currentPieceCountMap.get(key);
+            if (value === null || value < previousPieceCountMap.get(key)) {
+                if (key !== 'P' && key !== 'p') {
+                    return key;
+                } else {
+                    lowerCountChar = key;
+                }
+            }
+        }
+        return lowerCountChar;
     }
 
     function inputFenDirectly() {
@@ -573,11 +634,34 @@
     function drawAll(){
         drawEmptyBoard();
         drawPieces();
+        drawTakenPieces();
         drawAvailableMoves();
         drawSelectedPiece();
         drawPreviousMove();
         drawCheck();
         drawWaitTimer();
+    }
+
+    function drawTakenPieces() {
+        var size = board.squareSize / 2;
+        for(var i = 0; i < takenPlayerPieces.length; i++) {
+            var takenPieceChar = takenPlayerPieces[i];
+            var x = (i % 4) * size;
+            var y = Math.floor(i / 4) * size;
+            var image = pieceImagesMap.get(takenPieceChar);
+            if (image) {
+                takenPiecesCanvasContext.drawImage(image, x, y, size, size);
+            }
+        }
+        for(var i = 0; i < takenOpponentPieces.length; i++) {
+            var takenPieceChar = takenOpponentPieces[i];
+            var x = (i % 4) * size;
+            var y = (15 - Math.floor(i / 4)) * size;
+            var image = pieceImagesMap.get(takenPieceChar);
+            if (image) {
+                takenPiecesCanvasContext.drawImage(image, x, y, size, size);
+            }
+        }
     }
 
     function drawPiece(piece){
