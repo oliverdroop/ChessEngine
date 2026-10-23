@@ -3,12 +3,14 @@ package chess.api.controller;
 import chess.api.FENWriter;
 import chess.api.dto.AiMoveRequestDto;
 import chess.api.dto.AvailableMovesRequestDto;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.util.List;
@@ -153,6 +155,18 @@ public class FENControllerTest {
     void testGetAvailableMoves_fromEmptySquare() throws Exception {
         performAvailableMovesRequest(buildAvailableMovesRequest(FENWriter.STARTING_POSITION, "e3"))
             .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void testGetAvailableMoves_supplyingNoSquareFromWhichToMove() throws Exception {
+        MvcResult result = performAvailableMovesRequest(buildAvailableMovesRequest(
+                    FENWriter.STARTING_POSITION, null))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String response = result.getResponse().getContentAsString();
+        List<String> availableMoves = new ObjectMapper().readValue(response, new TypeReference<>() {});
+        assertThat(availableMoves).hasSize(20);
     }
 
     private ResultActions performAiMoveRequest(AiMoveRequestDto aiMoveRequestDto) throws Exception {

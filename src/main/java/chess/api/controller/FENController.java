@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -76,15 +77,20 @@ public class FENController {
             LOGGER.debug("From: {}", availableMovesRequestDto.getFrom());
             final PieceConfiguration inputConfiguration = FENReader.read(
                 availableMovesRequestDto.getFen(), CONFIGURATION_CLASS);
-            final int pieceBitFlag = inputConfiguration.getPieceAtPosition(Position.getPosition(availableMovesRequestDto.getFrom()));
-            LOGGER.info("Getting available moves for the {} {} at {}",
-                    Side.values()[Piece.getSide(pieceBitFlag)], Piece.getPieceType(pieceBitFlag),
-                    Position.getCoordinateString(Position.getPosition(pieceBitFlag)));
+            final List<String> algebraicNotations;
+            if (availableMovesRequestDto.getFrom() != null) {
+                final int pieceBitFlag = inputConfiguration.getPieceAtPosition(Position.getPosition(availableMovesRequestDto.getFrom()));
+                LOGGER.info("Getting available moves for the {} {} at {}",
+                        Side.values()[Piece.getSide(pieceBitFlag)], Piece.getPieceType(pieceBitFlag),
+                        Position.getCoordinateString(Position.getPosition(pieceBitFlag)));
 
-            final List<String> algebraicNotations = inputConfiguration.getOnwardConfigurationsForPiece(pieceBitFlag)
-                    .stream()
-                    .map(pc -> pc.getAlgebraicNotation(inputConfiguration))
-                    .collect(Collectors.toList());
+                algebraicNotations = mapToAlgebraicNotations(
+                        inputConfiguration.getOnwardConfigurationsForPiece(pieceBitFlag), inputConfiguration);
+            } else {
+                LOGGER.info("Getting all available moves");
+                algebraicNotations = mapToAlgebraicNotations(
+                        inputConfiguration.getOnwardConfigurations(), inputConfiguration);
+            }
             LOGGER.info("Response: {}", algebraicNotations);
             return ResponseEntity.ok(algebraicNotations);
         } catch (IllegalArgumentException e) {
@@ -121,5 +127,16 @@ public class FENController {
         final GameEndType gameEndType = pieceConfiguration.deriveGameEndType();
         response.setGameResult(gameEndType.toString());
         LOGGER.info("{}: {}", gameEndType, pieceConfiguration);
+    }
+
+    private List<String> mapToAlgebraicNotations(
+            Collection<PieceConfiguration> pieceConfigurations,
+            PieceConfiguration previousConfiguration
+    ) {
+        return pieceConfigurations
+                .stream()
+                .map(pc -> pc.getAlgebraicNotation(previousConfiguration))
+                .sorted()
+                .collect(Collectors.toList());
     }
 }

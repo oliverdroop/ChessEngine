@@ -1,11 +1,9 @@
 package chess.api.dto;
 
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 
 public class AvailableMovesRequestDto extends FENRequestDto {
 
-    @NotNull
     @Pattern(regexp = "^[a-h][1-8]$")
     private String from;
 
