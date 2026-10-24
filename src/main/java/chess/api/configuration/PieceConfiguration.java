@@ -294,6 +294,25 @@ public abstract class PieceConfiguration {
                 capturing = true;
             }
         }
+        final int previousEnPassantPosition = previousConfiguration.getEnPassantSquare();
+        final boolean isEnPassant = previousEnPassantPosition > 0 && (currentBitFlag & 63) == previousEnPassantPosition;
+        if (isEnPassant) {
+            capturing = true;
+            final int[] diagonalPositions = new int[]{
+                    previousEnPassantPosition + 7,
+                    previousEnPassantPosition + 9,
+                    previousEnPassantPosition - 7,
+                    previousEnPassantPosition - 9
+            };
+            for(int diagonalPosition : diagonalPositions) {
+                if (Position.isValidPosition(diagonalPosition)
+                        && getPieceAtPosition(diagonalPosition) < 64
+                        && previousConfiguration.getPieceAtPosition(diagonalPosition) > 63) {
+                    previousBitFlag = previousConfiguration.getPieceAtPosition(diagonalPosition);
+                    break;
+                }
+            }
+        }
         String promotionTo = null;
         if ((previousBitFlag & ALL_PIECE_FLAGS_COMBINED) != (currentBitFlag & ALL_PIECE_FLAGS_COMBINED)) {
             promotionTo = PROMOTION_PIECE_TYPES.get(currentBitFlag & ALL_PIECE_FLAGS_COMBINED).toLowerCase();

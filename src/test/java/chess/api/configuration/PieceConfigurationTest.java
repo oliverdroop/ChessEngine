@@ -126,6 +126,17 @@ public class PieceConfigurationTest {
         assertThat(pieceConfiguration.getEnPassantSquare()).isLessThan(0);
     }
 
+    @Test
+    void testGetAlgebraicNotation_EnPassant() {
+        PieceConfiguration previousConfiguration = FENReader.read(
+                "rnbqkbnr/2pppppp/8/1p6/pP6/P6N/2PPPPPP/RNBQKBR1 b Qkq b3 0 4",
+                LongsPieceConfiguration.class);
+        PieceConfiguration currentConfiguration = FENReader.read(
+                "rnbqkbnr/2pppppp/8/1p6/8/Pp5N/2PPPPPP/RNBQKBR1 w Qkq - 0 5",
+                LongsPieceConfiguration.class);
+        assertThat(currentConfiguration.getAlgebraicNotation(previousConfiguration)).isEqualTo("a4xb3");
+    }
+
     @ParameterizedTest
     @MethodSource("getEnPassantSquareValues")
     void testSetEnPassantSquare(int inputEnPassantPosition, int expectedAuxData) {
