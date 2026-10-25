@@ -169,6 +169,18 @@ public class FENControllerTest {
         assertThat(availableMoves).hasSize(20);
     }
 
+    @Test
+    void testGetAvailableMoves_errorCase() throws Exception {
+        MvcResult result = performAvailableMovesRequest(buildAvailableMovesRequest(
+                "rnbqkbnr/3ppppp/8/2pP4/5P2/p5PB/RpPBP2P/1N1QK1NR w Kkq c6 0 9", null))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String response = result.getResponse().getContentAsString();
+        List<String> availableMoves = new ObjectMapper().readValue(response, new TypeReference<>() {});
+        assertThat(availableMoves).hasSize(28);
+    }
+
     private ResultActions performAiMoveRequest(AiMoveRequestDto aiMoveRequestDto) throws Exception {
         return performRequest(AI_MOVE_ENDPOINT, aiMoveRequestDto);
     }

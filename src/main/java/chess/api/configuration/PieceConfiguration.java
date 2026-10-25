@@ -306,8 +306,8 @@ public abstract class PieceConfiguration {
             };
             for(int diagonalPosition : diagonalPositions) {
                 if (Position.isValidPosition(diagonalPosition)
-                        && getPieceAtPosition(diagonalPosition) < 64
-                        && previousConfiguration.getPieceAtPosition(diagonalPosition) > 63) {
+                        && (getPieceAtPosition(diagonalPosition) & ALL_PIECE_FLAGS_COMBINED) == 0
+                        && (previousConfiguration.getPieceAtPosition(diagonalPosition) & ALL_PIECE_FLAGS_COMBINED) != 0) {
                     previousBitFlag = previousConfiguration.getPieceAtPosition(diagonalPosition);
                     break;
                 }
